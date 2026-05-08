@@ -51,23 +51,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Payment creation failed" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-    const intentId = req.nextUrl.searchParams.get("intentId");
-
-    if (!intentId) {
-      return NextResponse.json(
-        { error: "intentId required" },
         { status: 400 }
       );
     }
