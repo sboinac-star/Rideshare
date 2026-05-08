@@ -1,7 +1,5 @@
 const Stripe = require('stripe');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -15,6 +13,7 @@ exports.handler = async (event, context) => {
 
   if (event.httpMethod === 'POST') {
     try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const body = JSON.parse(event.body);
       const { amount, rideId, userId } = body;
 
@@ -44,6 +43,7 @@ exports.handler = async (event, context) => {
 
   if (event.httpMethod === 'GET') {
     try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const intentId = event.queryStringParameters?.intentId;
 
       if (!intentId) {

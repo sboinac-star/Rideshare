@@ -1,14 +1,21 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(req: NextRequest) {
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     const body = await req.json();
     const { amount, rideId, userId } = body;
 
     const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: "usd",
+      metadata: {
+        rideId,
+        userId,
+      },
+      description: `NWA Ride Share - Ride ${rideId}`,
+    });
       amount: Math.round(amount * 100),
       currency: "usd",
       metadata: {
@@ -32,6 +39,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     const intentId = req.nextUrl.searchParams.get("intentId");
 
     if (!intentId) {
