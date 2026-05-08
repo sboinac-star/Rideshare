@@ -51,17 +51,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-        { status: 400 }
-      );
-    }
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
-
-    return NextResponse.json({ paymentIntent }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to retrieve payment" },
-      { status: 500 }
-    );
-  }
-}
