@@ -1,20 +1,21 @@
 export const runtime = "nodejs";
 
-import { db } from "@/lib/firebase-server";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  doc,
-  Timestamp,
-} from "firebase/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
+    const { db } = await import("@/lib/firebase-server");
+    const {
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs,
+      updateDoc,
+      doc,
+      Timestamp,
+    } = await import("firebase/firestore");
+
     const body = await req.json();
     const { userId, name, email, phone } = body;
 
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const { db } = await import("@/lib/firebase-server");
+    const {
+      collection,
+      query,
+      where,
+      getDocs,
+    } = await import("firebase/firestore");
+
     const userId = req.nextUrl.searchParams.get("userId");
 
     if (!userId) {
@@ -72,6 +81,12 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const { db } = await import("@/lib/firebase-server");
+    const {
+      doc,
+      updateDoc,
+    } = await import("firebase/firestore");
+
     const body = await req.json();
     const { driverId, status, rating, completedRides } = body;
 
