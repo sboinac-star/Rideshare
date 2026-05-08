@@ -16,18 +16,41 @@ export async function POST(req: NextRequest) {
       },
       description: `NWA Ride Share - Ride ${rideId}`,
     });
-      amount: Math.round(amount * 100),
-      currency: "usd",
-      metadata: {
-        rideId,
-        userId,
-      },
-      description: `NWA Ride Share - Ride ${rideId}`,
-    });
 
     return NextResponse.json(
       { clientSecret: paymentIntent.client_secret },
       { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Payment creation failed" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    const intentId = req.nextUrl.searchParams.get("intentId");
+
+    if (!intentId) {
+      return NextResponse.json(
+        { error: "intentId required" },
+        { status: 400 }
+      );
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
+
+    return NextResponse.json({ paymentIntent }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to retrieve payment" },
+      { status: 500 }
+    );
+  }
+}
     );
   } catch (error) {
     return NextResponse.json(
