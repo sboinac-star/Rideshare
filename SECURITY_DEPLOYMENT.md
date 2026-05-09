@@ -9,9 +9,31 @@ Deploy the Firestore security rules to protect your database:
 firebase deploy --only firestore:rules
 ```
 
+If you do not have `firebase-tools` installed yet:
+
+```bash
+npm install -g firebase-tools
+firebase login
+```
+
+Then set your Firebase project ID in `.firebaserc` and run:
+
+```bash
+firebase use --add
+firebase deploy --only firestore:rules
+```
+
 **Critical**: Without these rules, anyone can read/write your entire database!
 
-### 2. Environment Variables
+### 2. Firebase Configuration Files
+Create the following files at the project root if they are not already present:
+
+- `firebase.json`
+- `.firebaserc`
+
+A minimal `firebase.json` is included in this repo and points to `firestore.rules`.
+
+### 3. Environment Variables
 - ✅ Copy `.env.local.example` to `.env.local`
 - ✅ Fill in ALL Firebase configuration values
 - ✅ Use production Firebase project (separate from development)
