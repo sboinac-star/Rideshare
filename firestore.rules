@@ -23,13 +23,6 @@ service cloud.firestore {
         && request.resource.data.seats <= 8;
     }
 
-    function isValidMessage() {
-      return request.resource.data.keys().hasAll(['senderId', 'receiverId', 'journeyId', 'content', 'timestamp'])
-        && request.resource.data.content is string
-        && request.resource.data.content.size() > 0
-        && request.resource.data.content.size() <= 1000;
-    }
-
     // Journeys collection - drivers post journeys
     match /journeys/{journeyId} {
       // Allow anyone to read journeys (for browsing)
@@ -42,21 +35,6 @@ service cloud.firestore {
 
       // Only journey owner can update/delete
       allow update, delete: if isOwner(resource.data.driverId);
-    }
-
-    // Messages collection - private conversations
-    match /messages/{messageId} {
-      // Only participants can read messages
-      allow read: if isAuthenticated()
-        && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
-
-      // Only sender can create messages
-      allow create: if isAuthenticated()
-        && isValidMessage()
-        && request.auth.uid == request.resource.data.senderId;
-
-      // No updates or deletes for messages (immutable)
-      allow update, delete: if false;
     }
 
     // Users collection (if we add user profiles later)

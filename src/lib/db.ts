@@ -86,18 +86,6 @@ export interface Booking {
   driverMessage?: string; // Driver's response message
 }
 
-/** Direct Message between Driver and Passenger */
-export interface Message {
-  id?: string;
-  journeyId: string; // Associated journey
-  senderId: string; // Firebase Auth UID
-  senderType: "driver" | "passenger";
-  recipientId: string; // Firebase Auth UID
-  content: string;
-  read: boolean;
-  createdAt: Timestamp;
-}
-
 /**
  * ==================== COLLECTION REFERENCES ====================
  */
@@ -107,7 +95,6 @@ export const COLLECTIONS = {
   PASSENGERS: "passengers",
   JOURNEYS: "journeys",
   BOOKINGS: "bookings",
-  MESSAGES: "messages",
 } as const;
 
 /**
@@ -183,29 +170,6 @@ export const queryBookingsByPassenger = (db: any, passengerId: string) => {
 };
 
 /**
- * Query builder for messages in a journey
- */
-export const queryMessagesByJourney = (db: any, journeyId: string) => {
-  return query(
-    collection(db, COLLECTIONS.MESSAGES),
-    where("journeyId", "==", journeyId),
-    orderBy("createdAt", "asc")
-  );
-};
-
-/**
- * Query builder for unread messages for a user
- */
-export const queryUnreadMessages = (db: any, recipientId: string) => {
-  return query(
-    collection(db, COLLECTIONS.MESSAGES),
-    where("recipientId", "==", recipientId),
-    where("read", "==", false),
-    orderBy("createdAt", "desc")
-  );
-};
-
-/**
  * ==================== FIRESTORE INDEXES ====================
  */
 
@@ -220,10 +184,6 @@ export const queryUnreadMessages = (db: any, recipientId: string) => {
  *    - (journeyId, status)
  *    - (passengerId, createdAt)
  *
- * 3. messages collection:
- *    - (journeyId, createdAt)
- *    - (recipientId, read, createdAt)
- *
  * Create these in Firebase Console > Firestore Database > Indexes
  */
 
@@ -235,4 +195,3 @@ export type JourneyStatus = Journey["status"];
 export type BookingStatus = Booking["status"];
 export type DriverStatus = Driver["status"];
 export type RideType = Journey["rideType"];
-export type SenderType = Message["senderType"];
