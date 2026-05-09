@@ -2,7 +2,19 @@
 
 A full-stack rideshare web application for Northwest Arkansas with local and intercity ride services. Built with Next.js, Firebase, Stripe, and deployed on Netlify.
 
-## 🚀 Features
+## � Security First
+
+This application implements comprehensive security measures:
+
+- **Database Security**: Firebase Security Rules protect all data
+- **API Security**: Rate limiting, input validation, and CORS protection
+- **Authentication**: Secure user authentication with Firebase Auth
+- **Data Protection**: Input sanitization and validation
+- **Network Security**: HTTPS enforcement and security headers
+
+> ⚠️ **Important**: Before deploying, read `SECURITY_DEPLOYMENT.md` for critical security setup instructions.
+
+## �🚀 Features
 
 ### For Passengers
 - **Easy Booking**: Simple interface to book local or intercity rides
