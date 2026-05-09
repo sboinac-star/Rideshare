@@ -14,8 +14,7 @@ interface Journey {
   availableSeats: number;
   rideType: "local" | "intercity";
   vehicle: string;
-  driverPhone?: string;
-  sharePhone: boolean;
+  driverPhone: string;
 }
 
 export default function Home() {
@@ -32,7 +31,6 @@ export default function Home() {
       rideType: "local",
       vehicle: "2022 Honda Civic (Silver)",
       driverPhone: "(479) 555-0123",
-      sharePhone: true,
     },
     {
       id: "2",
@@ -46,7 +44,6 @@ export default function Home() {
       rideType: "intercity",
       vehicle: "2021 Toyota Camry (Blue)",
       driverPhone: "(479) 555-0456",
-      sharePhone: false,
     },
     {
       id: "3",
@@ -60,7 +57,6 @@ export default function Home() {
       rideType: "local",
       vehicle: "2023 Mazda 3 (Red)",
       driverPhone: "(479) 555-0789",
-      sharePhone: true,
     },
   ]);
 
@@ -81,12 +77,8 @@ export default function Home() {
     const journey = journeys.find((j) => j.id === journeyId);
     if (!journey) return;
 
-    const contactMessage = journey.sharePhone && journey.driverPhone
-      ? `\n\n📞 Driver's Phone: ${journey.driverPhone}\nCall or text to arrange your ride!`
-      : `\n\nThe driver will contact you to confirm and discuss pricing.`;
-
     alert(
-      `Journey interest confirmed!\n\nRoute: ${journey.from} → ${journey.to}\nDeparture: ${journey.departureTime}\nDriver: ${journey.driverName}${contactMessage}`
+      `Journey interest confirmed!\n\nRoute: ${journey.from} → ${journey.to}\nDeparture: ${journey.departureTime}\nDriver: ${journey.driverName}\n\n📞 Driver's Phone: ${journey.driverPhone}\n\nCall or text the driver to arrange your ride and negotiate pricing!`
     );
   };
 
@@ -217,10 +209,10 @@ export default function Home() {
                         onClick={() => handleBookJourney(journey.id)}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition"
                       >
-                        {journey.sharePhone ? "📞 Call Driver" : "Contact Driver"}
+                        📞 Call Driver
                       </button>
                       <p className="text-xs text-gray-500 text-center">
-                        {journey.sharePhone ? "Direct phone contact available" : "Negotiate price directly"}
+                        Direct phone contact available
                       </p>
                     </div>
                   </div>

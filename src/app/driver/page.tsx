@@ -12,8 +12,7 @@ interface Journey {
   rideType: "local" | "intercity";
   status: "active" | "completed" | "cancelled";
   bookings: number;
-  sharePhone: boolean;
-  driverPhone?: string;
+  driverPhone: string;
 }
 
 export default function DriverPage() {
@@ -27,7 +26,6 @@ export default function DriverPage() {
       rideType: "local",
       status: "active",
       bookings: 1,
-      sharePhone: true,
       driverPhone: "(479) 555-0123",
     },
   ]);
@@ -39,8 +37,7 @@ export default function DriverPage() {
     departureTime: "",
     availableSeats: 1,
     rideType: "local" as "local" | "intercity",
-    sharePhone: false,
-    driverPhone: "(479) 555-0123", // In a real app, this would come from the logged-in driver's profile
+    driverPhone: "",
   });
 
   // Common locations in Northwest Arkansas
@@ -73,9 +70,10 @@ export default function DriverPage() {
     if (
       !newJourney.from ||
       !newJourney.to ||
-      !newJourney.departureTime
+      !newJourney.departureTime ||
+      !newJourney.driverPhone
     ) {
-      alert("Please fill in all fields");
+      alert("Please fill in all fields including your phone number");
       return;
     }
 
@@ -84,7 +82,6 @@ export default function DriverPage() {
       ...newJourney,
       status: "active",
       bookings: 0,
-      driverPhone: newJourney.sharePhone ? newJourney.driverPhone : undefined,
     };
 
     setJourneys([...journeys, journey]);
@@ -94,12 +91,11 @@ export default function DriverPage() {
       departureTime: "",
       availableSeats: 1,
       rideType: "local",
-      sharePhone: false,
-      driverPhone: "(479) 555-0123",
+      driverPhone: "",
     });
     setShowPostForm(false);
 
-    alert(`Journey posted!\n\n${journey.from} → ${journey.to}\n${journey.departureTime}\n\n${journey.sharePhone ? 'Phone number will be shared with passengers' : 'Contact passengers directly to negotiate price'}`);
+    alert(`Journey posted!\n\n${journey.from} → ${journey.to}\n${journey.departureTime}\n\nPhone: ${journey.driverPhone}\n\nPassengers can contact you directly to negotiate price.`);
   };
 
   const handleCancelJourney = (journeyId: string) => {
@@ -246,22 +242,22 @@ export default function DriverPage() {
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={newJourney.sharePhone}
-                      onChange={(e) =>
-                        setNewJourney({ ...newJourney, sharePhone: e.target.checked })
-                      }
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">
-                      Allow passengers to contact me directly via phone number
-                    </span>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Phone Number *
                   </label>
+                  <input
+                    type="tel"
+                    value={newJourney.driverPhone}
+                    onChange={(e) =>
+                      setNewJourney({ ...newJourney, driverPhone: e.target.value })
+                    }
+                    placeholder="(479) 555-0123"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
                   <p className="text-xs text-gray-500 mt-1">
-                    Your phone number will be visible to passengers who book your journey
+                    Passengers will contact you directly via this phone number to negotiate price and details
                   </p>
                 </div>
 
@@ -331,11 +327,6 @@ export default function DriverPage() {
                       }`}>
                         {journey.rideType === "local" ? "Local" : "Intercity"}
                       </span>
-                      {journey.sharePhone && (
-                        <span className="text-xs px-2 py-1 rounded-full mt-1 inline-block bg-green-100 text-green-800">
-                          📞 Phone sharing enabled
-                        </span>
-                      )}
                     </div>
 
                     <div className="flex flex-col gap-2">
