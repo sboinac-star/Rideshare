@@ -12,6 +12,8 @@ interface Journey {
   driverName: string;
   from: string;
   to: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
   departureTime: string;
   availableSeats: number;
   status: "active" | "cancelled";
@@ -29,6 +31,8 @@ export default function DriverPage() {
     driverName: "",
     from: "",
     to: "",
+    pickupAddress: "",
+    dropoffAddress: "",
     departureTime: "",
     availableSeats: 1,
     driverPhone: "",
@@ -74,7 +78,7 @@ export default function DriverPage() {
         status: "active",
         createdAt: serverTimestamp(),
       });
-      setNewJourney({ driverName: "", from: "", to: "", departureTime: "", availableSeats: 1, driverPhone: "" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, driverPhone: "" });
       setFromCustom(false);
       setToCustom(false);
       setErrors({ driverName: "", driverPhone: "" });
@@ -203,6 +207,29 @@ export default function DriverPage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={newJourney.pickupAddress}
+                  onChange={(e) => setNewJourney({ ...newJourney, pickupAddress: e.target.value })}
+                  placeholder="e.g. 123 Main St, near Walmart"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={newJourney.dropoffAddress}
+                  onChange={(e) => setNewJourney({ ...newJourney, dropoffAddress: e.target.value })}
+                  placeholder="e.g. XNA Airport, Terminal A"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Departure Date & Time</label>
                 <input
                   type="datetime-local"
@@ -303,6 +330,8 @@ export default function DriverPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-semibold text-lg text-gray-900">{journey.from} → {journey.to}</p>
+                        {journey.pickupAddress && <p className="text-gray-500 text-xs">From: {journey.pickupAddress}</p>}
+                        {journey.dropoffAddress && <p className="text-gray-500 text-xs">To: {journey.dropoffAddress}</p>}
                         <p className="text-gray-600 text-sm">{formatDateTime(journey.departureTime)}</p>
                         <p className="text-gray-600 text-sm">{journey.driverName} · {journey.driverPhone}</p>
                         <p className="text-gray-600 text-sm">{journey.availableSeats} seats available</p>

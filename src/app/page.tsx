@@ -12,6 +12,8 @@ interface Journey {
   driverName: string;
   from: string;
   to: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
   departureTime: string;
   availableSeats: number;
   driverPhone: string;
@@ -116,8 +118,10 @@ export default function Home() {
   }, []);
 
   const filteredJourneys = journeys.filter((journey) => {
-    const fromMatch = journey.from.toLowerCase().includes(searchFrom.toLowerCase());
-    const toMatch = journey.to.toLowerCase().includes(searchTo.toLowerCase());
+    const fromText = `${journey.from} ${journey.pickupAddress ?? ""}`.toLowerCase();
+    const toText = `${journey.to} ${journey.dropoffAddress ?? ""}`.toLowerCase();
+    const fromMatch = fromText.includes(searchFrom.toLowerCase());
+    const toMatch = toText.includes(searchTo.toLowerCase());
     const dateMatch = searchDate ? journey.departureTime.startsWith(searchDate) : true;
     return fromMatch && toMatch && dateMatch;
   });
@@ -211,6 +215,8 @@ export default function Home() {
                     <div>
                       <p className="text-sm text-gray-500">Route</p>
                       <p className="font-semibold text-gray-900">{journey.from} → {journey.to}</p>
+                      {journey.pickupAddress && <p className="text-xs text-gray-500">From: {journey.pickupAddress}</p>}
+                      {journey.dropoffAddress && <p className="text-xs text-gray-500">To: {journey.dropoffAddress}</p>}
                       <p className="text-sm text-gray-600">{formatDateTime(journey.departureTime)}</p>
                     </div>
 
@@ -251,6 +257,12 @@ export default function Home() {
             <p className="text-gray-700 mb-1">
               <span className="font-medium">Route:</span> {contactJourney.from} → {contactJourney.to}
             </p>
+            {contactJourney.pickupAddress && (
+              <p className="text-gray-600 text-sm mb-1">Pickup: {contactJourney.pickupAddress}</p>
+            )}
+            {contactJourney.dropoffAddress && (
+              <p className="text-gray-600 text-sm mb-1">Dropoff: {contactJourney.dropoffAddress}</p>
+            )}
             <p className="text-gray-700 mb-1">
               <span className="font-medium">Departure:</span> {formatDateTime(contactJourney.departureTime)}
             </p>
