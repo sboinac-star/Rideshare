@@ -13,10 +13,17 @@ service cloud.firestore {
         && request.resource.data.availableSeats <= 8;
     }
 
+    function isCancelUpdate() {
+      // Only allow changing status to "cancelled" on an active journey
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'active';
+    }
+
     match /journeys/{journeyId} {
       allow read: if true;
       allow create: if isValidJourney();
-      allow update: if true;
+      allow update: if isCancelUpdate();
       allow delete: if false;
     }
 
