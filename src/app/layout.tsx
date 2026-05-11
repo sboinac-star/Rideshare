@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ride Share",
-  description: "Find and share rides across the USA. Affordable travel made easy.",
+  title: "NWA Ride Share",
+  description: "Carpooling and ride sharing in Northwest Arkansas — Fayetteville, Bentonville, Rogers, Springdale and beyond. Find or post a ride today.",
 };
 
 export default function RootLayout({

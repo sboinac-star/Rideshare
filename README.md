@@ -1,6 +1,6 @@
-# Ride Share
+# NWA Ride Share
 
-A carpooling platform for sharing rides across the USA. Drivers post journeys and passengers contact them directly to arrange rides and negotiate pricing.
+A carpooling platform for Northwest Arkansas — Fayetteville, Bentonville, Rogers, Springdale and surrounding areas. Drivers post journeys and passengers contact them directly to arrange rides and negotiate pricing.
 
 ## Features
 
