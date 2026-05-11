@@ -95,22 +95,10 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
-              href="/driver-register"
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition"
-            >
-              Become a Driver
-            </Link>
-            <Link
               href="/driver"
               className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition"
             >
               Post a Journey
-            </Link>
-            <Link
-              href="/rides"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition"
-            >
-              My Bookings
             </Link>
           </div>
         </section>

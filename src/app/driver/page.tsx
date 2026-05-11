@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface Journey {
   id: string;
+  driverName: string;
   from: string;
   to: string;
   departureTime: string;
@@ -19,6 +20,7 @@ export default function DriverPage() {
   const [journeys, setJourneys] = useState<Journey[]>([
     {
       id: "1",
+      driverName: "John Smith",
       from: "Fayetteville",
       to: "Bentonville",
       departureTime: "2025-05-08 14:30",
@@ -32,6 +34,7 @@ export default function DriverPage() {
 
   const [showPostForm, setShowPostForm] = useState(false);
   const [newJourney, setNewJourney] = useState({
+    driverName: "",
     from: "",
     to: "",
     departureTime: "",
@@ -92,12 +95,13 @@ export default function DriverPage() {
     e.preventDefault();
 
     if (
+      !newJourney.driverName ||
       !newJourney.from ||
       !newJourney.to ||
       !newJourney.departureTime ||
       !newJourney.driverPhone
     ) {
-      alert("Please fill in all fields including your phone number");
+      alert("Please fill in all fields including your name and phone number");
       return;
     }
 
@@ -110,6 +114,7 @@ export default function DriverPage() {
 
     setJourneys([...journeys, journey]);
     setNewJourney({
+      driverName: "",
       from: "",
       to: "",
       departureTime: "",
@@ -119,7 +124,7 @@ export default function DriverPage() {
     });
     setShowPostForm(false);
 
-    alert(`Journey posted!\n\n${journey.from} → ${journey.to}\n${journey.departureTime}\n\nPhone: ${journey.driverPhone}\n\nPassengers can contact you directly to negotiate price.`);
+    alert(`Journey posted!\n\n${journey.driverName}: ${journey.from} → ${journey.to}\n${journey.departureTime}\n\nPhone: ${journey.driverPhone}\n\nPassengers can contact you directly to negotiate price.`);
   };
 
   const handleCancelJourney = (journeyId: string) => {
@@ -166,6 +171,22 @@ export default function DriverPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Post a New Journey</h2>
 
               <form onSubmit={handlePostJourney} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newJourney.driverName}
+                    onChange={(e) =>
+                      setNewJourney({ ...newJourney, driverName: e.target.value })
+                    }
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -318,7 +339,9 @@ export default function DriverPage() {
                 <div key={journey.id} className="bg-white rounded-lg shadow-lg p-6">
                   <div className="grid md:grid-cols-4 gap-4 items-center">
                     <div>
-                      <p className="text-sm text-gray-600">Route</p>
+                      <p className="text-sm text-gray-600">Driver</p>
+                      <p className="font-semibold text-gray-900">{journey.driverName}</p>
+                      <p className="text-sm text-gray-600 mt-1">Route</p>
                       <p className="font-semibold text-lg text-gray-900">
                         {journey.from} → {journey.to}
                       </p>
