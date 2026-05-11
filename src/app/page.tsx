@@ -62,7 +62,7 @@ export default function Home() {
             Carpooling Made Simple
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Share rides across Northwest Arkansas. Affordable travel made easy.
+            Share rides across the USA. Affordable travel made easy.
           </p>
           <Link
             href="/driver"

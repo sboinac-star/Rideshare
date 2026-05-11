@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NWA Ride Share",
-  description: "Local ride shares and rides to/from nearby cities in Northwest Arkansas",
+  title: "Ride Share",
+  description: "Find and share rides across the USA. Affordable travel made easy.",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
         <header className="bg-blue-600 text-white shadow-lg">
           <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <Link href="/" className="text-2xl font-bold">
-              NWA Ride Share
+              Ride Share
             </Link>
             <div className="flex gap-6">
               <Link href="/" className="hover:text-blue-100">
