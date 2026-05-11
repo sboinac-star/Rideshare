@@ -69,6 +69,7 @@ export default function Home() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searchFrom, setSearchFrom] = useState("");
   const [searchTo, setSearchTo] = useState("");
+  const [searchDate, setSearchDate] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,7 +93,8 @@ export default function Home() {
   const filteredJourneys = journeys.filter((journey) => {
     const fromMatch = journey.from.toLowerCase().includes(searchFrom.toLowerCase());
     const toMatch = journey.to.toLowerCase().includes(searchTo.toLowerCase());
-    return fromMatch && toMatch;
+    const dateMatch = searchDate ? journey.departureTime.startsWith(searchDate) : true;
+    return fromMatch && toMatch && dateMatch;
   });
 
   const handleContactDriver = (journeyId: string) => {
@@ -124,7 +126,7 @@ export default function Home() {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Find a Journey</h2>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-gray-700 font-semibold mb-2">From</label>
               <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
@@ -132,6 +134,15 @@ export default function Home() {
             <div>
               <label className="block text-gray-700 font-semibold mb-2">To</label>
               <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2">Date</label>
+              <input
+                type="date"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
 
