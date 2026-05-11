@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { locations } from "@/lib/constants";
 
 interface Journey {
   id: string;
@@ -31,18 +32,6 @@ export default function DriverPage() {
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
-
-  const locations = [
-    "Atlanta", "Austin", "Bella Vista", "Bentonville", "Boston",
-    "Canehill", "Charlotte", "Chicago", "Dallas", "Decatur",
-    "Denver", "Elkins", "Eureka Springs", "Farmington", "Fayetteville",
-    "Gentry", "Gravette", "Greenland", "Houston", "Huntsville",
-    "Johnson", "Kansas City", "Las Vegas", "Lincoln", "Little Rock",
-    "Los Angeles", "Maysville", "Memphis", "Miami", "Nashville",
-    "New Orleans", "New York", "Oklahoma City", "Phoenix", "Prairie Grove",
-    "Rogers", "San Francisco", "Seattle", "Siloam Springs", "Springdale",
-    "St. Louis", "Tulsa", "Washington DC", "West Fork",
-  ];
 
   useEffect(() => {
     const q = query(collection(db, "journeys"), orderBy("createdAt", "desc"));
@@ -101,7 +90,7 @@ export default function DriverPage() {
                 value={newJourney.driverName}
                 onChange={(e) => setNewJourney({ ...newJourney, driverName: e.target.value })}
                 placeholder="Enter your full name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -120,7 +109,7 @@ export default function DriverPage() {
                       setNewJourney({ ...newJourney, from: e.target.value });
                     }
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required={!fromCustom}
                 >
                   <option value="">Select departure location</option>
@@ -152,7 +141,7 @@ export default function DriverPage() {
                       setNewJourney({ ...newJourney, to: e.target.value });
                     }
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required={!toCustom}
                 >
                   <option value="">Select destination location</option>
@@ -180,7 +169,7 @@ export default function DriverPage() {
                   type="datetime-local"
                   value={newJourney.departureTime}
                   onChange={(e) => setNewJourney({ ...newJourney, departureTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -189,7 +178,7 @@ export default function DriverPage() {
                 <select
                   value={newJourney.availableSeats}
                   onChange={(e) => setNewJourney({ ...newJourney, availableSeats: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
                 </select>
@@ -203,7 +192,7 @@ export default function DriverPage() {
                 value={newJourney.driverPhone}
                 onChange={(e) => setNewJourney({ ...newJourney, driverPhone: e.target.value })}
                 placeholder="(479) 555-0123"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">Passengers will contact you directly to negotiate price and details</p>
