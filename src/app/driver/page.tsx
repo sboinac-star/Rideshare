@@ -29,6 +29,8 @@ export default function DriverPage() {
     availableSeats: 1,
     driverPhone: "",
   });
+  const [fromCustom, setFromCustom] = useState(false);
+  const [toCustom, setToCustom] = useState(false);
 
   const locations = [
     "Atlanta", "Austin", "Bella Vista", "Bentonville", "Boston",
@@ -67,6 +69,8 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setNewJourney({ driverName: "", from: "", to: "", departureTime: "", availableSeats: 1, driverPhone: "" });
+      setFromCustom(false);
+      setToCustom(false);
       alert(`Journey posted!\n\n${newJourney.driverName}: ${newJourney.from} → ${newJourney.to}\n${newJourney.departureTime}\n\nPassengers can contact you directly to negotiate price.`);
     } catch {
       alert("Failed to post journey. Please try again.");
@@ -106,26 +110,66 @@ export default function DriverPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
                 <select
-                  value={newJourney.from}
-                  onChange={(e) => setNewJourney({ ...newJourney, from: e.target.value })}
+                  value={fromCustom ? "Other" : newJourney.from}
+                  onChange={(e) => {
+                    if (e.target.value === "Other") {
+                      setFromCustom(true);
+                      setNewJourney({ ...newJourney, from: "" });
+                    } else {
+                      setFromCustom(false);
+                      setNewJourney({ ...newJourney, from: e.target.value });
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  required={!fromCustom}
                 >
                   <option value="">Select departure location</option>
                   {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                  <option value="Other">Other (enter manually)</option>
                 </select>
+                {fromCustom && (
+                  <input
+                    type="text"
+                    value={newJourney.from}
+                    onChange={(e) => setNewJourney({ ...newJourney, from: e.target.value })}
+                    placeholder="Enter departure city"
+                    className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    autoFocus
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                 <select
-                  value={newJourney.to}
-                  onChange={(e) => setNewJourney({ ...newJourney, to: e.target.value })}
+                  value={toCustom ? "Other" : newJourney.to}
+                  onChange={(e) => {
+                    if (e.target.value === "Other") {
+                      setToCustom(true);
+                      setNewJourney({ ...newJourney, to: "" });
+                    } else {
+                      setToCustom(false);
+                      setNewJourney({ ...newJourney, to: e.target.value });
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  required={!toCustom}
                 >
                   <option value="">Select destination location</option>
                   {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                  <option value="Other">Other (enter manually)</option>
                 </select>
+                {toCustom && (
+                  <input
+                    type="text"
+                    value={newJourney.to}
+                    onChange={(e) => setNewJourney({ ...newJourney, to: e.target.value })}
+                    placeholder="Enter destination city"
+                    className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
 
