@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
+import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 
 interface Journey {
@@ -75,12 +75,13 @@ export default function Home() {
   useEffect(() => {
     const q = query(
       collection(db, "journeys"),
-      where("status", "==", "active"),
-      orderBy("createdAt", "desc")
+      where("status", "==", "active")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Journey));
+      const data = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
+        .sort((a, b) => (b.departureTime > a.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
     }, () => {
