@@ -14,16 +14,24 @@ service cloud.firestore {
     }
 
     function isCancelUpdate() {
-      // Only allow changing status to "cancelled" on an active journey
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'active';
+    }
+
+    function isValidEdit() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['availableSeats', 'departureTime'])
+        && request.resource.data.availableSeats is int
+        && request.resource.data.availableSeats > 0
+        && request.resource.data.availableSeats <= 8
         && resource.data.status == 'active';
     }
 
     match /journeys/{journeyId} {
       allow read: if true;
       allow create: if isValidJourney();
-      allow update: if isCancelUpdate();
+      allow update: if isCancelUpdate() || isValidEdit();
       allow delete: if false;
     }
 

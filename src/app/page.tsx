@@ -5,6 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { locations } from "@/lib/constants";
+import { formatDateTime, isPast, whatsappLink } from "@/lib/utils";
 
 interface Journey {
   id: string;
@@ -16,7 +17,6 @@ interface Journey {
   driverPhone: string;
   status: string;
 }
-
 
 function CityInput({ value, onChange, placeholder }: {
   value: string;
@@ -74,12 +74,26 @@ function CityInput({ value, onChange, placeholder }: {
   );
 }
 
+function SeatIcons({ count }: { count: number }) {
+  return (
+    <div className="flex gap-1 mt-1">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className={`w-4 h-4 rounded-full ${i < count ? "bg-green-500" : "bg-gray-200"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searchFrom, setSearchFrom] = useState("");
   const [searchTo, setSearchTo] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [contactJourney, setContactJourney] = useState<Journey | null>(null);
 
   useEffect(() => {
     const q = query(
@@ -90,7 +104,8 @@ export default function Home() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .sort((a, b) => (b.departureTime > a.departureTime ? 1 : -1));
+        .filter((j) => !isPast(j.departureTime))
+        .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
     }, () => {
@@ -107,13 +122,7 @@ export default function Home() {
     return fromMatch && toMatch && dateMatch;
   });
 
-  const handleContactDriver = (journeyId: string) => {
-    const journey = journeys.find((j) => j.id === journeyId);
-    if (!journey) return;
-    alert(
-      `Route: ${journey.from} → ${journey.to}\nDeparture: ${journey.departureTime}\nDriver: ${journey.driverName}\n\nDriver's Phone: ${journey.driverPhone}\n\nCall or text the driver to arrange your ride and negotiate pricing!`
-    );
-  };
+  const hasFilters = searchFrom || searchTo || searchDate;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -134,7 +143,14 @@ export default function Home() {
         </section>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Find a Journey</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Find a Journey</h2>
+            {!loading && (
+              <span className="text-sm text-gray-500">
+                {filteredJourneys.length} {filteredJourneys.length === 1 ? "journey" : "journeys"} available
+              </span>
+            )}
+          </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div>
@@ -162,9 +178,23 @@ export default function Home() {
                 <p className="text-gray-500">Loading journeys...</p>
               </div>
             ) : filteredJourneys.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 space-y-2">
                 <p className="text-gray-600 text-lg">
-                  {journeys.length === 0 ? "No journeys posted yet" : "No journeys found matching your search"}
+                  {journeys.length === 0 ? "No journeys posted yet" : "No journeys match your search"}
+                </p>
+                {hasFilters && (
+                  <button
+                    onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); }}
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    Clear filters
+                  </button>
+                )}
+                <p className="text-gray-500 text-sm">
+                  Want to travel?{" "}
+                  <Link href="/driver" className="text-purple-600 hover:underline font-medium">
+                    Post a journey
+                  </Link>
                 </p>
               </div>
             ) : (
@@ -173,30 +203,38 @@ export default function Home() {
                   <div className="grid md:grid-cols-4 gap-4 items-center">
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">👤</div>
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg">👤</div>
                         <p className="font-semibold text-gray-900">{journey.driverName}</p>
                       </div>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-600">Route</p>
+                      <p className="text-sm text-gray-500">Route</p>
                       <p className="font-semibold text-gray-900">{journey.from} → {journey.to}</p>
-                      <p className="text-sm text-gray-600">{journey.departureTime}</p>
+                      <p className="text-sm text-gray-600">{formatDateTime(journey.departureTime)}</p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-600">Available Seats</p>
+                      <p className="text-sm text-gray-500">Available Seats</p>
                       <p className="font-semibold text-gray-900">{journey.availableSeats} seats</p>
+                      <SeatIcons count={journey.availableSeats} />
                     </div>
 
-                    <div className="flex flex-col items-center gap-2">
+                    <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => handleContactDriver(journey.id)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                        onClick={() => setContactJourney(journey)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm"
                       >
                         📞 Call Driver
                       </button>
-                      <p className="text-xs text-gray-500 text-center">Direct phone contact</p>
+                      <a
+                        href={whatsappLink(journey.driverPhone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm text-center"
+                      >
+                        💬 WhatsApp
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -205,6 +243,47 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {contactJourney && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Driver</h3>
+            <p className="text-gray-700 mb-1">
+              <span className="font-medium">Route:</span> {contactJourney.from} → {contactJourney.to}
+            </p>
+            <p className="text-gray-700 mb-1">
+              <span className="font-medium">Departure:</span> {formatDateTime(contactJourney.departureTime)}
+            </p>
+            <p className="text-gray-700 mb-1">
+              <span className="font-medium">Driver:</span> {contactJourney.driverName}
+            </p>
+            <p className="text-2xl font-bold text-blue-600 my-4">{contactJourney.driverPhone}</p>
+            <p className="text-sm text-gray-500 mb-4">Call or text the driver to arrange your ride and negotiate pricing.</p>
+            <div className="flex gap-3">
+              <a
+                href={`tel:${contactJourney.driverPhone.replace(/\D/g, "")}`}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition"
+              >
+                📞 Call
+              </a>
+              <a
+                href={whatsappLink(contactJourney.driverPhone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-center transition"
+              >
+                💬 WhatsApp
+              </a>
+              <button
+                onClick={() => setContactJourney(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

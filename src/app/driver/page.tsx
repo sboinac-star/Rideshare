@@ -5,6 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 interface Journey {
   id: string;
@@ -21,6 +22,8 @@ export default function DriverPage() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ departureTime: "", availableSeats: 1 });
 
   const [newJourney, setNewJourney] = useState({
     driverName: "",
@@ -62,9 +65,7 @@ export default function DriverPage() {
     const nameError = validateName(newJourney.driverName);
     const phoneError = validatePhone(newJourney.driverPhone);
     setErrors({ driverName: nameError, driverPhone: phoneError });
-    if (nameError || phoneError || !newJourney.from || !newJourney.to || !newJourney.departureTime) {
-      return;
-    }
+    if (nameError || phoneError || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
 
     setSubmitting(true);
     try {
@@ -77,7 +78,7 @@ export default function DriverPage() {
       setFromCustom(false);
       setToCustom(false);
       setErrors({ driverName: "", driverPhone: "" });
-      alert(`Journey posted!\n\n${newJourney.driverName}: ${newJourney.from} → ${newJourney.to}\n${newJourney.departureTime}\n\nPassengers can contact you directly to negotiate price.`);
+      alert(`Journey posted!\n\n${newJourney.driverName}: ${newJourney.from} → ${newJourney.to}\n${formatDateTime(newJourney.departureTime)}\n\nPassengers can contact you directly to negotiate price.`);
     } catch {
       alert("Failed to post journey. Please try again.");
     } finally {
@@ -86,12 +87,28 @@ export default function DriverPage() {
   };
 
   const handleCancelJourney = async (journeyId: string) => {
+    if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
       await updateDoc(doc(db, "journeys", journeyId), { status: "cancelled" });
     } catch {
       alert("Failed to cancel journey. Please try again.");
     }
   };
+
+  const handleEditSave = async (journeyId: string) => {
+    if (!editData.departureTime) return;
+    try {
+      await updateDoc(doc(db, "journeys", journeyId), {
+        departureTime: editData.departureTime,
+        availableSeats: editData.availableSeats,
+      });
+      setEditingId(null);
+    } catch {
+      alert("Failed to update journey. Please try again.");
+    }
+  };
+
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -131,7 +148,7 @@ export default function DriverPage() {
                       setNewJourney({ ...newJourney, from: e.target.value });
                     }
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                   required={!fromCustom}
                 >
                   <option value="">Select departure location</option>
@@ -144,7 +161,7 @@ export default function DriverPage() {
                     value={newJourney.from}
                     onChange={(e) => setNewJourney({ ...newJourney, from: e.target.value })}
                     placeholder="Enter departure city"
-                    className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`mt-2 ${inputClass}`}
                     required
                     autoFocus
                   />
@@ -163,7 +180,7 @@ export default function DriverPage() {
                       setNewJourney({ ...newJourney, to: e.target.value });
                     }
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                   required={!toCustom}
                 >
                   <option value="">Select destination location</option>
@@ -176,7 +193,7 @@ export default function DriverPage() {
                     value={newJourney.to}
                     onChange={(e) => setNewJourney({ ...newJourney, to: e.target.value })}
                     placeholder="Enter destination city"
-                    className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`mt-2 ${inputClass}`}
                     required
                     autoFocus
                   />
@@ -191,7 +208,7 @@ export default function DriverPage() {
                   type="datetime-local"
                   value={newJourney.departureTime}
                   onChange={(e) => setNewJourney({ ...newJourney, departureTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                   required
                 />
               </div>
@@ -200,7 +217,7 @@ export default function DriverPage() {
                 <select
                   value={newJourney.availableSeats}
                   onChange={(e) => setNewJourney({ ...newJourney, availableSeats: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 >
                   {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
                 </select>
@@ -243,29 +260,81 @@ export default function DriverPage() {
             <div className="space-y-4">
               {journeys.map((journey) => (
                 <div key={journey.id} className="bg-white rounded-lg shadow p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-lg text-gray-900">{journey.from} → {journey.to}</p>
-                      <p className="text-gray-600 text-sm">{journey.departureTime}</p>
-                      <p className="text-gray-600 text-sm">{journey.driverName} · {journey.driverPhone}</p>
-                      <p className="text-gray-600 text-sm">{journey.availableSeats} seats available</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                        journey.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}>
-                        {journey.status.charAt(0).toUpperCase() + journey.status.slice(1)}
-                      </span>
-                      {journey.status === "active" && (
+                  {editingId === journey.id ? (
+                    <div className="space-y-3">
+                      <p className="font-semibold text-gray-900">{journey.from} → {journey.to}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Departure Date & Time</label>
+                          <input
+                            type="datetime-local"
+                            value={editData.departureTime}
+                            onChange={(e) => setEditData({ ...editData, departureTime: e.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Available Seats</label>
+                          <select
+                            value={editData.availableSeats}
+                            onChange={(e) => setEditData({ ...editData, availableSeats: Number(e.target.value) })}
+                            className={inputClass}
+                          >
+                            {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => handleCancelJourney(journey.id)}
-                          className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition"
+                          onClick={() => handleEditSave(journey.id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1 px-4 rounded transition"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-1 px-4 rounded transition"
                         >
                           Cancel
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-lg text-gray-900">{journey.from} → {journey.to}</p>
+                        <p className="text-gray-600 text-sm">{formatDateTime(journey.departureTime)}</p>
+                        <p className="text-gray-600 text-sm">{journey.driverName} · {journey.driverPhone}</p>
+                        <p className="text-gray-600 text-sm">{journey.availableSeats} seats available</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                          journey.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                        }`}>
+                          {journey.status.charAt(0).toUpperCase() + journey.status.slice(1)}
+                        </span>
+                        {journey.status === "active" && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingId(journey.id);
+                                setEditData({ departureTime: journey.departureTime, availableSeats: journey.availableSeats });
+                              }}
+                              className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded transition"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleCancelJourney(journey.id)}
+                              className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
