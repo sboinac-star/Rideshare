@@ -40,10 +40,13 @@ export default function RootLayout({
             </Link>
             <div className="flex gap-6">
               <Link href="/" className="hover:text-blue-100">
-                Find a Journey
+                Browse
               </Link>
               <Link href="/driver" className="hover:text-blue-100">
                 Post Journey
+              </Link>
+              <Link href="/passenger" className="hover:text-blue-100">
+                Request Ride
               </Link>
             </div>
           </nav>

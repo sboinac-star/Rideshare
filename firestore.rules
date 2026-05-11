@@ -35,6 +35,39 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function isValidRequest() {
+      return request.resource.data.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'passengerPhone'])
+        && request.resource.data.passengerName is string
+        && request.resource.data.from is string
+        && request.resource.data.to is string
+        && request.resource.data.passengerPhone is string
+        && request.resource.data.seatsNeeded is int
+        && request.resource.data.seatsNeeded > 0
+        && request.resource.data.seatsNeeded <= 8;
+    }
+
+    function isCancelRequestUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'active';
+    }
+
+    function isValidRequestEdit() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['seatsNeeded', 'departureTime'])
+        && request.resource.data.seatsNeeded is int
+        && request.resource.data.seatsNeeded > 0
+        && request.resource.data.seatsNeeded <= 8
+        && resource.data.status == 'active';
+    }
+
+    match /requests/{requestId} {
+      allow read: if true;
+      allow create: if isValidRequest();
+      allow update: if isCancelRequestUpdate() || isValidRequestEdit();
+      allow delete: if false;
+    }
+
     match /reports/{reportId} {
       allow read: if false;
       allow create: if request.resource.data.keys().hasAll(['journeyId', 'reason'])
