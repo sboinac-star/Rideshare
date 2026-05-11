@@ -35,6 +35,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasAll(['journeyId', 'reason'])
+        && request.resource.data.journeyId is string
+        && request.resource.data.reason is string;
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

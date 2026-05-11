@@ -5,7 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatPhone, minDepartureTime, shareText } from "@/lib/utils";
 
 interface Journey {
   id: string;
@@ -26,6 +26,7 @@ export default function DriverPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ departureTime: "", availableSeats: 1 });
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [newJourney, setNewJourney] = useState({
     driverName: "",
@@ -71,6 +72,15 @@ export default function DriverPage() {
     setErrors({ driverName: nameError, driverPhone: phoneError });
     if (nameError || phoneError || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
 
+    const isDuplicate = journeys.some(
+      (j) => j.status === "active" && j.from === newJourney.from && j.to === newJourney.to &&
+             j.departureTime === newJourney.departureTime && j.driverPhone === newJourney.driverPhone
+    );
+    if (isDuplicate) {
+      alert("You already have an active journey with the same route, time and phone number.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       await addDoc(collection(db, "journeys"), {
@@ -97,6 +107,12 @@ export default function DriverPage() {
     } catch {
       alert("Failed to cancel journey. Please try again.");
     }
+  };
+
+  const handleShare = async (journey: Journey) => {
+    await navigator.clipboard.writeText(shareText(journey));
+    setCopiedId(journey.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleEditSave = async (journeyId: string) => {
@@ -234,6 +250,7 @@ export default function DriverPage() {
                 <input
                   type="datetime-local"
                   value={newJourney.departureTime}
+                  min={minDepartureTime()}
                   onChange={(e) => setNewJourney({ ...newJourney, departureTime: e.target.value })}
                   className={inputClass}
                   required
@@ -281,11 +298,24 @@ export default function DriverPage() {
           </form>
         </div>
 
-        {!loading && journeys.length > 0 && (
+        {!loading && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">My Journeys</h2>
+            {journeys.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                <p className="text-lg mb-1">No journeys yet</p>
+                <p className="text-sm">Post your first journey above to get started!</p>
+              </div>
+            ) : (
             <div className="space-y-4">
-              {journeys.map((journey) => (
+              {journeys
+                .filter((j) => {
+                  if (j.status === "active") return true;
+                  const sevenDaysAgo = new Date();
+                  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                  return new Date(j.departureTime) > sevenDaysAgo;
+                })
+                .map((journey) => (
                 <div key={journey.id} className="bg-white rounded-lg shadow p-6">
                   {editingId === journey.id ? (
                     <div className="space-y-3">
@@ -333,7 +363,7 @@ export default function DriverPage() {
                         {journey.pickupAddress && <p className="text-gray-500 text-xs">From: {journey.pickupAddress}</p>}
                         {journey.dropoffAddress && <p className="text-gray-500 text-xs">To: {journey.dropoffAddress}</p>}
                         <p className="text-gray-600 text-sm">{formatDateTime(journey.departureTime)}</p>
-                        <p className="text-gray-600 text-sm">{journey.driverName} · {journey.driverPhone}</p>
+                        <p className="text-gray-600 text-sm">{journey.driverName} · {formatPhone(journey.driverPhone)}</p>
                         <p className="text-gray-600 text-sm">{journey.availableSeats} seats available</p>
                       </div>
                       <div className="flex flex-col items-end gap-2">
@@ -344,6 +374,12 @@ export default function DriverPage() {
                         </span>
                         {journey.status === "active" && (
                           <div className="flex gap-2">
+                            <button
+                              onClick={() => handleShare(journey)}
+                              className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded transition"
+                            >
+                              {copiedId === journey.id ? "✓" : "📤"}
+                            </button>
                             <button
                               onClick={() => {
                                 setEditingId(journey.id);
@@ -367,6 +403,7 @@ export default function DriverPage() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
 
