@@ -48,17 +48,24 @@ function CityInput({ value, onChange, placeholder }: {
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}
         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      {open && suggestions.length > 0 && (
+      {open && (
         <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {suggestions.map((loc) => (
-            <li
-              key={loc}
-              onMouseDown={() => { onChange(loc); setOpen(false); }}
-              className="px-4 py-2 text-gray-900 hover:bg-blue-50 cursor-pointer"
-            >
-              {loc}
-            </li>
-          ))}
+          {suggestions.length > 0
+            ? suggestions.map((loc) => (
+                <li
+                  key={loc}
+                  onMouseDown={() => { onChange(loc); setOpen(false); }}
+                  className="px-4 py-2 text-gray-900 hover:bg-blue-50 cursor-pointer"
+                >
+                  {loc}
+                </li>
+              ))
+            : value.trim() && (
+                <li className="px-4 py-2 text-gray-500 italic text-sm">
+                  No suggestions — searching for &quot;{value}&quot;
+                </li>
+              )
+          }
         </ul>
       )}
     </div>

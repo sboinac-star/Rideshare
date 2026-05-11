@@ -36,7 +36,7 @@ export default function RootLayout({
             </Link>
             <div className="flex gap-6">
               <Link href="/" className="hover:text-blue-100">
-                Browse Journeys
+                Find a Journey
               </Link>
               <Link href="/driver" className="hover:text-blue-100">
                 Post Journey
