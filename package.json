@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "deploy:firestore": "firebase deploy --only firestore:rules",
-    "deploy:emulators": "firebase emulators:start --only firestore"
+    "deploy:emulators": "firebase emulators:start --only firestore",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@mapbox/mapbox-gl-geocoder": "^5.1.2",
@@ -25,12 +27,17 @@
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.11",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

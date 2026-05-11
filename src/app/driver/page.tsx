@@ -69,7 +69,7 @@ export default function DriverPage() {
              j.departureTime === newJourney.departureTime && j.driverPhone === newJourney.driverPhone
     );
     if (isDuplicate) {
-      alert("You already have an active journey with the same route, time and phone number.");
+      toast("You already have an active journey with the same route, time and phone number.", "error");
       return;
     }
 
@@ -136,6 +136,24 @@ export default function DriverPage() {
       <div className="max-w-3xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Post a Journey</h1>
 
+        {successId ? (
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-10 text-center">
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Your journey is live!</h2>
+            <p className="text-gray-500 text-sm mb-6">Passengers can now find and contact you.</p>
+            <div className="flex justify-center gap-3">
+              <Link href={`/journey/${successId}`} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition">
+                View listing
+              </Link>
+              <button
+                onClick={() => setSuccessId(null)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-5 rounded-lg transition"
+              >
+                Post another
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-lg shadow-lg p-8 mb-10">
           <form onSubmit={handlePostJourney} className="space-y-4">
             <div>
@@ -308,20 +326,6 @@ export default function DriverPage() {
             </button>
           </form>
         </div>
-
-        {successId && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-green-800">Your journey is live!</p>
-              <p className="text-sm text-green-700">Passengers can now find and contact you.</p>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Link href={`/journey/${successId}`} className="text-sm bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded transition">
-                View listing
-              </Link>
-              <button onClick={() => setSuccessId(null)} className="text-sm text-green-700 hover:text-green-900">✕</button>
-            </div>
-          </div>
         )}
 
         {!loading && (
