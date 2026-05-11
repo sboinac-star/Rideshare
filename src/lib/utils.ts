@@ -42,16 +42,35 @@ export function whatsappLink(phone: string): string {
   return `https://wa.me/${phone.replace(/\D/g, "")}`;
 }
 
-export function shareText(journey: {
-  driverName: string;
-  from: string;
-  to: string;
-  pickupAddress?: string;
-  dropoffAddress?: string;
-  departureTime: string;
-  availableSeats: number;
-  driverPhone: string;
-}): string {
+export function relativeTime(dt: string): string {
+  const date = new Date(dt);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `in ${diffMins}m`;
+  if (diffHours === 1) return "in 1 hour";
+  if (diffHours < 24) return `in ${diffHours} hours`;
+  if (diffDays === 1) return "tomorrow";
+  if (diffDays < 7) return `in ${diffDays} days`;
+  return "";
+}
+
+export function shareText(
+  journey: {
+    driverName: string;
+    from: string;
+    to: string;
+    pickupAddress?: string;
+    dropoffAddress?: string;
+    departureTime: string;
+    availableSeats: number;
+    driverPhone: string;
+  },
+  url?: string
+): string {
   const lines = [
     `🚗 Rideshare: ${journey.from} → ${journey.to}`,
     journey.pickupAddress ? `📍 Pickup: ${journey.pickupAddress}` : "",
@@ -59,25 +78,24 @@ export function shareText(journey: {
     `📅 ${formatDateTime(journey.departureTime)}`,
     `💺 ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available`,
     `📞 Contact: ${formatPhone(journey.driverPhone)}`,
-    `🔗 More rides: https://nwa-rideshare.vercel.app`,
+    `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];
   return lines.filter(Boolean).join("\n");
 }
 
-export function minDepartureTime(): string {
-  return new Date().toISOString().slice(0, 16);
-}
-
-export function shareRequestText(req: {
-  passengerName: string;
-  from: string;
-  to: string;
-  pickupAddress?: string;
-  dropoffAddress?: string;
-  departureTime: string;
-  seatsNeeded: number;
-  passengerPhone: string;
-}): string {
+export function shareRequestText(
+  req: {
+    passengerName: string;
+    from: string;
+    to: string;
+    pickupAddress?: string;
+    dropoffAddress?: string;
+    departureTime: string;
+    seatsNeeded: number;
+    passengerPhone: string;
+  },
+  url?: string
+): string {
   const lines = [
     `🙋 Ride Needed: ${req.from} → ${req.to}`,
     req.pickupAddress ? `📍 Pickup: ${req.pickupAddress}` : "",
@@ -85,7 +103,11 @@ export function shareRequestText(req: {
     `📅 ${formatDateTime(req.departureTime)}`,
     `💺 ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
     `📞 Contact: ${formatPhone(req.passengerPhone)}`,
-    `🔗 More rides: https://nwa-rideshare.vercel.app`,
+    `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];
   return lines.filter(Boolean).join("\n");
+}
+
+export function minDepartureTime(): string {
+  return new Date().toISOString().slice(0, 16);
 }

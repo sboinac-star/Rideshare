@@ -9,6 +9,7 @@ export interface Journey {
   availableSeats: number;
   driverPhone: string;
   status: string;
+  roundTrip?: boolean;
 }
 
 export interface RideRequest {
@@ -22,4 +23,5 @@ export interface RideRequest {
   seatsNeeded: number;
   passengerPhone: string;
   status: string;
+  roundTrip?: boolean;
 }

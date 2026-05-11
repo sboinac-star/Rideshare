@@ -5,11 +5,13 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, formatPhone, isPast, isToday, isThisWeekend, whatsappLink, shareText, shareRequestText } from "@/lib/utils";
+import { formatDateTime, formatPhone, isPast, isToday, isThisWeekend, whatsappLink, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
+import { useToast } from "@/app/ToastProvider";
 
 type QuickFilter = "all" | "today" | "weekend";
 type HomeTab = "rides" | "requests";
+type SortBy = "soonest" | "seats";
 
 function CityInput({ value, onChange, placeholder }: {
   value: string;
@@ -102,7 +104,9 @@ function SkeletonCard() {
 }
 
 export default function HomeClient({ initialJourneys }: { initialJourneys: Journey[] }) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<HomeTab>("rides");
+  const [sortBy, setSortBy] = useState<SortBy>("soonest");
   const [journeys, setJourneys] = useState<Journey[]>(initialJourneys);
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [searchFrom, setSearchFrom] = useState("");
@@ -157,21 +161,43 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       return fromMatch && toMatch && dateMatch && quickMatch;
     });
 
-  const filteredJourneys = applyFilters(journeys);
-  const filteredRequests = applyFilters(requests);
+  const sort = <T extends { departureTime: string; availableSeats?: number; seatsNeeded?: number }>(items: T[]) =>
+    [...items].sort((a, b) => {
+      if (sortBy === "seats") {
+        const aSeats = a.availableSeats ?? a.seatsNeeded ?? 0;
+        const bSeats = b.availableSeats ?? b.seatsNeeded ?? 0;
+        return bSeats - aSeats;
+      }
+      return a.departureTime > b.departureTime ? 1 : -1;
+    });
+
+  const filteredJourneys = sort(applyFilters(journeys));
+  const filteredRequests = sort(applyFilters(requests));
 
   const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all";
 
   const handleShare = async (journey: Journey) => {
-    await navigator.clipboard.writeText(shareText(journey));
-    setCopiedId(journey.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    const url = `${window.location.origin}/journey/${journey.id}`;
+    const text = shareText(journey, url);
+    if (navigator.share) {
+      await navigator.share({ title: `${journey.from} → ${journey.to}`, text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(journey.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleShareRequest = async (req: RideRequest) => {
-    await navigator.clipboard.writeText(shareRequestText(req));
-    setCopiedId(req.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    const url = `${window.location.origin}/request/${req.id}`;
+    const text = shareRequestText(req, url);
+    if (navigator.share) {
+      await navigator.share({ title: `Ride Needed: ${req.from} → ${req.to}`, text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(req.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleReport = async () => {
@@ -185,9 +211,9 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       });
       setReportJourney(null);
       setReportReason("");
-      alert("Report submitted. Thank you.");
+      toast("Report submitted. Thank you.");
     } catch {
-      alert("Failed to submit report. Please try again.");
+      toast("Failed to submit report. Please try again.", "error");
     } finally {
       setReportSubmitting(false);
     }
@@ -210,7 +236,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
         </section>
 
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab("rides")}
@@ -225,6 +251,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                 Ride Requests {!requestsLoading && <span className="ml-1 text-xs font-normal">({filteredRequests.length})</span>}
               </button>
             </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortBy)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="soonest">Soonest first</option>
+              <option value="seats">Most seats</option>
+            </select>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-4">
@@ -296,11 +330,15 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0">👤</div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900">{journey.driverName}</p>
-                          <p className="font-semibold text-gray-800">{journey.from} → {journey.to}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-gray-900">{journey.driverName}</p>
+                            {journey.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                          </div>
+                          <Link href={`/journey/${journey.id}`} className="font-semibold text-gray-800 hover:text-blue-600 hover:underline">{journey.from} → {journey.to}</Link>
                           {journey.pickupAddress && <p className="text-xs text-gray-500">From: {journey.pickupAddress}</p>}
                           {journey.dropoffAddress && <p className="text-xs text-gray-500">To: {journey.dropoffAddress}</p>}
                           <p className="text-sm text-gray-600">{formatDateTime(journey.departureTime)}</p>
+                          {relativeTime(journey.departureTime) && <p className="text-xs text-blue-600 font-medium">{relativeTime(journey.departureTime)}</p>}
                         </div>
                       </div>
                       <div className="sm:text-right shrink-0">
@@ -374,11 +412,15 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-lg shrink-0">🙋</div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900">{req.passengerName}</p>
-                          <p className="font-semibold text-gray-800">{req.from} → {req.to}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-gray-900">{req.passengerName}</p>
+                            {req.roundTrip && <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                          </div>
+                          <Link href={`/request/${req.id}`} className="font-semibold text-gray-800 hover:text-purple-600 hover:underline">{req.from} → {req.to}</Link>
                           {req.pickupAddress && <p className="text-xs text-gray-500">From: {req.pickupAddress}</p>}
                           {req.dropoffAddress && <p className="text-xs text-gray-500">To: {req.dropoffAddress}</p>}
                           <p className="text-sm text-gray-600">{formatDateTime(req.departureTime)}</p>
+                          {relativeTime(req.departureTime) && <p className="text-xs text-purple-600 font-medium">{relativeTime(req.departureTime)}</p>}
                         </div>
                       </div>
                       <div className="sm:text-right shrink-0">

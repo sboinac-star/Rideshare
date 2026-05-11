@@ -6,27 +6,18 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, formatPhone, minDepartureTime, shareText } from "@/lib/utils";
-
-interface Journey {
-  id: string;
-  driverName: string;
-  from: string;
-  to: string;
-  pickupAddress?: string;
-  dropoffAddress?: string;
-  departureTime: string;
-  availableSeats: number;
-  status: "active" | "cancelled";
-  driverPhone: string;
-}
+import { Journey } from "@/lib/types";
+import { useToast } from "@/app/ToastProvider";
 
 export default function DriverPage() {
+  const toast = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ departureTime: "", availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [successId, setSuccessId] = useState<string | null>(null);
 
   const [newJourney, setNewJourney] = useState({
     driverName: "",
@@ -37,6 +28,7 @@ export default function DriverPage() {
     departureTime: "",
     availableSeats: 1,
     driverPhone: "",
+    roundTrip: false,
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -83,18 +75,19 @@ export default function DriverPage() {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "journeys"), {
+      const ref = await addDoc(collection(db, "journeys"), {
         ...newJourney,
         status: "active",
         createdAt: serverTimestamp(),
       });
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, driverPhone: "" });
+      setSuccessId(ref.id);
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, driverPhone: "", roundTrip: false });
       setFromCustom(false);
       setToCustom(false);
       setErrors({ driverName: "", driverPhone: "" });
-      alert(`Journey posted!\n\n${newJourney.driverName}: ${newJourney.from} → ${newJourney.to}\n${formatDateTime(newJourney.departureTime)}\n\nPassengers can contact you directly to negotiate price.`);
+      toast("Journey posted! Passengers can now contact you.");
     } catch {
-      alert("Failed to post journey. Please try again.");
+      toast("Failed to post journey. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -104,15 +97,22 @@ export default function DriverPage() {
     if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
       await updateDoc(doc(db, "journeys", journeyId), { status: "cancelled" });
+      toast("Journey cancelled.");
     } catch {
-      alert("Failed to cancel journey. Please try again.");
+      toast("Failed to cancel journey. Please try again.", "error");
     }
   };
 
   const handleShare = async (journey: Journey) => {
-    await navigator.clipboard.writeText(shareText(journey));
-    setCopiedId(journey.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    const url = `${window.location.origin}/journey/${journey.id}`;
+    const text = shareText(journey, url);
+    if (navigator.share) {
+      await navigator.share({ title: `${journey.from} → ${journey.to}`, text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(journey.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleEditSave = async (journeyId: string) => {
@@ -123,8 +123,9 @@ export default function DriverPage() {
         availableSeats: editData.availableSeats,
       });
       setEditingId(null);
+      toast("Journey updated.");
     } catch {
-      alert("Failed to update journey. Please try again.");
+      toast("Failed to update journey. Please try again.", "error");
     }
   };
 
@@ -288,6 +289,16 @@ export default function DriverPage() {
               }
             </div>
 
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newJourney.roundTrip}
+                onChange={(e) => setNewJourney({ ...newJourney, roundTrip: e.target.checked })}
+                className="w-4 h-4 accent-blue-600"
+              />
+              <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
+            </label>
+
             <button
               type="submit"
               disabled={submitting}
@@ -297,6 +308,21 @@ export default function DriverPage() {
             </button>
           </form>
         </div>
+
+        {successId && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-green-800">Your journey is live!</p>
+              <p className="text-sm text-green-700">Passengers can now find and contact you.</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Link href={`/journey/${successId}`} className="text-sm bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded transition">
+                View listing
+              </Link>
+              <button onClick={() => setSuccessId(null)} className="text-sm text-green-700 hover:text-green-900">✕</button>
+            </div>
+          </div>
+        )}
 
         {!loading && (
           <div>

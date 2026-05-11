@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavHeader from "./NavHeader";
+import ToastProvider from "./ToastProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NWA Ride Share",
-  description: "Carpooling and ride sharing in Northwest Arkansas — Fayetteville, Bentonville, Rogers, Springdale and beyond. Find or post a ride today.",
+  description:
+    "Carpooling and ride sharing in Northwest Arkansas — Fayetteville, Bentonville, Rogers, Springdale and beyond. Find or post a ride today.",
+  metadataBase: new URL("https://nwa-rideshare.vercel.app"),
+  openGraph: {
+    title: "NWA Ride Share",
+    description:
+      "Free carpooling board for Northwest Arkansas. Find or post a ride across NWA and beyond.",
+    url: "https://nwa-rideshare.vercel.app",
+    siteName: "NWA Ride Share",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "NWA Ride Share",
+    description:
+      "Free carpooling board for Northwest Arkansas. Find or post a ride across NWA and beyond.",
+  },
 };
 
 export default function RootLayout({
@@ -31,10 +48,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://www.googleapis.com" />
+        <meta name="theme-color" content="#2563eb" />
       </head>
       <body className="min-h-full flex flex-col">
-        <NavHeader />
-        <main className="flex-1">{children}</main>
+        <ToastProvider>
+          <NavHeader />
+          <main className="flex-1">{children}</main>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -7,14 +7,17 @@ import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverT
 import { locations } from "@/lib/constants";
 import { formatDateTime, formatPhone, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest } from "@/lib/types";
+import { useToast } from "@/app/ToastProvider";
 
 export default function PassengerPage() {
+  const toast = useToast();
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [successId, setSuccessId] = useState<string | null>(null);
 
   const [newRequest, setNewRequest] = useState({
     passengerName: "",
@@ -25,6 +28,7 @@ export default function PassengerPage() {
     departureTime: "",
     seatsNeeded: 1,
     passengerPhone: "",
+    roundTrip: false,
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -71,18 +75,19 @@ export default function PassengerPage() {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "requests"), {
+      const ref = await addDoc(collection(db, "requests"), {
         ...newRequest,
         status: "active",
         createdAt: serverTimestamp(),
       });
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, passengerPhone: "" });
+      setSuccessId(ref.id);
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, passengerPhone: "", roundTrip: false });
       setFromCustom(false);
       setToCustom(false);
       setErrors({ passengerName: "", passengerPhone: "" });
-      alert(`Request posted!\n\n${newRequest.passengerName}: ${newRequest.from} → ${newRequest.to}\n${formatDateTime(newRequest.departureTime)}\n\nDrivers will contact you directly.`);
+      toast("Request posted! Drivers can now contact you.");
     } catch {
-      alert("Failed to post request. Please try again.");
+      toast("Failed to post request. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -92,15 +97,22 @@ export default function PassengerPage() {
     if (!confirm("Are you sure you want to cancel this request?")) return;
     try {
       await updateDoc(doc(db, "requests", requestId), { status: "cancelled" });
+      toast("Request cancelled.");
     } catch {
-      alert("Failed to cancel request. Please try again.");
+      toast("Failed to cancel request. Please try again.", "error");
     }
   };
 
   const handleShare = async (req: RideRequest) => {
-    await navigator.clipboard.writeText(shareRequestText(req));
-    setCopiedId(req.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    const url = `${window.location.origin}/request/${req.id}`;
+    const text = shareRequestText(req, url);
+    if (navigator.share) {
+      await navigator.share({ title: `Ride Needed: ${req.from} → ${req.to}`, text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(req.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleEditSave = async (requestId: string) => {
@@ -111,8 +123,9 @@ export default function PassengerPage() {
         seatsNeeded: editData.seatsNeeded,
       });
       setEditingId(null);
+      toast("Request updated.");
     } catch {
-      alert("Failed to update request. Please try again.");
+      toast("Failed to update request. Please try again.", "error");
     }
   };
 
@@ -276,6 +289,16 @@ export default function PassengerPage() {
               }
             </div>
 
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newRequest.roundTrip}
+                onChange={(e) => setNewRequest({ ...newRequest, roundTrip: e.target.checked })}
+                className="w-4 h-4 accent-purple-600"
+              />
+              <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
+            </label>
+
             <button
               type="submit"
               disabled={submitting}
@@ -285,6 +308,21 @@ export default function PassengerPage() {
             </button>
           </form>
         </div>
+
+        {successId && (
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-purple-800">Your request is live!</p>
+              <p className="text-sm text-purple-700">Drivers can now find and contact you.</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Link href={`/request/${successId}`} className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 px-3 rounded transition">
+                View listing
+              </Link>
+              <button onClick={() => setSuccessId(null)} className="text-sm text-purple-700 hover:text-purple-900">✕</button>
+            </div>
+          </div>
+        )}
 
         {!loading && (
           <div>

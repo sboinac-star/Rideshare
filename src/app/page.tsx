@@ -1,15 +1,6 @@
 import HomeClient from "./HomeClient";
 import { Journey } from "@/lib/types";
-
-type FirestoreValue = { stringValue: string } | { integerValue: string } | { doubleValue: number } | { booleanValue: boolean };
-
-function parseValue(val: FirestoreValue): string | number | boolean | null {
-  if ("stringValue" in val) return val.stringValue;
-  if ("integerValue" in val) return Number(val.integerValue);
-  if ("doubleValue" in val) return val.doubleValue;
-  if ("booleanValue" in val) return val.booleanValue;
-  return null;
-}
+import { parseValue, FirestoreValue } from "@/lib/firestore";
 
 async function fetchInitialJourneys(): Promise<Journey[]> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -64,6 +55,7 @@ async function fetchInitialJourneys(): Promise<Journey[]> {
           availableSeats: Number(parseValue(f.availableSeats) ?? 0),
           driverPhone: String(parseValue(f.driverPhone) ?? ""),
           status: String(parseValue(f.status) ?? ""),
+          roundTrip: f.roundTrip ? Boolean(parseValue(f.roundTrip)) : undefined,
         } as Journey;
       })
       .filter((j) => new Date(j.departureTime) > now)
