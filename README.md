@@ -16,7 +16,7 @@ A carpooling platform for sharing rides across the USA. Drivers post journeys an
 - [Next.js](https://nextjs.org/) — React framework
 - [Firebase Firestore](https://firebase.google.com/docs/firestore) — real-time database
 - [Tailwind CSS](https://tailwindcss.com/) — styling
-- [Netlify](https://netlify.com/) — hosting with auto-deploy from GitHub
+- [Vercel](https://vercel.com/) — hosting (https://nwa-rideshare.vercel.app)
 
 ## Getting Started
 
@@ -56,7 +56,13 @@ src/
 
 ## Deployment
 
-The app deploys automatically to Netlify on every push to `main`.
+The app is hosted on Vercel at **https://nwa-rideshare.vercel.app**.
+
+To deploy manually:
+
+```bash
+vercel --prod
+```
 
 To deploy Firestore security rules manually:
 
