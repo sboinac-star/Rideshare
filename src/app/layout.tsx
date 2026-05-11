@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
+import NavHeader from "./NavHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,24 +33,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.googleapis.com" />
       </head>
       <body className="min-h-full flex flex-col">
-        <header className="bg-blue-600 text-white shadow-lg">
-          <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold">
-              Ride Share
-            </Link>
-            <div className="flex gap-6">
-              <Link href="/" className="hover:text-blue-100">
-                Browse
-              </Link>
-              <Link href="/driver" className="hover:text-blue-100">
-                Post Journey
-              </Link>
-              <Link href="/passenger" className="hover:text-blue-100">
-                Request Ride
-              </Link>
-            </div>
-          </nav>
-        </header>
+        <NavHeader />
         <main className="flex-1">{children}</main>
       </body>
     </html>
