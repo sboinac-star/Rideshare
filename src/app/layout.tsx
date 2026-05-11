@@ -41,12 +41,6 @@ export default function RootLayout({
               <Link href="/driver" className="hover:text-blue-100">
                 Post Journey
               </Link>
-              <Link href="/rides" className="hover:text-blue-100">
-                My Bookings
-              </Link>
-              <Link href="/driver-register" className="hover:text-blue-100">
-                Become a Driver
-              </Link>
             </div>
           </nav>
         </header>
