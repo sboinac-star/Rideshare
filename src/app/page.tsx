@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
@@ -27,6 +27,53 @@ const locations = [
   "Rogers", "San Francisco", "Seattle", "Siloam Springs", "Springdale",
   "St. Louis", "Tulsa", "Washington DC", "West Fork",
 ];
+
+function CityInput({ value, onChange, placeholder }: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const suggestions = value.trim()
+    ? locations.filter((loc) => loc.toLowerCase().includes(value.toLowerCase()))
+    : locations;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {suggestions.map((loc) => (
+            <li
+              key={loc}
+              onMouseDown={() => { onChange(loc); setOpen(false); }}
+              className="px-4 py-2 text-gray-900 hover:bg-blue-50 cursor-pointer"
+            >
+              {loc}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -84,36 +131,17 @@ export default function Home() {
           </Link>
         </section>
 
-
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Find a Journey</h2>
-
-          <datalist id="city-list">
-            {locations.map((loc) => <option key={loc} value={loc} />)}
-          </datalist>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-gray-700 font-semibold mb-2">From</label>
-              <input
-                type="text"
-                list="city-list"
-                placeholder="Departure city"
-                value={searchFrom}
-                onChange={(e) => setSearchFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
             </div>
             <div>
               <label className="block text-gray-700 font-semibold mb-2">To</label>
-              <input
-                type="text"
-                list="city-list"
-                placeholder="Destination city"
-                value={searchTo}
-                onChange={(e) => setSearchTo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
             </div>
           </div>
 
