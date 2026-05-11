@@ -16,6 +16,18 @@ interface Journey {
   status: string;
 }
 
+const locations = [
+  "Atlanta", "Austin", "Bella Vista", "Bentonville", "Boston",
+  "Canehill", "Charlotte", "Chicago", "Dallas", "Decatur",
+  "Denver", "Elkins", "Eureka Springs", "Farmington", "Fayetteville",
+  "Gentry", "Gravette", "Greenland", "Houston", "Huntsville",
+  "Johnson", "Kansas City", "Las Vegas", "Lincoln", "Little Rock",
+  "Los Angeles", "Maysville", "Memphis", "Miami", "Nashville",
+  "New Orleans", "New York", "Oklahoma City", "Phoenix", "Prairie Grove",
+  "Rogers", "San Francisco", "Seattle", "Siloam Springs", "Springdale",
+  "St. Louis", "Tulsa", "Washington DC", "West Fork",
+];
+
 export default function Home() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [searchFrom, setSearchFrom] = useState("");
@@ -76,11 +88,16 @@ export default function Home() {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Find a Journey</h2>
 
+          <datalist id="city-list">
+            {locations.map((loc) => <option key={loc} value={loc} />)}
+          </datalist>
+
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-gray-700 font-semibold mb-2">From</label>
               <input
                 type="text"
+                list="city-list"
                 placeholder="Departure city"
                 value={searchFrom}
                 onChange={(e) => setSearchFrom(e.target.value)}
@@ -91,6 +108,7 @@ export default function Home() {
               <label className="block text-gray-700 font-semibold mb-2">To</label>
               <input
                 type="text"
+                list="city-list"
                 placeholder="Destination city"
                 value={searchTo}
                 onChange={(e) => setSearchTo(e.target.value)}
