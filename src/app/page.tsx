@@ -60,12 +60,14 @@ function CityInput({ value, onChange, placeholder }: {
                   {loc}
                 </li>
               ))
-            : value.trim() && (
-                <li className="px-4 py-2 text-gray-500 italic text-sm">
-                  No suggestions — searching for &quot;{value}&quot;
-                </li>
-              )
+            : null
           }
+          <li
+            onMouseDown={() => { onChange(""); setOpen(false); }}
+            className="px-4 py-2 text-blue-600 hover:bg-blue-50 cursor-pointer border-t border-gray-100 text-sm font-medium"
+          >
+            Other (enter manually)
+          </li>
         </ul>
       )}
     </div>
