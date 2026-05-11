@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
   compress: true,
   reactStrictMode: true,
   async headers() {
+    if (process.env.NODE_ENV === "development") return [];
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
 };
