@@ -28,6 +28,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="preconnect" href="https://www.googleapis.com" />
+      </head>
       <body className="min-h-full flex flex-col">
         <header className="bg-blue-600 text-white shadow-lg">
           <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
