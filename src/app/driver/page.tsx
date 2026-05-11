@@ -32,6 +32,20 @@ export default function DriverPage() {
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
+  const [errors, setErrors] = useState({ driverName: "", driverPhone: "" });
+
+  const validateName = (value: string) => {
+    if (!value) return "Name is required";
+    if (!/^[a-zA-Z\s]+$/.test(value)) return "Name can only contain letters and spaces";
+    return "";
+  };
+
+  const validatePhone = (value: string) => {
+    if (!value) return "Phone number is required";
+    const digits = value.replace(/\D/g, "");
+    if (digits.length < 10) return "Enter a valid phone number (at least 10 digits)";
+    return "";
+  };
 
   useEffect(() => {
     const q = query(collection(db, "journeys"), orderBy("createdAt", "desc"));
@@ -45,8 +59,10 @@ export default function DriverPage() {
 
   const handlePostJourney = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newJourney.driverName || !newJourney.from || !newJourney.to || !newJourney.departureTime || !newJourney.driverPhone) {
-      alert("Please fill in all fields");
+    const nameError = validateName(newJourney.driverName);
+    const phoneError = validatePhone(newJourney.driverPhone);
+    setErrors({ driverName: nameError, driverPhone: phoneError });
+    if (nameError || phoneError || !newJourney.from || !newJourney.to || !newJourney.departureTime) {
       return;
     }
 
@@ -60,6 +76,7 @@ export default function DriverPage() {
       setNewJourney({ driverName: "", from: "", to: "", departureTime: "", availableSeats: 1, driverPhone: "" });
       setFromCustom(false);
       setToCustom(false);
+      setErrors({ driverName: "", driverPhone: "" });
       alert(`Journey posted!\n\n${newJourney.driverName}: ${newJourney.from} → ${newJourney.to}\n${newJourney.departureTime}\n\nPassengers can contact you directly to negotiate price.`);
     } catch {
       alert("Failed to post journey. Please try again.");
@@ -88,11 +105,16 @@ export default function DriverPage() {
               <input
                 type="text"
                 value={newJourney.driverName}
-                onChange={(e) => setNewJourney({ ...newJourney, driverName: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                  setNewJourney({ ...newJourney, driverName: val });
+                  setErrors((prev) => ({ ...prev, driverName: validateName(val) }));
+                }}
                 placeholder="Enter your full name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.driverName ? "border-red-500" : "border-gray-300"}`}
                 required
               />
+              {errors.driverName && <p className="text-red-500 text-xs mt-1">{errors.driverName}</p>}
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -190,12 +212,19 @@ export default function DriverPage() {
               <input
                 type="tel"
                 value={newJourney.driverPhone}
-                onChange={(e) => setNewJourney({ ...newJourney, driverPhone: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^\d\s\-()+]/g, "");
+                  setNewJourney({ ...newJourney, driverPhone: val });
+                  setErrors((prev) => ({ ...prev, driverPhone: validatePhone(val) }));
+                }}
                 placeholder="(479) 555-0123"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.driverPhone ? "border-red-500" : "border-gray-300"}`}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Passengers will contact you directly to negotiate price and details</p>
+              {errors.driverPhone
+                ? <p className="text-red-500 text-xs mt-1">{errors.driverPhone}</p>
+                : <p className="text-xs text-gray-500 mt-1">Passengers will contact you directly to negotiate price and details</p>
+              }
             </div>
 
             <button
