@@ -32,13 +32,17 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
     try {
       await sendOTP(toE164(phone));
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const code = (e as { code?: string })?.code ?? "";
+      const serverResponse = (e as { customData?: { serverResponse?: string } })?.customData?.serverResponse ?? "";
+      const msg = code || (e instanceof Error ? e.message : String(e));
       if (msg.includes("invalid-phone-number")) setError("Invalid phone number.");
       else if (msg.includes("too-many-requests")) setError("Too many attempts. Try again later.");
       else if (msg.includes("unauthorized-domain")) setError("Domain not authorized in Firebase. Add nwa-rideshare.vercel.app to Firebase Auth authorized domains.");
       else if (msg.includes("captcha-check-failed") || msg.includes("recaptcha")) setError("Security check failed. Please refresh the page and try again.");
-      else if (msg.includes("BILLING_NOT_ENABLED")) setError("Firebase billing not enabled. Upgrade to Blaze plan or use a test phone number.");
+      else if (msg.includes("BILLING_NOT_ENABLED") || serverResponse.includes("BILLING_NOT_ENABLED")) setError("Firebase billing not enabled. Upgrade to Blaze plan or use a test phone number.");
+      else if (msg.includes("internal-error")) setError(`Internal error${serverResponse ? ": " + serverResponse : " — check browser console for details."}`);
       else setError(msg || "Failed to send code. Please try again.");
+      console.error("[SignIn] Firebase error:", { code, message: (e as Error)?.message, serverResponse });
     } finally {
       setSending(false);
     }
