@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { RideRequest } from "@/lib/types";
-import { formatDateTime, whatsappLink, relativeTime } from "@/lib/utils";
+import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
+import RequestContact from "./RequestContact";
 
 async function fetchRequest(id: string): Promise<RideRequest | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -25,6 +26,7 @@ async function fetchRequest(id: string): Promise<RideRequest | null> {
       dropoffAddress: f.dropoffAddress ? String(parseValue(f.dropoffAddress)) : undefined,
       departureTime: String(parseValue(f.departureTime) ?? ""),
       seatsNeeded: Number(parseValue(f.seatsNeeded) ?? 1),
+      uid: f.uid ? String(parseValue(f.uid)) : undefined,
       passengerPhone: String(parseValue(f.passengerPhone) ?? ""),
       status: String(parseValue(f.status) ?? ""),
       roundTrip: f.roundTrip ? Boolean(parseValue(f.roundTrip)) : undefined,
@@ -132,26 +134,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-center text-gray-500 text-sm mb-3">Offer this passenger a ride</p>
-            <div className="flex gap-3">
-              <a
-                href={`tel:${req.passengerPhone.replace(/\D/g, "")}`}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-center transition"
-              >
-                📞 Call Passenger
-              </a>
-              <a
-                href={whatsappLink(req.passengerPhone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-center transition"
-              >
-                💬 WhatsApp
-              </a>
+          {req.uid ? (
+            <RequestContact
+              requestId={req.id}
+              ownerUid={req.uid}
+              passengerName={req.passengerName}
+              route={`${req.from} → ${req.to}`}
+            />
+          ) : (
+            <div className="border-t border-gray-100 pt-5">
+              <p className="text-center text-gray-500 text-sm">Contact information unavailable.</p>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-3">Agree on price and pickup details directly with the passenger.</p>
-          </div>
+          )}
         </div>
       </div>
     </div>

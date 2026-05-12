@@ -76,6 +76,45 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function isParticipant(chatData) {
+      return isAuthenticated() && request.auth.uid in chatData.participants;
+    }
+
+    function isValidNewChat() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['participants', 'listingType', 'listingId', 'route', 'participantNames', 'lastMessage', 'updatedAt'])
+        && d.participants is list
+        && d.participants.size() == 2
+        && request.auth.uid in d.participants
+        && d.listingType in ['journey', 'request']
+        && d.listingId is string && d.listingId.size() > 0
+        && d.route is string && d.route.size() > 0
+        && d.lastMessage == '';
+    }
+
+    function isChatMetadataUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt']);
+    }
+
+    match /chats/{chatId} {
+      allow read: if isParticipant(resource.data);
+      allow create: if isAuthenticated() && isValidNewChat();
+      allow update: if isParticipant(resource.data) && isChatMetadataUpdate();
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data);
+        allow create: if isAuthenticated()
+          && isParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasAll(['uid', 'senderName', 'text', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+        allow update, delete: if false;
+      }
+    }
+
     match /reports/{reportId} {
       allow read: if false;
       allow create: if isAuthenticated()

@@ -5,9 +5,13 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, isPast, isToday, isThisWeekend, whatsappLink, shareText, shareRequestText, relativeTime } from "@/lib/utils";
+import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
+import { useAuth } from "@/app/AuthProvider";
+import SignInModal from "@/app/SignInModal";
+import ChatModal from "@/app/ChatModal";
+import { buildChatId } from "@/lib/chat";
 
 type QuickFilter = "all" | "today" | "weekend";
 type HomeTab = "rides" | "requests";
@@ -105,6 +109,7 @@ function SkeletonCard() {
 
 export default function HomeClient({ initialJourneys }: { initialJourneys: Journey[] }) {
   const toast = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<HomeTab>("rides");
   const [sortBy, setSortBy] = useState<SortBy>("soonest");
   const [journeys, setJourneys] = useState<Journey[]>(initialJourneys);
@@ -115,12 +120,12 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [loading, setLoading] = useState(initialJourneys.length === 0);
   const [requestsLoading, setRequestsLoading] = useState(true);
-  const [contactJourney, setContactJourney] = useState<Journey | null>(null);
-  const [contactRequest, setContactRequest] = useState<RideRequest | null>(null);
   const [reportJourney, setReportJourney] = useState<Journey | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "journeys"), where("status", "==", "active"));
@@ -348,20 +353,17 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setContactJourney(journey)}
-                        className="flex-1 min-w-[100px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
-                      >
-                        📞 Call
-                      </button>
-                      <a
-                        href={whatsappLink(journey.driverPhone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 min-w-[100px] bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-lg transition text-sm text-center"
-                      >
-                        💬 WhatsApp
-                      </a>
+                      {journey.uid && journey.uid !== user?.uid && (
+                        <button
+                          onClick={() => {
+                            if (!user) { setShowSignIn(true); setChatTarget({ listing: journey, type: "journey" }); }
+                            else setChatTarget({ listing: journey, type: "journey" });
+                          }}
+                          className="flex-1 min-w-[100px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
+                        >
+                          💬 Chat
+                        </button>
+                      )}
                       <button
                         onClick={() => handleShare(journey)}
                         className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm"
@@ -434,20 +436,17 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setContactRequest(req)}
-                        className="flex-1 min-w-[100px] bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
-                      >
-                        📞 Call
-                      </button>
-                      <a
-                        href={whatsappLink(req.passengerPhone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 min-w-[100px] bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-lg transition text-sm text-center"
-                      >
-                        💬 WhatsApp
-                      </a>
+                      {req.uid && req.uid !== user?.uid && (
+                        <button
+                          onClick={() => {
+                            if (!user) { setShowSignIn(true); setChatTarget({ listing: req, type: "request" }); }
+                            else setChatTarget({ listing: req, type: "request" });
+                          }}
+                          className="flex-1 min-w-[100px] bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
+                        >
+                          💬 Chat
+                        </button>
+                      )}
                       <button
                         onClick={() => handleShareRequest(req)}
                         className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm"
@@ -463,46 +462,36 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
         </div>
       </div>
 
-      {/* Contact modal */}
-      {contactJourney && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Driver</h3>
-            <p className="text-gray-700 mb-1"><span className="font-medium">Route:</span> {contactJourney.from} → {contactJourney.to}</p>
-            {contactJourney.pickupAddress && <p className="text-gray-600 text-sm mb-1">Pickup: {contactJourney.pickupAddress}</p>}
-            {contactJourney.dropoffAddress && <p className="text-gray-600 text-sm mb-1">Dropoff: {contactJourney.dropoffAddress}</p>}
-            <p className="text-gray-700 mb-1"><span className="font-medium">Departure:</span> {formatDateTime(contactJourney.departureTime)}</p>
-            <p className="text-gray-700 mb-1"><span className="font-medium">Driver:</span> {contactJourney.driverName}</p>
-            <p className="text-sm text-gray-500 my-4">Contact the driver to arrange your ride and discuss pricing.</p>
-            <div className="flex gap-3">
-              <a href={`tel:${contactJourney.driverPhone.replace(/\D/g, "")}`} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition">📞 Call</a>
-              <a href={whatsappLink(contactJourney.driverPhone)} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-center transition">💬 WhatsApp</a>
-              <button onClick={() => setContactJourney(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition">Close</button>
-            </div>
-          </div>
-        </div>
+      {/* Sign-in gate for chat */}
+      {showSignIn && (
+        <SignInModal
+          onClose={() => { setShowSignIn(false); setChatTarget(null); }}
+          onSuccess={() => setShowSignIn(false)}
+          title="Sign in to chat"
+        />
       )}
 
-      {/* Contact request modal */}
-      {contactRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Passenger</h3>
-            <p className="text-gray-700 mb-1"><span className="font-medium">Route:</span> {contactRequest.from} → {contactRequest.to}</p>
-            {contactRequest.pickupAddress && <p className="text-gray-600 text-sm mb-1">Pickup: {contactRequest.pickupAddress}</p>}
-            {contactRequest.dropoffAddress && <p className="text-gray-600 text-sm mb-1">Dropoff: {contactRequest.dropoffAddress}</p>}
-            <p className="text-gray-700 mb-1"><span className="font-medium">Travel Date:</span> {formatDateTime(contactRequest.departureTime)}</p>
-            <p className="text-gray-700 mb-1"><span className="font-medium">Passenger:</span> {contactRequest.passengerName}</p>
-            <p className="text-gray-700 mb-1"><span className="font-medium">Seats needed:</span> {contactRequest.seatsNeeded}</p>
-            <p className="text-sm text-gray-500 my-4">Contact the passenger to offer a ride and discuss pricing.</p>
-            <div className="flex gap-3">
-              <a href={`tel:${contactRequest.passengerPhone.replace(/\D/g, "")}`} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-center transition">📞 Call</a>
-              <a href={whatsappLink(contactRequest.passengerPhone)} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-center transition">💬 WhatsApp</a>
-              <button onClick={() => setContactRequest(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Chat modal */}
+      {chatTarget && user && (() => {
+        const { listing, type } = chatTarget;
+        const ownerUid = listing.uid!;
+        const ownerName = type === "journey"
+          ? (listing as Journey).driverName
+          : (listing as RideRequest).passengerName;
+        const route = `${listing.from} → ${listing.to}`;
+        const chatId = buildChatId(type, listing.id, user.uid);
+        return (
+          <ChatModal
+            chatId={chatId}
+            ownerUid={ownerUid}
+            ownerName={ownerName}
+            route={route}
+            listingType={type}
+            listingId={listing.id}
+            onClose={() => setChatTarget(null)}
+          />
+        );
+      })()}
 
       {/* Report modal */}
       {reportJourney && (

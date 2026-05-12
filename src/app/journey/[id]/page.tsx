@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Journey } from "@/lib/types";
-import { formatDateTime, whatsappLink, relativeTime } from "@/lib/utils";
+import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
+import JourneyContact from "./JourneyContact";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -25,6 +26,7 @@ async function fetchJourney(id: string): Promise<Journey | null> {
       dropoffAddress: f.dropoffAddress ? String(parseValue(f.dropoffAddress)) : undefined,
       departureTime: String(parseValue(f.departureTime) ?? ""),
       availableSeats: Number(parseValue(f.availableSeats) ?? 0),
+      uid: f.uid ? String(parseValue(f.uid)) : undefined,
       driverPhone: String(parseValue(f.driverPhone) ?? ""),
       status: String(parseValue(f.status) ?? ""),
       roundTrip: f.roundTrip ? Boolean(parseValue(f.roundTrip)) : undefined,
@@ -132,26 +134,18 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-center text-gray-500 text-sm mb-3">Contact the driver to book your seat</p>
-            <div className="flex gap-3">
-              <a
-                href={`tel:${journey.driverPhone.replace(/\D/g, "")}`}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition"
-              >
-                📞 Call Driver
-              </a>
-              <a
-                href={whatsappLink(journey.driverPhone)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-center transition"
-              >
-                💬 WhatsApp
-              </a>
+          {journey.uid ? (
+            <JourneyContact
+              journeyId={journey.id}
+              ownerUid={journey.uid}
+              driverName={journey.driverName}
+              route={`${journey.from} → ${journey.to}`}
+            />
+          ) : (
+            <div className="border-t border-gray-100 pt-5">
+              <p className="text-center text-gray-500 text-sm">Contact information unavailable.</p>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-3">Negotiate price and pickup details directly with the driver.</p>
-          </div>
+          )}
         </div>
       </div>
     </div>

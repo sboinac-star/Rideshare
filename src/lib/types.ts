@@ -27,3 +27,22 @@ export interface RideRequest {
   status: string;
   roundTrip?: boolean;
 }
+
+export interface Message {
+  id: string;
+  uid: string;
+  senderName: string;
+  text: string;
+  createdAt: Date | null;
+}
+
+export interface Chat {
+  id: string;
+  participants: string[];
+  listingType: "journey" | "request";
+  listingId: string;
+  route: string;
+  participantNames: Record<string, string>;
+  lastMessage: string;
+  updatedAt: Date | null;
+}
