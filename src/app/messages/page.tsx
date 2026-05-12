@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
-import ChatModal from "@/app/ChatModal";
-import { subscribeToUserChats, buildChatId } from "@/lib/chat";
+import ChatModal from "@/features/chat/ChatModal";
+import { subscribeToUserChats } from "@/lib/chat";
 import type { Chat } from "@/lib/types";
 
 function timeAgo(date: Date | null): string {
@@ -27,10 +27,7 @@ export default function MessagesPage() {
   const [openChat, setOpenChat] = useState<Chat | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     const unsub = subscribeToUserChats(user.uid, (data) => {
       setChats(data);
@@ -94,18 +91,8 @@ export default function MessagesPage() {
         ) : (
           <div className="space-y-2">
             {chats.map((chat) => {
-              const otherUid = chat.participants.find((p) => p !== user.uid) ?? "";
+              const otherUid = chat.participants.find((p) => p !== user.uid) ?? chat.participants[0];
               const otherName = chat.participantNames[otherUid] ?? "User";
-              const isOwner = user.uid === chat.participants[0] && chat.participants[0] !== chat.participants[1]
-                ? false // simplified; owner is whoever posted the listing
-                : false;
-              // The chat ID encodes who initiated: listingType_listingId_initiatorUid
-              // If user.uid is the initiator, otherUid is the listing owner
-              const chatIdForModal = buildChatId(chat.listingType, chat.listingId,
-                chat.participants.find(p => p !== user.uid) === chat.participants[0] ? user.uid : chat.id.split("_").slice(-1)[0]
-              );
-              void isOwner;
-
               return (
                 <button
                   key={chat.id}
@@ -132,7 +119,7 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {openChat && user && (() => {
+      {openChat && (() => {
         const otherUid = openChat.participants.find((p) => p !== user.uid) ?? openChat.participants[0];
         const otherName = openChat.participantNames[otherUid] ?? "User";
         return (

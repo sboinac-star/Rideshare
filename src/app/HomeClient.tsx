@@ -10,7 +10,7 @@ import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
-import ChatModal from "@/app/ChatModal";
+import ChatModal from "@/features/chat/ChatModal";
 import { buildChatId } from "@/lib/chat";
 
 type QuickFilter = "all" | "today" | "weekend";

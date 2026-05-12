@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Journey } from "@/lib/types";
 import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
-import JourneyContact from "./JourneyContact";
+import JourneyContact from "@/features/chat/JourneyContact";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;

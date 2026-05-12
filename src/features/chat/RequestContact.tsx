@@ -3,17 +3,17 @@
 import { useState } from "react";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
-import ChatModal from "@/app/ChatModal";
+import ChatModal from "@/features/chat/ChatModal";
 import { buildChatId } from "@/lib/chat";
 
 type Props = {
-  journeyId: string;
+  requestId: string;
   ownerUid: string;
-  driverName: string;
+  passengerName: string;
   route: string;
 };
 
-export default function JourneyContact({ journeyId, ownerUid, driverName, route }: Props) {
+export default function RequestContact({ requestId, ownerUid, passengerName, route }: Props) {
   const { user, authLoading } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -22,7 +22,7 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
 
   const isOwner = user?.uid === ownerUid;
 
-  const chatId = user ? buildChatId("journey", journeyId, user.uid) : "";
+  const chatId = user ? buildChatId("request", requestId, user.uid) : "";
 
   const handleChat = () => {
     if (!user) {
@@ -35,20 +35,20 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
   return (
     <div className="border-t border-gray-100 pt-5">
       {isOwner ? (
-        <p className="text-center text-gray-500 text-sm">This is your journey.</p>
+        <p className="text-center text-gray-500 text-sm">This is your ride request.</p>
       ) : (
         <>
           <p className="text-center text-gray-500 text-sm mb-3">
-            Message the driver to book your seat
+            Message the passenger to offer a ride
           </p>
           <button
             onClick={handleChat}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition"
           >
-            💬 Chat with Driver
+            💬 Chat with Passenger
           </button>
           <p className="text-xs text-gray-400 text-center mt-3">
-            Negotiate price and pickup details in-app.
+            Agree on price and pickup details in-app.
           </p>
         </>
       )}
@@ -65,10 +65,10 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
         <ChatModal
           chatId={chatId}
           ownerUid={ownerUid}
-          ownerName={driverName}
+          ownerName={passengerName}
           route={route}
-          listingType="journey"
-          listingId={journeyId}
+          listingType="request"
+          listingId={requestId}
           onClose={() => setShowChat(false)}
         />
       )}

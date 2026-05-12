@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { RideRequest } from "@/lib/types";
 import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
-import RequestContact from "./RequestContact";
+import RequestContact from "@/features/chat/RequestContact";
 
 async function fetchRequest(id: string): Promise<RideRequest | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
