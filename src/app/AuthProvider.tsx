@@ -49,8 +49,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       recaptchaRef.current.clear();
       recaptchaRef.current = null;
     }
-    const container = document.getElementById("recaptcha-container");
-    if (container) container.innerHTML = "";
+    // Remove and recreate the container so the reCAPTCHA library sees a fresh element
+    const old = document.getElementById("recaptcha-container");
+    if (old) old.remove();
+    const el = document.createElement("div");
+    el.id = "recaptcha-container";
+    document.body.appendChild(el);
+
     recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "invisible",
     });
