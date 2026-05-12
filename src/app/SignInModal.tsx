@@ -42,7 +42,6 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
       else if (msg.includes("BILLING_NOT_ENABLED") || serverResponse.includes("BILLING_NOT_ENABLED")) setError("Firebase billing not enabled. Upgrade to Blaze plan or use a test phone number.");
       else if (msg.includes("internal-error")) setError(`Internal error${serverResponse ? ": " + serverResponse : " — check browser console for details."}`);
       else setError(msg || "Failed to send code. Please try again.");
-      console.error("[SignIn] Firebase error:", { code, message: (e as Error)?.message, serverResponse });
     } finally {
       setSending(false);
     }
