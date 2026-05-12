@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Journey } from "@/lib/types";
-import { formatDateTime, formatPhone, whatsappLink, relativeTime } from "@/lib/utils";
+import { formatDateTime, whatsappLink, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
@@ -139,7 +139,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
                 href={`tel:${journey.driverPhone.replace(/\D/g, "")}`}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition"
               >
-                📞 {formatPhone(journey.driverPhone)}
+                📞 Call Driver
               </a>
               <a
                 href={whatsappLink(journey.driverPhone)}

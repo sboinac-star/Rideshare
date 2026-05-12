@@ -2,15 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
     function isValidJourney() {
-      return request.resource.data.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'driverPhone'])
-        && request.resource.data.driverName is string
-        && request.resource.data.from is string
-        && request.resource.data.to is string
-        && request.resource.data.driverPhone is string
-        && request.resource.data.availableSeats is int
-        && request.resource.data.availableSeats > 0
-        && request.resource.data.availableSeats <= 8;
+      let d = request.resource.data;
+      return d.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'driverPhone', 'uid'])
+        && d.driverName is string && d.driverName.size() > 0
+        && d.from is string && d.from.size() > 0
+        && d.to is string && d.to.size() > 0
+        && d.driverPhone is string
+        && d.availableSeats is int && d.availableSeats > 0 && d.availableSeats <= 8
+        && d.uid == request.auth.uid;
     }
 
     function isCancelUpdate() {
@@ -30,20 +38,20 @@ service cloud.firestore {
 
     match /journeys/{journeyId} {
       allow read: if true;
-      allow create: if isValidJourney();
-      allow update: if isCancelUpdate() || isValidEdit();
+      allow create: if isAuthenticated() && isValidJourney();
+      allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
       allow delete: if false;
     }
 
     function isValidRequest() {
-      return request.resource.data.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'passengerPhone'])
-        && request.resource.data.passengerName is string
-        && request.resource.data.from is string
-        && request.resource.data.to is string
-        && request.resource.data.passengerPhone is string
-        && request.resource.data.seatsNeeded is int
-        && request.resource.data.seatsNeeded > 0
-        && request.resource.data.seatsNeeded <= 8;
+      let d = request.resource.data;
+      return d.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'passengerPhone', 'uid'])
+        && d.passengerName is string && d.passengerName.size() > 0
+        && d.from is string && d.from.size() > 0
+        && d.to is string && d.to.size() > 0
+        && d.passengerPhone is string
+        && d.seatsNeeded is int && d.seatsNeeded > 0 && d.seatsNeeded <= 8
+        && d.uid == request.auth.uid;
     }
 
     function isCancelRequestUpdate() {
@@ -63,14 +71,15 @@ service cloud.firestore {
 
     match /requests/{requestId} {
       allow read: if true;
-      allow create: if isValidRequest();
-      allow update: if isCancelRequestUpdate() || isValidRequestEdit();
+      allow create: if isAuthenticated() && isValidRequest();
+      allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
       allow delete: if false;
     }
 
     match /reports/{reportId} {
       allow read: if false;
-      allow create: if request.resource.data.keys().hasAll(['journeyId', 'reason'])
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['journeyId', 'reason'])
         && request.resource.data.journeyId is string
         && request.resource.data.reason is string;
       allow update, delete: if false;

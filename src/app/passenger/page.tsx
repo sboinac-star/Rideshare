@@ -3,14 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, formatPhone, minDepartureTime, shareRequestText } from "@/lib/utils";
+import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
+import { useAuth } from "@/app/AuthProvider";
+import SignInModal from "@/app/SignInModal";
 
 export default function PassengerPage() {
   const toast = useToast();
+  const { user, authLoading } = useAuth();
+  const [showSignIn, setShowSignIn] = useState(false);
+
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -27,12 +32,11 @@ export default function PassengerPage() {
     dropoffAddress: "",
     departureTime: "",
     seatsNeeded: 1,
-    passengerPhone: "",
     roundTrip: false,
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
-  const [errors, setErrors] = useState({ passengerName: "", passengerPhone: "" });
+  const [nameError, setNameError] = useState("");
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -40,36 +44,33 @@ export default function PassengerPage() {
     return "";
   };
 
-  const validatePhone = (value: string) => {
-    if (!value) return "Phone number is required";
-    const digits = value.replace(/\D/g, "");
-    if (digits.length < 10) return "Enter a valid phone number (at least 10 digits)";
-    return "";
-  };
-
   useEffect(() => {
-    const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
+    if (!user) { setLoading(false); return; }
+    const q = query(collection(db, "requests"), where("uid", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest));
+      const data = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as RideRequest))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
       setRequests(data);
       setLoading(false);
     }, () => setLoading(false));
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handlePostRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const nameError = validateName(newRequest.passengerName);
-    const phoneError = validatePhone(newRequest.passengerPhone);
-    setErrors({ passengerName: nameError, passengerPhone: phoneError });
-    if (nameError || phoneError || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
+    if (!user) { setShowSignIn(true); return; }
+    const err = validateName(newRequest.passengerName);
+    setNameError(err);
+    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
 
     const isDuplicate = requests.some(
-      (r) => r.status === "active" && r.from === newRequest.from && r.to === newRequest.to &&
-             r.departureTime === newRequest.departureTime && r.passengerPhone === newRequest.passengerPhone
+      (r) => r.status === "active" && r.from === newRequest.from &&
+             r.to === newRequest.to && r.departureTime === newRequest.departureTime
     );
     if (isDuplicate) {
-      toast("You already have an active request with the same route, time and phone number.", "error");
+      toast("You already have an active request with the same route and time.", "error");
       return;
     }
 
@@ -77,15 +78,17 @@ export default function PassengerPage() {
     try {
       const ref = await addDoc(collection(db, "requests"), {
         ...newRequest,
+        passengerPhone: user.phoneNumber ?? "",
+        uid: user.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, passengerPhone: "", roundTrip: false });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false });
       setFromCustom(false);
       setToCustom(false);
-      setErrors({ passengerName: "", passengerPhone: "" });
-      toast("Request posted! Drivers can now contact you.");
+      setNameError("");
+      toast("Request posted! Drivers can now find you.");
     } catch {
       toast("Failed to post request. Please try again.", "error");
     } finally {
@@ -99,7 +102,7 @@ export default function PassengerPage() {
       await updateDoc(doc(db, "requests", requestId), { status: "cancelled" });
       toast("Request cancelled.");
     } catch {
-      toast("Failed to cancel request. Please try again.", "error");
+      toast("Failed to cancel. Please try again.", "error");
     }
   };
 
@@ -125,16 +128,51 @@ export default function PassengerPage() {
       setEditingId(null);
       toast("Request updated.");
     } catch {
-      toast("Failed to update request. Please try again.", "error");
+      toast("Failed to update. Please try again.", "error");
     }
   };
 
   const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500";
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full text-center">
+          <div className="text-5xl mb-4">🙋</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Sign in to Request a Ride</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Verify your phone number once. Your number stays private — drivers contact you through the app.
+          </p>
+          <button
+            onClick={() => setShowSignIn(true)}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition"
+          >
+            Sign in with Phone
+          </button>
+          <p className="mt-4 text-xs text-gray-400">Already browsing? <Link href="/" className="text-blue-600 hover:underline">View all rides</Link></p>
+        </div>
+        {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} title="Sign in with Phone" />}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-3xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Request a Ride</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Request a Ride</h1>
+          <span className="text-sm text-gray-500">
+            {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
+          </span>
+        </div>
 
         {successId ? (
           <div className="bg-white rounded-lg shadow-lg p-8 mb-10 text-center">
@@ -154,178 +192,148 @@ export default function PassengerPage() {
             </div>
           </div>
         ) : (
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-10">
-          <form onSubmit={handlePostRequest} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
-              <input
-                type="text"
-                value={newRequest.passengerName}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
-                  setNewRequest({ ...newRequest, passengerName: val });
-                  setErrors((prev) => ({ ...prev, passengerName: validateName(val) }));
-                }}
-                placeholder="Enter your full name"
-                className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.passengerName ? "border-red-500" : "border-gray-300"}`}
-                required
-              />
-              {errors.passengerName && <p className="text-red-500 text-xs mt-1">{errors.passengerName}</p>}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-10">
+            <form onSubmit={handlePostRequest} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                <select
-                  value={fromCustom ? "Other" : newRequest.from}
-                  onChange={(e) => {
-                    if (e.target.value === "Other") {
-                      setFromCustom(true);
-                      setNewRequest({ ...newRequest, from: "" });
-                    } else {
-                      setFromCustom(false);
-                      setNewRequest({ ...newRequest, from: e.target.value });
-                    }
-                  }}
-                  className={inputClass}
-                  required={!fromCustom}
-                >
-                  <option value="">Select departure location</option>
-                  {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                  <option value="Other">Other (enter manually)</option>
-                </select>
-                {fromCustom && (
-                  <input
-                    type="text"
-                    value={newRequest.from}
-                    onChange={(e) => setNewRequest({ ...newRequest, from: e.target.value })}
-                    placeholder="Enter departure city"
-                    className={`mt-2 ${inputClass}`}
-                    required
-                    autoFocus
-                  />
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                <select
-                  value={toCustom ? "Other" : newRequest.to}
-                  onChange={(e) => {
-                    if (e.target.value === "Other") {
-                      setToCustom(true);
-                      setNewRequest({ ...newRequest, to: "" });
-                    } else {
-                      setToCustom(false);
-                      setNewRequest({ ...newRequest, to: e.target.value });
-                    }
-                  }}
-                  className={inputClass}
-                  required={!toCustom}
-                >
-                  <option value="">Select destination location</option>
-                  {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                  <option value="Other">Other (enter manually)</option>
-                </select>
-                {toCustom && (
-                  <input
-                    type="text"
-                    value={newRequest.to}
-                    onChange={(e) => setNewRequest({ ...newRequest, to: e.target.value })}
-                    placeholder="Enter destination city"
-                    className={`mt-2 ${inputClass}`}
-                    required
-                    autoFocus
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
                 <input
                   type="text"
-                  value={newRequest.pickupAddress}
-                  onChange={(e) => setNewRequest({ ...newRequest, pickupAddress: e.target.value })}
-                  placeholder="e.g. 123 Main St, near Walmart"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
-                <input
-                  type="text"
-                  value={newRequest.dropoffAddress}
-                  onChange={(e) => setNewRequest({ ...newRequest, dropoffAddress: e.target.value })}
-                  placeholder="e.g. XNA Airport, Terminal A"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Travel Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={newRequest.departureTime}
-                  min={minDepartureTime()}
-                  onChange={(e) => setNewRequest({ ...newRequest, departureTime: e.target.value })}
-                  className={inputClass}
+                  value={newRequest.passengerName}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    setNewRequest({ ...newRequest, passengerName: val });
+                    setNameError(validateName(val));
+                  }}
+                  placeholder="Enter your full name"
+                  className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 ${nameError ? "border-red-500" : "border-gray-300"}`}
                   required
                 />
+                {nameError && <p className="text-red-500 text-xs mt-1">{nameError}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Seats Needed</label>
-                <select
-                  value={newRequest.seatsNeeded}
-                  onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
-                  className={inputClass}
-                >
-                  {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
-                </select>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                  <select
+                    value={fromCustom ? "Other" : newRequest.from}
+                    onChange={(e) => {
+                      if (e.target.value === "Other") { setFromCustom(true); setNewRequest({ ...newRequest, from: "" }); }
+                      else { setFromCustom(false); setNewRequest({ ...newRequest, from: e.target.value }); }
+                    }}
+                    className={inputClass}
+                    required={!fromCustom}
+                  >
+                    <option value="">Select departure location</option>
+                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                    <option value="Other">Other (enter manually)</option>
+                  </select>
+                  {fromCustom && (
+                    <input
+                      type="text"
+                      value={newRequest.from}
+                      onChange={(e) => setNewRequest({ ...newRequest, from: e.target.value })}
+                      placeholder="Enter departure city"
+                      className={`mt-2 ${inputClass}`}
+                      required
+                      autoFocus
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                  <select
+                    value={toCustom ? "Other" : newRequest.to}
+                    onChange={(e) => {
+                      if (e.target.value === "Other") { setToCustom(true); setNewRequest({ ...newRequest, to: "" }); }
+                      else { setToCustom(false); setNewRequest({ ...newRequest, to: e.target.value }); }
+                    }}
+                    className={inputClass}
+                    required={!toCustom}
+                  >
+                    <option value="">Select destination</option>
+                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                    <option value="Other">Other (enter manually)</option>
+                  </select>
+                  {toCustom && (
+                    <input
+                      type="text"
+                      value={newRequest.to}
+                      onChange={(e) => setNewRequest({ ...newRequest, to: e.target.value })}
+                      placeholder="Enter destination city"
+                      className={`mt-2 ${inputClass}`}
+                      required
+                      autoFocus
+                    />
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Your Phone Number *</label>
-              <input
-                type="tel"
-                value={newRequest.passengerPhone}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^\d\s\-()+]/g, "");
-                  setNewRequest({ ...newRequest, passengerPhone: val });
-                  setErrors((prev) => ({ ...prev, passengerPhone: validatePhone(val) }));
-                }}
-                placeholder="(479) 555-0123"
-                className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.passengerPhone ? "border-red-500" : "border-gray-300"}`}
-                required
-              />
-              {errors.passengerPhone
-                ? <p className="text-red-500 text-xs mt-1">{errors.passengerPhone}</p>
-                : <p className="text-xs text-gray-500 mt-1">Drivers will contact you directly to confirm and negotiate price</p>
-              }
-            </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={newRequest.pickupAddress}
+                    onChange={(e) => setNewRequest({ ...newRequest, pickupAddress: e.target.value })}
+                    placeholder="e.g. 123 Main St, near Walmart"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={newRequest.dropoffAddress}
+                    onChange={(e) => setNewRequest({ ...newRequest, dropoffAddress: e.target.value })}
+                    placeholder="e.g. XNA Airport, Terminal A"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={newRequest.roundTrip}
-                onChange={(e) => setNewRequest({ ...newRequest, roundTrip: e.target.checked })}
-                className="w-4 h-4 accent-purple-600"
-              />
-              <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
-            </label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Travel Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newRequest.departureTime}
+                    min={minDepartureTime()}
+                    onChange={(e) => setNewRequest({ ...newRequest, departureTime: e.target.value })}
+                    className={inputClass}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seats Needed</label>
+                  <select
+                    value={newRequest.seatsNeeded}
+                    onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
+                    className={inputClass}
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
+                  </select>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold py-3 px-6 rounded-lg transition"
-            >
-              {submitting ? "Posting..." : "Post Request"}
-            </button>
-          </form>
-        </div>
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={newRequest.roundTrip}
+                  onChange={(e) => setNewRequest({ ...newRequest, roundTrip: e.target.checked })}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold py-3 px-6 rounded-lg transition"
+              >
+                {submitting ? "Posting..." : "Post Request"}
+              </button>
+            </form>
+          </div>
         )}
 
         {!loading && (
@@ -393,8 +401,7 @@ export default function PassengerPage() {
                             {req.pickupAddress && <p className="text-gray-500 text-xs">From: {req.pickupAddress}</p>}
                             {req.dropoffAddress && <p className="text-gray-500 text-xs">To: {req.dropoffAddress}</p>}
                             <p className="text-gray-600 text-sm">{formatDateTime(req.departureTime)}</p>
-                            <p className="text-gray-600 text-sm">{req.passengerName} · {formatPhone(req.passengerPhone)}</p>
-                            <p className="text-gray-600 text-sm">{req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"} needed</p>
+                            <p className="text-gray-600 text-sm">{req.passengerName} · {req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"} needed</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
                             <span className={`text-sm font-semibold px-3 py-1 rounded-full ${

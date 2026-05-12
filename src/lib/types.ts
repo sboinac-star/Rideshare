@@ -1,5 +1,6 @@
 export interface Journey {
   id: string;
+  uid?: string;
   driverName: string;
   from: string;
   to: string;
@@ -14,6 +15,7 @@ export interface Journey {
 
 export interface RideRequest {
   id: string;
+  uid?: string;
   passengerName: string;
   from: string;
   to: string;

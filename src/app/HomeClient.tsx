@@ -5,7 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, formatPhone, isPast, isToday, isThisWeekend, whatsappLink, shareText, shareRequestText, relativeTime } from "@/lib/utils";
+import { formatDateTime, isPast, isToday, isThisWeekend, whatsappLink, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 
@@ -473,8 +473,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
             {contactJourney.dropoffAddress && <p className="text-gray-600 text-sm mb-1">Dropoff: {contactJourney.dropoffAddress}</p>}
             <p className="text-gray-700 mb-1"><span className="font-medium">Departure:</span> {formatDateTime(contactJourney.departureTime)}</p>
             <p className="text-gray-700 mb-1"><span className="font-medium">Driver:</span> {contactJourney.driverName}</p>
-            <p className="text-2xl font-bold text-blue-600 my-4">{formatPhone(contactJourney.driverPhone)}</p>
-            <p className="text-sm text-gray-500 mb-4">Call or text to arrange your ride and negotiate pricing.</p>
+            <p className="text-sm text-gray-500 my-4">Contact the driver to arrange your ride and discuss pricing.</p>
             <div className="flex gap-3">
               <a href={`tel:${contactJourney.driverPhone.replace(/\D/g, "")}`} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition">📞 Call</a>
               <a href={whatsappLink(contactJourney.driverPhone)} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-center transition">💬 WhatsApp</a>
@@ -495,8 +494,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
             <p className="text-gray-700 mb-1"><span className="font-medium">Travel Date:</span> {formatDateTime(contactRequest.departureTime)}</p>
             <p className="text-gray-700 mb-1"><span className="font-medium">Passenger:</span> {contactRequest.passengerName}</p>
             <p className="text-gray-700 mb-1"><span className="font-medium">Seats needed:</span> {contactRequest.seatsNeeded}</p>
-            <p className="text-2xl font-bold text-purple-600 my-4">{formatPhone(contactRequest.passengerPhone)}</p>
-            <p className="text-sm text-gray-500 mb-4">Call or message to offer a ride and negotiate pricing.</p>
+            <p className="text-sm text-gray-500 my-4">Contact the passenger to offer a ride and discuss pricing.</p>
             <div className="flex gap-3">
               <a href={`tel:${contactRequest.passengerPhone.replace(/\D/g, "")}`} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-center transition">📞 Call</a>
               <a href={whatsappLink(contactRequest.passengerPhone)} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-center transition">💬 WhatsApp</a>

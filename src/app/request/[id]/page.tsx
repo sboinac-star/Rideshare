@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { RideRequest } from "@/lib/types";
-import { formatDateTime, formatPhone, whatsappLink, relativeTime } from "@/lib/utils";
+import { formatDateTime, whatsappLink, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 
 async function fetchRequest(id: string): Promise<RideRequest | null> {
@@ -139,7 +139,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 href={`tel:${req.passengerPhone.replace(/\D/g, "")}`}
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-center transition"
               >
-                📞 {formatPhone(req.passengerPhone)}
+                📞 Call Passenger
               </a>
               <a
                 href={whatsappLink(req.passengerPhone)}
