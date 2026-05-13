@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, onSnapshot, where, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
@@ -205,6 +205,26 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     }
   };
 
+  const handleDeleteJourney = async (journeyId: string) => {
+    if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "journeys", journeyId));
+      toast("Journey deleted.");
+    } catch {
+      toast("Failed to delete. Please try again.", "error");
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm("Permanently delete this request? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "requests", requestId));
+      toast("Request deleted.");
+    } catch {
+      toast("Failed to delete. Please try again.", "error");
+    }
+  };
+
   const handleReport = async () => {
     if (!reportJourney || !reportReason) return;
     setReportSubmitting(true);
@@ -370,12 +390,21 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      <button
-                        onClick={() => { setReportJourney(journey); setReportReason(""); }}
-                        className="px-3 py-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 font-medium rounded-lg transition text-sm"
-                      >
-                        🚩 Report
-                      </button>
+                      {journey.uid === user?.uid ? (
+                        <button
+                          onClick={() => handleDeleteJourney(journey.id)}
+                          className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
+                        >
+                          🗑 Delete
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setReportJourney(journey); setReportReason(""); }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 font-medium rounded-lg transition text-sm"
+                        >
+                          🚩 Report
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -453,6 +482,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === req.id ? "✓ Copied" : "📤 Share"}
                       </button>
+                      {req.uid === user?.uid && (
+                        <button
+                          onClick={() => handleDeleteRequest(req.id)}
+                          className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
+                        >
+                          🗑 Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
