@@ -206,21 +206,25 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   };
 
   const handleDeleteJourney = async (journeyId: string) => {
+    if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
       await deleteDoc(doc(db, "journeys", journeyId));
       toast("Journey deleted.");
-    } catch {
+    } catch (err) {
+      console.error("Delete journey failed:", err);
       toast("Failed to delete. Please try again.", "error");
     }
   };
 
   const handleDeleteRequest = async (requestId: string) => {
+    if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
       await deleteDoc(doc(db, "requests", requestId));
       toast("Request deleted.");
-    } catch {
+    } catch (err) {
+      console.error("Delete request failed:", err);
       toast("Failed to delete. Please try again.", "error");
     }
   };
@@ -390,7 +394,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {journey.uid === user?.uid ? (
+                      {user?.uid && journey.uid === user.uid ? (
                         <button
                           onClick={() => handleDeleteJourney(journey.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
@@ -482,7 +486,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === req.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {req.uid === user?.uid && (
+                      {user?.uid && req.uid === user.uid && (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
