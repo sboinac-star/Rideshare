@@ -46,6 +46,8 @@ export default function ChatModal({
       [user.uid]: myName,
     }).then(() => {
       if (!cancelled) setChatReady(true);
+    }).catch(() => {
+      if (!cancelled) setChatReady(true);
     });
 
     const unsub = subscribeToMessages(chatId, setMessages);

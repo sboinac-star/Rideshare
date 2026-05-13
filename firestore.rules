@@ -103,7 +103,7 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow read: if isParticipant(resource.data);
+      allow read: if resource == null ? isAuthenticated() : isParticipant(resource.data);
       allow create: if isAuthenticated() && isValidNewChat();
       allow update: if isParticipant(resource.data) && isChatMetadataUpdate();
       allow delete: if false;
