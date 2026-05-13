@@ -40,7 +40,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated() && isValidJourney();
       allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
-      allow delete: if isOwner();
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.uid ||
+        (resource.data.uid == null && request.auth.token.phone_number == resource.data.driverPhone)
+      );
     }
 
     function isValidRequest() {
@@ -73,7 +76,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated() && isValidRequest();
       allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
-      allow delete: if isOwner();
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.uid ||
+        (resource.data.uid == null && request.auth.token.phone_number == resource.data.passengerPhone)
+      );
     }
 
     function isParticipant(chatData) {
