@@ -4,6 +4,7 @@ import { RideRequest } from "@/lib/types";
 import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 import RequestContact from "@/features/chat/RequestContact";
+import DeleteListingButton from "@/features/listings/DeleteListingButton";
 
 async function fetchRequest(id: string): Promise<RideRequest | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -135,12 +136,15 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
 
           {req.uid ? (
-            <RequestContact
-              requestId={req.id}
-              ownerUid={req.uid}
-              passengerName={req.passengerName}
-              route={`${req.from} → ${req.to}`}
-            />
+            <>
+              <RequestContact
+                requestId={req.id}
+                ownerUid={req.uid}
+                passengerName={req.passengerName}
+                route={`${req.from} → ${req.to}`}
+              />
+              <DeleteListingButton collection="requests" docId={req.id} ownerUid={req.uid} />
+            </>
           ) : (
             <div className="border-t border-gray-100 pt-5">
               <p className="text-center text-gray-500 text-sm">Contact information unavailable.</p>

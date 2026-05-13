@@ -4,6 +4,7 @@ import { Journey } from "@/lib/types";
 import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 import JourneyContact from "@/features/chat/JourneyContact";
+import DeleteListingButton from "@/features/listings/DeleteListingButton";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -135,12 +136,15 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
           </div>
 
           {journey.uid ? (
-            <JourneyContact
-              journeyId={journey.id}
-              ownerUid={journey.uid}
-              driverName={journey.driverName}
-              route={`${journey.from} → ${journey.to}`}
-            />
+            <>
+              <JourneyContact
+                journeyId={journey.id}
+                ownerUid={journey.uid}
+                driverName={journey.driverName}
+                route={`${journey.from} → ${journey.to}`}
+              />
+              <DeleteListingButton collection="journeys" docId={journey.id} ownerUid={journey.uid} />
+            </>
           ) : (
             <div className="border-t border-gray-100 pt-5">
               <p className="text-center text-gray-500 text-sm">Contact information unavailable.</p>

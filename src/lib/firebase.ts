@@ -16,12 +16,4 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-if (
-  typeof window !== "undefined" &&
-  (process.env.NODE_ENV === "development" ||
-    process.env.NEXT_PUBLIC_VERCEL_ENV === "preview")
-) {
-  auth.settings.appVerificationDisabledForTesting = true;
-}
-
 export default app;
