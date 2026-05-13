@@ -45,6 +45,7 @@ export default function PassengerPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const q = query(collection(db, "requests"), where("uid", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {

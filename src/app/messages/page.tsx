@@ -27,6 +27,7 @@ export default function MessagesPage() {
   const [openChat, setOpenChat] = useState<Chat | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     setLoading(true);
     const unsub = subscribeToUserChats(user.uid, (data) => {

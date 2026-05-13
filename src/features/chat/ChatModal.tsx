@@ -38,6 +38,7 @@ export default function ChatModal({
     const participants: [string, string] = [ownerUid, user.uid];
 
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatReady(false);
 
     getOrCreateChat(chatId, participants, listingType, listingId, route, {

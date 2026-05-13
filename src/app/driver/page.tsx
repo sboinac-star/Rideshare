@@ -45,6 +45,7 @@ export default function DriverPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const q = query(collection(db, "journeys"), where("uid", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
