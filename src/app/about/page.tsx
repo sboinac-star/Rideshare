@@ -63,7 +63,7 @@ export default function AboutPage() {
             <li>Share your travel plans with someone you trust before the ride.</li>
             <li>Meet in a public place for pickup when possible.</li>
             <li>Trust your instincts — you can decline any ride for any reason.</li>
-            <li>Verify the driver's phone number before getting in the car.</li>
+            <li>Verify the driver&apos;s phone number before getting in the car.</li>
           </ul>
         </div>
 

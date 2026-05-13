@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "./AuthProvider";
+import { useAuth } from "@/app/AuthProvider";
 import { getOrCreateChat, sendMessage, subscribeToMessages } from "@/lib/chat";
 import type { Message } from "@/lib/types";
 
@@ -28,22 +28,31 @@ export default function ChatModal({
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [chatReady, setChatReady] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
-    const myName = user.phoneNumber ?? "User";
-    const isOwner = user.uid === ownerUid;
-    const [uid1, uid2] = isOwner
-      ? [ownerUid, ownerUid]  // owner viewing their own listing — shouldn't happen but safe
-      : [ownerUid, user.uid];
 
-    getOrCreateChat(chatId, [uid1, uid2], listingType, listingId, route, {
+    const myName = user.phoneNumber ?? "User";
+    const participants: [string, string] = [ownerUid, user.uid];
+
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChatReady(false);
+
+    getOrCreateChat(chatId, participants, listingType, listingId, route, {
       [ownerUid]: ownerName,
       [user.uid]: myName,
+    }).then(() => {
+      if (!cancelled) setChatReady(true);
     });
 
-    return subscribeToMessages(chatId, setMessages);
+    const unsub = subscribeToMessages(chatId, setMessages);
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [chatId, user, ownerUid, ownerName, route, listingType, listingId]);
 
   useEffect(() => {
@@ -51,7 +60,7 @@ export default function ChatModal({
   }, [messages]);
 
   const handleSend = async () => {
-    if (!user || !text.trim()) return;
+    if (!user || !text.trim() || !chatReady) return;
     setSending(true);
     try {
       await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", text.trim());
@@ -89,10 +98,13 @@ export default function ChatModal({
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-          {messages.length === 0 && (
-            <p className="text-center text-gray-400 text-sm mt-8">
-              No messages yet. Say hello!
-            </p>
+          {!chatReady && (
+            <div className="flex justify-center mt-8">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+          {chatReady && messages.length === 0 && (
+            <p className="text-center text-gray-400 text-sm mt-8">No messages yet. Say hello!</p>
           )}
           {messages.map((msg) => {
             const isMe = msg.uid === user?.uid;
@@ -125,12 +137,13 @@ export default function ChatModal({
                 handleSend();
               }
             }}
-            placeholder="Type a message..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder={chatReady ? "Type a message..." : "Connecting..."}
+            disabled={!chatReady}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
           />
           <button
             onClick={handleSend}
-            disabled={!text.trim() || sending}
+            disabled={!text.trim() || sending || !chatReady}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-full w-9 h-9 flex items-center justify-center transition shrink-0"
             aria-label="Send"
           >

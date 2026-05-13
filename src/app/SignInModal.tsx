@@ -42,7 +42,6 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
       else if (msg.includes("BILLING_NOT_ENABLED") || serverResponse.includes("BILLING_NOT_ENABLED")) setError("Firebase billing not enabled. Upgrade to Blaze plan or use a test phone number.");
       else if (msg.includes("internal-error")) setError(`Internal error${serverResponse ? ": " + serverResponse : " — check browser console for details."}`);
       else setError(msg || "Failed to send code. Please try again.");
-      console.error("[SignIn] Firebase error:", { code, message: (e as Error)?.message, serverResponse });
     } finally {
       setSending(false);
     }
@@ -67,7 +66,7 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-1">{title}</h2>
-        <p className="text-sm text-gray-500 mb-5">We'll text a 6-digit code to verify your number.</p>
+        <p className="text-sm text-gray-500 mb-5">We&apos;ll text a 6-digit code to verify your number.</p>
 
         {!otpSent ? (
           <div className="space-y-4">

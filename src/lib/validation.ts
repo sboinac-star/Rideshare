@@ -8,6 +8,7 @@ export class ValidationError extends Error {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateRequired(value: any, fieldName: string): string {
   if (!value || (typeof value === 'string' && value.trim() === '')) {
     throw new ValidationError(`${fieldName} is required`);
@@ -44,6 +45,7 @@ export function validateStringLength(value: string, fieldName: string, min: numb
   return cleanValue;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateNumber(value: any, fieldName: string, min?: number, max?: number): number {
   const num = Number(value);
   if (isNaN(num)) {
