@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest } from "@/lib/types";
@@ -104,6 +104,16 @@ export default function PassengerPage() {
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm("Permanently delete this request? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "requests", requestId));
+      toast("Request deleted.");
+    } catch {
+      toast("Failed to delete. Please try again.", "error");
     }
   };
 
@@ -410,31 +420,39 @@ export default function PassengerPage() {
                             }`}>
                               {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                             </span>
-                            {req.status === "active" && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleShare(req)}
-                                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded transition"
-                                >
-                                  {copiedId === req.id ? "✓" : "📤"}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingId(req.id);
-                                    setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
-                                  }}
-                                  className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded transition"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleCancelRequest(req.id)}
-                                  className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex gap-2">
+                              {req.status === "active" && (
+                                <>
+                                  <button
+                                    onClick={() => handleShare(req)}
+                                    className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded transition"
+                                  >
+                                    {copiedId === req.id ? "✓" : "📤"}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingId(req.id);
+                                      setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
+                                    }}
+                                    className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded transition"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelRequest(req.id)}
+                                    className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleDeleteRequest(req.id)}
+                                className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-1 px-3 rounded transition"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
