@@ -42,7 +42,7 @@ service cloud.firestore {
       allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
       allow delete: if isAuthenticated() && (
         request.auth.uid == resource.data.uid ||
-        (resource.data.uid == null && request.auth.token.phone_number == resource.data.driverPhone)
+        (resource.data.driverPhone != null && request.auth.token.phone_number == resource.data.driverPhone)
       );
     }
 
@@ -78,7 +78,7 @@ service cloud.firestore {
       allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
       allow delete: if isAuthenticated() && (
         request.auth.uid == resource.data.uid ||
-        (resource.data.uid == null && request.auth.token.phone_number == resource.data.passengerPhone)
+        (resource.data.passengerPhone != null && request.auth.token.phone_number == resource.data.passengerPhone)
       );
     }
 

@@ -394,7 +394,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {user && (journey.uid ? journey.uid === user.uid : journey.driverPhone === user.phoneNumber) ? (
+                      {user && ((journey.uid && journey.uid === user.uid) || (journey.driverPhone && journey.driverPhone === user.phoneNumber)) ? (
                         <button
                           onClick={() => handleDeleteJourney(journey.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
@@ -486,7 +486,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === req.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {user && (req.uid ? req.uid === user.uid : req.passengerPhone === user.phoneNumber) && (
+                      {user && ((req.uid && req.uid === user.uid) || (req.passengerPhone && req.passengerPhone === user.phoneNumber)) && (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
