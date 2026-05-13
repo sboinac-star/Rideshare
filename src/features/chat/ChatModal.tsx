@@ -38,6 +38,7 @@ export default function ChatModal({
     const participants: [string, string] = [ownerUid, user.uid];
 
     let cancelled = false;
+    let unsubMessages: (() => void) | null = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatReady(false);
 
@@ -45,15 +46,16 @@ export default function ChatModal({
       [ownerUid]: ownerName,
       [user.uid]: myName,
     }).then(() => {
-      if (!cancelled) setChatReady(true);
+      if (cancelled) return;
+      setChatReady(true);
+      unsubMessages = subscribeToMessages(chatId, setMessages);
     }).catch(() => {
       if (!cancelled) setChatReady(true);
     });
 
-    const unsub = subscribeToMessages(chatId, setMessages);
     return () => {
       cancelled = true;
-      unsub();
+      unsubMessages?.();
     };
   }, [chatId, user, ownerUid, ownerName, route, listingType, listingId]);
 
