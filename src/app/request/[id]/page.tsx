@@ -47,6 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title: `🙋 Ride Needed: ${req.from} → ${req.to}`,
       description: `${formatDateTime(req.departureTime)} · ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
+      url: `/request/${id}/`,
     },
   };
 }

@@ -3,6 +3,11 @@ import Link from "next/link";
 export const metadata = {
   title: "About — NWA Ride Share",
   description: "How NWA Ride Share works for drivers and passengers in Northwest Arkansas.",
+  openGraph: {
+    title: "About — NWA Ride Share",
+    description: "How NWA Ride Share works for drivers and passengers in Northwest Arkansas.",
+    url: "/about/",
+  },
 };
 
 export default function AboutPage() {

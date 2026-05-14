@@ -24,7 +24,6 @@ export const metadata: Metadata = {
     title: "NWA Ride Share",
     description:
       "Free carpooling board for Northwest Arkansas. Find or post a ride across NWA and beyond.",
-    url: "https://nwa-rideshare.vercel.app",
     siteName: "NWA Ride Share",
     type: "website",
   },

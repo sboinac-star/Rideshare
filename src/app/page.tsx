@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import HomeClient from "./HomeClient";
 import { Journey } from "@/lib/types";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
+
+export const metadata: Metadata = {
+  openGraph: { url: "/" },
+};
 
 async function fetchInitialJourneys(): Promise<Journey[]> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
