@@ -16,15 +16,4 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// Bypass reCAPTCHA Enterprise on non-production domains (preview + local dev).
-// Production uses real reCAPTCHA. Non-prod uses test phone numbers registered
-// in Firebase Console (no real SMS sent, no quota consumed).
-if (
-  typeof window !== "undefined" &&
-  (process.env.NODE_ENV === "development" ||
-    process.env.NEXT_PUBLIC_VERCEL_ENV === "preview")
-) {
-  auth.settings.appVerificationDisabledForTesting = true;
-}
-
 export default app;
