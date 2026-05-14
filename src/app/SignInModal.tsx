@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 
-const IS_TEST_ENV =
-  process.env.NODE_ENV === "development" ||
-  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+const IS_DEV = process.env.NODE_ENV === "development";
+const IS_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+const IS_TEST_ENV = IS_DEV || IS_PREVIEW;
 
 const TEST_PHONE = "+19999990001";
 const TEST_CODE = "123456";
@@ -38,6 +38,23 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
     setSending(true);
     try {
       await sendOTP(toE164(phone));
+      // Local emulator: auto-fetch the OTP so dev doesn't need to check emulator logs
+      if (IS_DEV) {
+        try {
+          const resp = await fetch(
+            `http://127.0.0.1:9099/emulator/v1/projects/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/verificationCodes`
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            const normalized = toE164(phone);
+            const codes: Array<{ phoneNumber: string; code: string }> = data.verificationCodes ?? [];
+            const entry = [...codes].reverse().find((v) => v.phoneNumber === normalized);
+            if (entry) setCode(entry.code);
+          }
+        } catch {
+          // Emulator not running — user can enter code manually
+        }
+      }
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code ?? "";
       const serverResponse = (e as { customData?: { serverResponse?: string } })?.customData?.serverResponse ?? "";
@@ -77,17 +94,25 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
 
         {IS_TEST_ENV && (
           <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-            <span className="font-semibold">Test env</span> — use{" "}
-            <span className="font-mono font-semibold">{TEST_PHONE}</span> / code{" "}
-            <span className="font-mono font-semibold">{TEST_CODE}</span>
-            {!otpSent && (
-              <button
-                type="button"
-                onClick={() => setPhone(TEST_PHONE)}
-                className="ml-2 underline hover:no-underline"
-              >
-                fill
-              </button>
+            {IS_DEV ? (
+              <>
+                <span className="font-semibold">Local emulator</span> — use any phone number, code auto-filled after send
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">Preview</span> — use{" "}
+                <span className="font-mono font-semibold">{TEST_PHONE}</span> / code{" "}
+                <span className="font-mono font-semibold">{TEST_CODE}</span>
+                {!otpSent && (
+                  <button
+                    type="button"
+                    onClick={() => setPhone(TEST_PHONE)}
+                    className="ml-2 underline hover:no-underline"
+                  >
+                    fill
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

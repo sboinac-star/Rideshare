@@ -45,14 +45,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendOTP = async (phone: string) => {
-    // Must be set before RecaptchaVerifier is created
-    if (
-      process.env.NODE_ENV === "development" ||
-      process.env.NEXT_PUBLIC_VERCEL_ENV === "preview"
-    ) {
-      auth.settings.appVerificationDisabledForTesting = true;
-    }
-
     if (recaptchaRef.current) {
       recaptchaRef.current.clear();
       recaptchaRef.current = null;
