@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 
+const IS_TEST_ENV =
+  process.env.NODE_ENV === "development" ||
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+
+const TEST_PHONE = "+19999990001";
+const TEST_CODE = "123456";
+
 type Props = {
   onClose: () => void;
   onSuccess?: () => void;
@@ -67,6 +74,23 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-1">{title}</h2>
         <p className="text-sm text-gray-500 mb-5">We&apos;ll text a 6-digit code to verify your number.</p>
+
+        {IS_TEST_ENV && (
+          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+            <span className="font-semibold">Test env</span> — use{" "}
+            <span className="font-mono font-semibold">{TEST_PHONE}</span> / code{" "}
+            <span className="font-mono font-semibold">{TEST_CODE}</span>
+            {!otpSent && (
+              <button
+                type="button"
+                onClick={() => setPhone(TEST_PHONE)}
+                className="ml-2 underline hover:no-underline"
+              >
+                fill
+              </button>
+            )}
+          </div>
+        )}
 
         {!otpSent ? (
           <div className="space-y-4">
