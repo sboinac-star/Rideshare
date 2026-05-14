@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy:firestore": "firebase deploy --only firestore:rules",
+    "deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "deploy:emulators": "firebase emulators:start --only firestore",
     "test": "vitest run",
     "test:watch": "vitest",

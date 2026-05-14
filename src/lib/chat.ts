@@ -79,24 +79,29 @@ export function subscribeToMessages(
 export function subscribeToUserChats(
   uid: string,
   callback: (chats: Chat[]) => void,
+  onError?: () => void,
 ): Unsubscribe {
   const q = query(
     collection(db, "chats"),
     where("participants", "array-contains", uid),
     orderBy("updatedAt", "desc"),
   );
-  return onSnapshot(q, (snap) => {
-    callback(
-      snap.docs.map((d) => ({
-        id: d.id,
-        participants: d.data().participants as string[],
-        listingType: d.data().listingType as "journey" | "request",
-        listingId: d.data().listingId as string,
-        route: d.data().route as string,
-        participantNames: d.data().participantNames as Record<string, string>,
-        lastMessage: d.data().lastMessage as string,
-        updatedAt: d.data().updatedAt?.toDate() ?? null,
-      })),
-    );
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(
+        snap.docs.map((d) => ({
+          id: d.id,
+          participants: d.data().participants as string[],
+          listingType: d.data().listingType as "journey" | "request",
+          listingId: d.data().listingId as string,
+          route: d.data().route as string,
+          participantNames: d.data().participantNames as Record<string, string>,
+          lastMessage: d.data().lastMessage as string,
+          updatedAt: d.data().updatedAt?.toDate() ?? null,
+        })),
+      );
+    },
+    () => { onError?.(); },
+  );
 }

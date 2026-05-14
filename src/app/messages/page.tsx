@@ -30,10 +30,11 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     setLoading(true);
-    const unsub = subscribeToUserChats(user.uid, (data) => {
-      setChats(data);
-      setLoading(false);
-    });
+    const unsub = subscribeToUserChats(
+      user.uid,
+      (data) => { setChats(data); setLoading(false); },
+      () => { setLoading(false); },
+    );
     return unsub;
   }, [user]);
 
