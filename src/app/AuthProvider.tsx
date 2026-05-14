@@ -88,9 +88,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const testSignIn = async () => {
     const resp = await fetch("/api/test-auth", { method: "POST" });
-    if (!resp.ok) throw new Error("Test sign-in unavailable");
-    const { token } = await resp.json();
-    await signInWithCustomToken(auth, token);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error ?? "Test sign-in unavailable");
+    await signInWithCustomToken(auth, data.token);
   };
 
   return (

@@ -10,6 +10,10 @@ export async function POST() {
     const { getAuth } = await import("firebase-admin/auth");
 
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT ?? "{}");
+    // Vercel sometimes stores the private key with escaped newlines — unescape them
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    }
 
     const adminApp =
       getApps().find((a) => a.name === "test-auth") ??

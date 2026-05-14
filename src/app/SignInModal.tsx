@@ -53,8 +53,8 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
       await testSignIn();
       onSuccess?.();
       onClose();
-    } catch {
-      setError("Test sign-in failed. Check that FIREBASE_SERVICE_ACCOUNT is set in Vercel env vars.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Test sign-in failed.");
     } finally {
       setTestingSignIn(false);
     }
