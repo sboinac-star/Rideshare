@@ -5,6 +5,7 @@ import {
   User,
   onAuthStateChanged,
   signInWithPhoneNumber,
+  signInWithCustomToken,
   RecaptchaVerifier,
   ConfirmationResult,
   signOut as firebaseSignOut,
@@ -19,6 +20,7 @@ type AuthContextType = {
   confirmOTP: (code: string) => Promise<void>;
   resetOTP: () => void;
   signOut: () => Promise<void>;
+  testSignIn: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -84,8 +86,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   };
 
+  const testSignIn = async () => {
+    const resp = await fetch("/api/test-auth", { method: "POST" });
+    if (!resp.ok) throw new Error("Test sign-in unavailable");
+    const { token } = await resp.json();
+    await signInWithCustomToken(auth, token);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, authLoading, otpSent, sendOTP, confirmOTP, resetOTP, signOut }}>
+    <AuthContext.Provider value={{ user, authLoading, otpSent, sendOTP, confirmOTP, resetOTP, signOut, testSignIn }}>
       {children}
       <div id="recaptcha-container" />
     </AuthContext.Provider>

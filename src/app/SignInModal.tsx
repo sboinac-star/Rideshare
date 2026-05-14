@@ -3,6 +3,20 @@
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 
+async function fetchEmulatorCode(phone: string, projectId: string): Promise<string | null> {
+  try {
+    const resp = await fetch(
+      `http://127.0.0.1:9099/emulator/v1/projects/${projectId}/verificationCodes`
+    );
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const codes: Array<{ phoneNumber: string; code: string }> = data.verificationCodes ?? [];
+    return [...codes].reverse().find((v) => v.phoneNumber === phone)?.code ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const IS_DEV = process.env.NODE_ENV === "development";
 const IS_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
 const IS_TEST_ENV = IS_DEV || IS_PREVIEW;
@@ -24,12 +38,27 @@ function toE164(raw: string): string {
 }
 
 export default function SignInModal({ onClose, onSuccess, title = "Sign in to continue" }: Props) {
-  const { sendOTP, confirmOTP, otpSent, resetOTP } = useAuth();
+  const { sendOTP, confirmOTP, otpSent, resetOTP, testSignIn } = useAuth();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [testingSignIn, setTestingSignIn] = useState(false);
   const [error, setError] = useState("");
+
+  const handleTestSignIn = async () => {
+    setError("");
+    setTestingSignIn(true);
+    try {
+      await testSignIn();
+      onSuccess?.();
+      onClose();
+    } catch {
+      setError("Test sign-in failed. Check that FIREBASE_SERVICE_ACCOUNT is set in Vercel env vars.");
+    } finally {
+      setTestingSignIn(false);
+    }
+  };
 
   const handleSend = async () => {
     setError("");
@@ -38,22 +67,13 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
     setSending(true);
     try {
       await sendOTP(toE164(phone));
-      // Local emulator: auto-fetch the OTP so dev doesn't need to check emulator logs
+      // Local emulator: auto-fetch OTP so dev doesn't need to check emulator logs
       if (IS_DEV) {
-        try {
-          const resp = await fetch(
-            `http://127.0.0.1:9099/emulator/v1/projects/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/verificationCodes`
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            const normalized = toE164(phone);
-            const codes: Array<{ phoneNumber: string; code: string }> = data.verificationCodes ?? [];
-            const entry = [...codes].reverse().find((v) => v.phoneNumber === normalized);
-            if (entry) setCode(entry.code);
-          }
-        } catch {
-          // Emulator not running — user can enter code manually
-        }
+        const fetched = await fetchEmulatorCode(
+          toE164(phone),
+          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? ""
+        );
+        if (fetched) setCode(fetched);
       }
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code ?? "";
@@ -92,32 +112,30 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
         <h2 className="text-lg font-bold text-gray-900 mb-1">{title}</h2>
         <p className="text-sm text-gray-500 mb-5">We&apos;ll text a 6-digit code to verify your number.</p>
 
-        {IS_TEST_ENV && (
+        {IS_DEV && (
           <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-            {IS_DEV ? (
-              <>
-                <span className="font-semibold">Local emulator</span> — use any phone number, code auto-filled after send
-              </>
-            ) : (
-              <>
-                <span className="font-semibold">Preview</span> — use{" "}
-                <span className="font-mono font-semibold">{TEST_PHONE}</span> / code{" "}
-                <span className="font-mono font-semibold">{TEST_CODE}</span>
-                {!otpSent && (
-                  <button
-                    type="button"
-                    onClick={() => setPhone(TEST_PHONE)}
-                    className="ml-2 underline hover:no-underline"
-                  >
-                    fill
-                  </button>
-                )}
-              </>
-            )}
+            <span className="font-semibold">Local emulator</span> — use any phone number, code auto-filled after send
           </div>
         )}
 
-        {!otpSent ? (
+        {IS_PREVIEW ? (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+              <span className="font-semibold">Preview env</span> — phone auth bypassed, signs in as a test account
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button
+              onClick={handleTestSignIn}
+              disabled={testingSignIn}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-2.5 rounded-lg transition"
+            >
+              {testingSignIn ? "Signing in..." : "Sign in as Test User"}
+            </button>
+            <button onClick={onClose} className="w-full text-sm text-gray-400 hover:text-gray-600 py-1">
+              Cancel
+            </button>
+          </div>
+        ) : !otpSent ? (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -174,9 +192,11 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
           </div>
         )}
 
-        <button onClick={onClose} className="mt-3 w-full text-sm text-gray-400 hover:text-gray-600 py-1">
-          Cancel
-        </button>
+        {!IS_PREVIEW && (
+          <button onClick={onClose} className="mt-3 w-full text-sm text-gray-400 hover:text-gray-600 py-1">
+            Cancel
+          </button>
+        )}
       </div>
     </div>
   );
