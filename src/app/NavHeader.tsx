@@ -10,6 +10,7 @@ const links = [
   { href: "/", label: "Browse" },
   { href: "/driver", label: "Post Journey" },
   { href: "/passenger", label: "Request Ride" },
+  { href: "/my-rides", label: "My Rides" },
   { href: "/messages", label: "Messages" },
   { href: "/about", label: "About" },
 ];

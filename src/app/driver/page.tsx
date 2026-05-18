@@ -33,6 +33,7 @@ export default function DriverPage() {
     departureTime: "",
     availableSeats: 1,
     roundTrip: false,
+    returnTime: "",
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -85,7 +86,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -330,11 +331,29 @@ export default function DriverPage() {
                 <input
                   type="checkbox"
                   checked={newJourney.roundTrip}
-                  onChange={(e) => setNewJourney({ ...newJourney, roundTrip: e.target.checked })}
+                  onChange={(e) => setNewJourney({
+                    ...newJourney,
+                    roundTrip: e.target.checked,
+                    returnTime: e.target.checked ? newJourney.departureTime : "",
+                  })}
                   className="w-4 h-4 accent-blue-600"
                 />
                 <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
               </label>
+
+              {newJourney.roundTrip && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newJourney.returnTime}
+                    min={newJourney.departureTime || minDepartureTime()}
+                    onChange={(e) => setNewJourney({ ...newJourney, returnTime: e.target.value })}
+                    className={inputClass}
+                    required
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

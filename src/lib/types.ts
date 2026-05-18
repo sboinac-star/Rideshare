@@ -11,6 +11,7 @@ export interface Journey {
   driverPhone: string;
   status: string;
   roundTrip?: boolean;
+  returnTime?: string;
 }
 
 export interface RideRequest {
@@ -26,6 +27,7 @@ export interface RideRequest {
   passengerPhone: string;
   status: string;
   roundTrip?: boolean;
+  returnTime?: string;
 }
 
 export interface Message {
