@@ -48,16 +48,16 @@ beforeEach(() => vi.clearAllMocks());
 // ─── buildChatId ─────────────────────────────────────────────────────────────
 
 describe("buildChatId", () => {
-  it("formats a journey chat id", () => {
-    expect(buildChatId("journey", "j1", "u1")).toBe("journey_j1_u1");
+  it("formats a journey chat id with sorted uids", () => {
+    expect(buildChatId("journey", "j1", "u1", "u2")).toBe("journey_j1_u1_u2");
   });
 
-  it("formats a request chat id", () => {
-    expect(buildChatId("request", "r1", "u1")).toBe("request_r1_u1");
+  it("formats a request chat id with sorted uids", () => {
+    expect(buildChatId("request", "r1", "u1", "u2")).toBe("request_r1_u1_u2");
   });
 
-  it("preserves the initiator uid at the end", () => {
-    expect(buildChatId("journey", "abc", "xyz").endsWith("xyz")).toBe(true);
+  it("produces the same id regardless of uid order", () => {
+    expect(buildChatId("journey", "j1", "u2", "u1")).toBe(buildChatId("journey", "j1", "u1", "u2"));
   });
 });
 

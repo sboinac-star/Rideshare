@@ -22,7 +22,7 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
 
   const isOwner = user?.uid === ownerUid;
 
-  const chatId = user ? buildChatId("journey", journeyId, user.uid) : "";
+  const chatId = user ? buildChatId("journey", journeyId, user.uid, ownerUid) : "";
 
   const handleChat = () => {
     if (!user) {

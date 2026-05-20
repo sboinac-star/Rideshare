@@ -9,9 +9,10 @@ import type { Message, Chat } from "./types";
 export function buildChatId(
   listingType: "journey" | "request",
   listingId: string,
-  initiatorUid: string,
+  uid1: string,
+  uid2: string,
 ) {
-  return `${listingType}_${listingId}_${initiatorUid}`;
+  return `${listingType}_${listingId}_${[uid1, uid2].sort().join("_")}`;
 }
 
 export async function getOrCreateChat(

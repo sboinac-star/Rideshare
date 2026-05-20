@@ -22,7 +22,7 @@ export default function RequestContact({ requestId, ownerUid, passengerName, rou
 
   const isOwner = user?.uid === ownerUid;
 
-  const chatId = user ? buildChatId("request", requestId, user.uid) : "";
+  const chatId = user ? buildChatId("request", requestId, user.uid, ownerUid) : "";
 
   const handleChat = () => {
     if (!user) {

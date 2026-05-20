@@ -46,11 +46,11 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
   const [testingSignIn, setTestingSignIn] = useState(false);
   const [error, setError] = useState("");
 
-  const handleTestSignIn = async () => {
+  const handleTestSignIn = async (userId?: string) => {
     setError("");
     setTestingSignIn(true);
     try {
-      await testSignIn();
+      await testSignIn(userId);
       onSuccess?.();
       onClose();
     } catch (e) {
@@ -80,7 +80,7 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
       const serverResponse = (e as { customData?: { serverResponse?: string } })?.customData?.serverResponse ?? "";
       const msg = code || (e instanceof Error ? e.message : String(e));
       if (msg.includes("invalid-phone-number")) setError("Invalid phone number.");
-      else if (msg.includes("too-many-requests")) setError("Too many attempts. Try again later.");
+      else if (msg.includes("too-many-requests")) setError("Too many sign-in attempts on this number. Firebase has temporarily blocked it. Please wait 30–60 minutes and try again.");
       else if (msg.includes("unauthorized-domain")) setError("Domain not authorized in Firebase. Add nwa-rideshare.vercel.app to Firebase Auth authorized domains.");
       else if (msg.includes("captcha-check-failed") || msg.includes("recaptcha")) setError("Security check failed. Please refresh the page and try again.");
       else if (msg.includes("BILLING_NOT_ENABLED") || serverResponse.includes("BILLING_NOT_ENABLED")) setError("Firebase billing not enabled. Upgrade to Blaze plan or use a test phone number.");
@@ -121,15 +121,22 @@ export default function SignInModal({ onClose, onSuccess, title = "Sign in to co
         {IS_PREVIEW ? (
           <div className="space-y-3">
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-              <span className="font-semibold">Preview env</span> — phone auth bypassed, signs in as a test account
+              <span className="font-semibold">Preview env</span> — use different users to test chat between two accounts
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button
-              onClick={handleTestSignIn}
+              onClick={() => handleTestSignIn("test-user-1")}
               disabled={testingSignIn}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-2.5 rounded-lg transition"
             >
-              {testingSignIn ? "Signing in..." : "Sign in as Test User"}
+              {testingSignIn ? "Signing in..." : "Sign in as Test User 1"}
+            </button>
+            <button
+              onClick={() => handleTestSignIn("test-user-2")}
+              disabled={testingSignIn}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-2.5 rounded-lg transition"
+            >
+              {testingSignIn ? "Signing in..." : "Sign in as Test User 2"}
             </button>
             <button onClick={onClose} className="w-full text-sm text-gray-400 hover:text-gray-600 py-1">
               Cancel

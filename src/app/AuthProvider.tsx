@@ -20,7 +20,7 @@ type AuthContextType = {
   confirmOTP: (code: string) => Promise<void>;
   resetOTP: () => void;
   signOut: () => Promise<void>;
-  testSignIn: () => Promise<void>;
+  testSignIn: (userId?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -86,8 +86,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   };
 
-  const testSignIn = async () => {
-    const resp = await fetch("/api/test-auth", { method: "POST" });
+  const testSignIn = async (userId?: string) => {
+    const resp = await fetch("/api/test-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error ?? "Test sign-in unavailable");
     await signInWithCustomToken(auth, data.token);

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(req: Request) {
   if (process.env.VERCEL_ENV === "production") {
     return NextResponse.json({ error: "Not available in production" }, { status: 403 });
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const userId: string = typeof body.userId === "string" && body.userId ? body.userId : "test-user-preview";
+
     const { initializeApp, getApps, cert } = await import("firebase-admin/app");
     const { getAuth } = await import("firebase-admin/auth");
 
@@ -19,7 +22,7 @@ export async function POST() {
       getApps().find((a) => a.name === "test-auth") ??
       initializeApp({ credential: cert(serviceAccount) }, "test-auth");
 
-    const token = await getAuth(adminApp).createCustomToken("test-user-preview");
+    const token = await getAuth(adminApp).createCustomToken(userId);
     return NextResponse.json({ token });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
