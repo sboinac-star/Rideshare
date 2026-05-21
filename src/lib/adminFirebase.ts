@@ -24,19 +24,24 @@ export async function verifyAdmin(req: Request): Promise<string | null> {
   const token = req.headers.get("Authorization")?.replace("Bearer ", "");
   if (!token) return null;
   try {
-    const decoded = await adminAuth().verifyIdToken(token);
+    // Use Firebase REST API — no service account needed for token verification
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken: token }) }
+    );
+    if (!res.ok) { console.error("[admin] token lookup HTTP", res.status); return null; }
+    const data = await res.json() as { users?: { localId: string; phoneNumber?: string }[] };
+    const user = data.users?.[0];
+    if (!user?.phoneNumber) { console.error("[admin] no phoneNumber in token"); return null; }
     const phones = getAdminPhones();
-    if (!decoded.phone_number) {
-      console.error("[admin] token has no phone_number claim");
+    if (!phones.includes(user.phoneNumber)) {
+      console.error(`[admin] ${user.phoneNumber} not in list [${phones.join(",")}]`);
       return null;
     }
-    if (!phones.includes(decoded.phone_number)) {
-      console.error(`[admin] phone ${decoded.phone_number} not in admin list: ${phones.join(",")}`);
-      return null;
-    }
-    return decoded.uid;
+    return user.localId;
   } catch (e) {
-    console.error("[admin] verifyIdToken failed:", e);
+    console.error("[admin] verifyAdmin error:", e);
     return null;
   }
 }
