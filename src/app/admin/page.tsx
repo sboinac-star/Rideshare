@@ -436,18 +436,14 @@ function Spinner() {
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
+const ADMIN_PHONES = (process.env.NEXT_PUBLIC_ADMIN_PHONES ?? "")
+  .split(",").map((p) => p.trim()).filter(Boolean);
+
 export default function AdminPage() {
   const { user, authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>("dashboard");
 
-  useEffect(() => {
-    if (!user) { setIsAdmin(false); return; }
-    user.getIdToken().then((token) =>
-      fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
-    ).then((r) => setIsAdmin(r.ok))
-    .catch(() => setIsAdmin(false));
-  }, [user]);
+  const isAdmin = !authLoading && !!user && ADMIN_PHONES.includes(user.phoneNumber ?? "");
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "dashboard", label: "Dashboard" },
@@ -458,7 +454,7 @@ export default function AdminPage() {
     { id: "announcements", label: "Announcements" },
   ];
 
-  if (authLoading || isAdmin === null) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
