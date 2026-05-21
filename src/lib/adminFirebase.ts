@@ -26,9 +26,17 @@ export async function verifyAdmin(req: Request): Promise<string | null> {
   try {
     const decoded = await adminAuth().verifyIdToken(token);
     const phones = getAdminPhones();
-    if (!decoded.phone_number || !phones.includes(decoded.phone_number)) return null;
+    if (!decoded.phone_number) {
+      console.error("[admin] token has no phone_number claim");
+      return null;
+    }
+    if (!phones.includes(decoded.phone_number)) {
+      console.error(`[admin] phone ${decoded.phone_number} not in admin list: ${phones.join(",")}`);
+      return null;
+    }
     return decoded.uid;
-  } catch {
+  } catch (e) {
+    console.error("[admin] verifyIdToken failed:", e);
     return null;
   }
 }
