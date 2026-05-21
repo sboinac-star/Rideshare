@@ -10,6 +10,9 @@ import type { Chat } from "@/lib/types";
 
 const LAST_READ_KEY = (uid: string) => `nwa_lastReadMessages_${uid}`;
 
+const ADMIN_PHONES = (process.env.NEXT_PUBLIC_ADMIN_PHONES ?? "")
+  .split(",").map((p) => p.trim()).filter(Boolean);
+
 function maskedPhone(phone: string | null) {
   if (!phone) return "";
   const digits = phone.replace(/\D/g, "");
@@ -45,6 +48,8 @@ export default function NavHeader() {
     ).length;
   })();
 
+  const isAdmin = !!user && ADMIN_PHONES.includes(user.phoneNumber ?? "");
+
   const navLinks = [
     { href: "/", label: "Browse" },
     { href: "/driver", label: "Post Journey" },
@@ -52,6 +57,7 @@ export default function NavHeader() {
     { href: "/my-rides", label: "My Rides" },
     { href: "/messages", label: "Messages", badge: unreadCount },
     { href: "/about", label: "About" },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
