@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, where, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
@@ -307,6 +307,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snap) => {
+      setAnnouncements(snap.docs.map((d) => ({ id: d.id, text: d.data().text as string })));
+    });
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "journeys"), where("status", "==", "active"));
@@ -433,6 +441,11 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {announcements.map((a) => (
+        <div key={a.id} className="bg-blue-700 text-white text-sm text-center px-4 py-2.5 font-medium">
+          📢 {a.text}
+        </div>
+      ))}
       <div className="max-w-6xl mx-auto px-4 py-12">
         <section className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Carpooling Made Simple</h1>
