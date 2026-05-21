@@ -31,6 +31,8 @@ export default function ChatModal({
   const [chatReady, setChatReady] = useState(false);
   const [firstSent, setFirstSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [bottomOffset, setBottomOffset] = useState(0);
+  const [visH, setVisH] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +66,23 @@ export default function ChatModal({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Push modal above soft keyboard on mobile
+  useEffect(() => {
+    const update = () => {
+      const vv = window.visualViewport;
+      const h = vv?.height ?? window.innerHeight;
+      setVisH(h);
+      setBottomOffset(Math.max(0, window.innerHeight - h - (vv?.offsetTop ?? 0)));
+    };
+    update();
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+    };
+  }, []);
+
   const handleSend = async () => {
     if (!user || !text.trim() || !chatReady) return;
     setSending(true);
@@ -80,10 +99,13 @@ export default function ChatModal({
   const otherName = isOwner ? "Passenger" : ownerName;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ paddingBottom: bottomOffset }}
+    >
       <div
         className="bg-white w-full sm:max-w-md sm:rounded-xl shadow-2xl flex flex-col"
-        style={{ height: "min(600px, 90dvh)" }}
+        style={{ height: visH > 0 ? `min(600px, ${Math.floor(visH * 0.9)}px)` : "min(600px, 90dvh)" }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
