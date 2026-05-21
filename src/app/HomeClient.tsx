@@ -13,6 +13,8 @@ import SignInModal from "@/app/SignInModal";
 import ChatModal from "@/features/chat/ChatModal";
 import { buildChatId } from "@/lib/chat";
 
+const TEST_UIDS = ["test-user-1", "test-user-2"];
+
 type QuickFilter = "all" | "today" | "weekend";
 type HomeTab = "rides" | "requests";
 type SortBy = "soonest" | "seats";
@@ -311,7 +313,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .filter((j) => !isPast(j.departureTime))
+        .filter((j) => !isPast(j.departureTime) && !TEST_UIDS.includes(j.uid))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
@@ -324,7 +326,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
-        .filter((r) => !isPast(r.departureTime))
+        .filter((r) => !isPast(r.departureTime) && !TEST_UIDS.includes(r.uid))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setRequests(data);
       setRequestsLoading(false);

@@ -3,6 +3,8 @@ import HomeClient from "./HomeClient";
 import { Journey } from "@/lib/types";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 
+const TEST_UIDS = ["test-user-1", "test-user-2"];
+
 export const metadata: Metadata = {
   openGraph: { url: "/" },
 };
@@ -63,7 +65,7 @@ async function fetchInitialJourneys(): Promise<Journey[]> {
           roundTrip: f.roundTrip ? Boolean(parseValue(f.roundTrip)) : undefined,
         } as Journey;
       })
-      .filter((j) => new Date(j.departureTime) > now)
+      .filter((j) => new Date(j.departureTime) > now && !TEST_UIDS.includes(j.uid ?? ""))
       .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
   } catch {
     return [];
