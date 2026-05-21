@@ -53,6 +53,7 @@ async function fetchInitialJourneys(): Promise<Journey[]> {
         const f = doc.fields;
         return {
           id,
+          uid: f.uid ? String(parseValue(f.uid)) : undefined,
           driverName: String(parseValue(f.driverName) ?? ""),
           from: String(parseValue(f.from) ?? ""),
           to: String(parseValue(f.to) ?? ""),
