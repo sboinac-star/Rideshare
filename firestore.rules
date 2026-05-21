@@ -29,7 +29,7 @@ service cloud.firestore {
 
     function isValidEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return changed.hasOnly(['availableSeats', 'departureTime'])
+      return changed.hasOnly(['availableSeats', 'departureTime', 'returnTime'])
         && request.resource.data.availableSeats is int
         && request.resource.data.availableSeats > 0
         && request.resource.data.availableSeats <= 8
@@ -65,7 +65,7 @@ service cloud.firestore {
 
     function isValidRequestEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return changed.hasOnly(['seatsNeeded', 'departureTime'])
+      return changed.hasOnly(['seatsNeeded', 'departureTime', 'returnTime'])
         && request.resource.data.seatsNeeded is int
         && request.resource.data.seatsNeeded > 0
         && request.resource.data.seatsNeeded <= 8

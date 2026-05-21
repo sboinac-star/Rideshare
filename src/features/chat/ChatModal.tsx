@@ -29,6 +29,7 @@ export default function ChatModal({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [chatReady, setChatReady] = useState(false);
+  const [firstSent, setFirstSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function ChatModal({
     try {
       await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", text.trim());
       setText("");
+      setFirstSent(true);
     } finally {
       setSending(false);
     }
@@ -128,6 +130,13 @@ export default function ChatModal({
           })}
           <div ref={bottomRef} />
         </div>
+
+        {/* Sent tip */}
+        {firstSent && messages.length <= 2 && (
+          <div className="mx-3 mb-1 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 text-center shrink-0">
+            Message sent! The other person will see it in their <strong>Messages</strong> tab when they open the app.
+          </div>
+        )}
 
         {/* Input */}
         <div className="px-3 py-3 border-t border-gray-100 flex gap-2 shrink-0">

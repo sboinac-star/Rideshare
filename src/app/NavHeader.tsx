@@ -1,19 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import SignInModal from "./SignInModal";
+import { subscribeToUserChats } from "@/lib/chat";
+import type { Chat } from "@/lib/types";
 
-const links = [
-  { href: "/", label: "Browse" },
-  { href: "/driver", label: "Post Journey" },
-  { href: "/passenger", label: "Request Ride" },
-  { href: "/my-rides", label: "My Rides" },
-  { href: "/messages", label: "Messages" },
-  { href: "/about", label: "About" },
-];
+const LAST_READ_KEY = (uid: string) => `nwa_lastReadMessages_${uid}`;
 
 function maskedPhone(phone: string | null) {
   if (!phone) return "";
@@ -24,8 +19,40 @@ function maskedPhone(phone: string | null) {
 export default function NavHeader() {
   const [open, setOpen] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
   const pathname = usePathname();
   const { user, authLoading, signOut } = useAuth();
+
+  // Subscribe to user's chats for unread badge
+  useEffect(() => {
+    if (!user) { setChats([]); return; }
+    const unsub = subscribeToUserChats(user.uid, setChats, () => {});
+    return unsub;
+  }, [user]);
+
+  // When user visits /messages, mark all as read
+  useEffect(() => {
+    if (pathname === "/messages" && user) {
+      localStorage.setItem(LAST_READ_KEY(user.uid), Date.now().toString());
+    }
+  }, [pathname, user]);
+
+  const unreadCount = (() => {
+    if (!user || chats.length === 0) return 0;
+    const lastRead = Number(localStorage.getItem(LAST_READ_KEY(user.uid)) ?? 0);
+    return chats.filter(
+      (c) => c.lastMessage && c.updatedAt && c.updatedAt.getTime() > lastRead
+    ).length;
+  })();
+
+  const navLinks = [
+    { href: "/", label: "Browse" },
+    { href: "/driver", label: "Post Journey" },
+    { href: "/passenger", label: "Request Ride" },
+    { href: "/my-rides", label: "My Rides" },
+    { href: "/messages", label: "Messages", badge: unreadCount },
+    { href: "/about", label: "About" },
+  ];
 
   return (
     <>
@@ -37,13 +64,18 @@ export default function NavHeader() {
 
           {/* Desktop links */}
           <div className="hidden sm:flex items-center gap-6 text-sm font-medium">
-            {links.map(({ href, label }) => (
+            {navLinks.map(({ href, label, badge }) => (
               <Link
                 key={href}
                 href={href}
-                className={pathname === href ? "text-white underline underline-offset-4" : "hover:text-blue-100 transition"}
+                className={`relative ${pathname === href ? "text-white underline underline-offset-4" : "hover:text-blue-100 transition"}`}
               >
                 {label}
+                {badge ? (
+                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null}
               </Link>
             ))}
             {!authLoading && (
@@ -89,16 +121,21 @@ export default function NavHeader() {
         {/* Mobile menu */}
         {open && (
           <div className="sm:hidden border-t border-blue-500 bg-blue-600 px-4 pb-4 flex flex-col gap-1">
-            {links.map(({ href, label }) => (
+            {navLinks.map(({ href, label, badge }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`py-2 text-sm font-medium rounded px-2 ${
+                className={`relative py-2 text-sm font-medium rounded px-2 ${
                   pathname === href ? "bg-blue-700 text-white" : "hover:bg-blue-700 transition"
                 }`}
               >
                 {label}
+                {badge ? (
+                  <span className="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null}
               </Link>
             ))}
             {!authLoading && (
