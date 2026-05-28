@@ -113,7 +113,7 @@ export default function ChatModal({
       style={{ paddingBottom: bottomOffset }}
     >
       <div
-        className="bg-white w-full sm:max-w-md sm:rounded-xl shadow-2xl flex flex-col"
+        className="bg-white w-full sm:max-w-md sm:rounded-xl shadow-2xl flex flex-col overflow-hidden"
         style={{ height: visH > 0 ? `min(600px, ${Math.floor(visH * 0.9)}px)` : "min(600px, 90dvh)" }}
       >
         {/* Header */}
@@ -134,7 +134,7 @@ export default function ChatModal({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 space-y-2">
           {!chatReady && (
             <div className="flex justify-center mt-8">
               <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -148,7 +148,7 @@ export default function ChatModal({
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                  className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
                     isMe
                       ? "bg-blue-600 text-white rounded-br-sm"
                       : "bg-gray-100 text-gray-900 rounded-bl-sm"
@@ -183,7 +183,7 @@ export default function ChatModal({
             }}
             placeholder={chatReady ? "Type a message..." : "Connecting..."}
             disabled={!chatReady}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+            className="flex-1 min-w-0 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
           />
           <button
             onClick={handleSend}
