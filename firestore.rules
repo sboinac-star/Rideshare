@@ -145,6 +145,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /fcmTokens/{uid} {
+      allow read, write: if isAuthenticated() && request.auth.uid == uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

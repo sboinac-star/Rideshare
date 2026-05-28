@@ -86,10 +86,19 @@ export default function ChatModal({
   const handleSend = async () => {
     if (!user || !text.trim() || !chatReady) return;
     setSending(true);
+    const msgText = text.trim();
     try {
-      await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", text.trim());
+      await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", msgText);
       setText("");
       setFirstSent(true);
+      // Fire-and-forget push notification to the other participant
+      user.getIdToken().then((token) =>
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ chatId, text: msgText, senderName: user.phoneNumber ?? "User" }),
+        })
+      ).catch(() => {});
     } finally {
       setSending(false);
     }

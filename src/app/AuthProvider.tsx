@@ -11,6 +11,7 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { registerPushToken, unregisterPushToken } from "@/lib/notifications";
 
 type AuthContextType = {
   user: User | null;
@@ -42,6 +43,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
+      if (u) registerPushToken(u.uid);
     });
     return unsub;
   }, []);
@@ -83,6 +85,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (user) await unregisterPushToken(user.uid);
     await firebaseSignOut(auth);
   };
 

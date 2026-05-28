@@ -1,8 +1,9 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getMessaging } from "firebase-admin/messaging";
 
-function getAdminApp() {
+function getAdminApp(): App {
   const existing = getApps().find((a) => a.name === "admin");
   if (existing) return existing;
   const privateKey = (process.env.FIREBASE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
@@ -17,6 +18,7 @@ function getAdminApp() {
 
 export const adminDb = () => getFirestore(getAdminApp());
 export const adminAuth = () => getAuth(getAdminApp());
+export const adminMessaging = () => getMessaging(getAdminApp());
 
 export function getAdminPhones(): string[] {
   return (process.env.ADMIN_PHONES ?? "")
@@ -40,6 +42,17 @@ export async function verifyAdmin(req: Request): Promise<string | null> {
     return decoded.uid;
   } catch (e) {
     console.error("[admin] verifyAdmin error:", e);
+    return null;
+  }
+}
+
+export async function verifyUser(req: Request): Promise<string | null> {
+  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!token) return null;
+  try {
+    const decoded = await adminAuth().verifyIdToken(token);
+    return decoded.uid;
+  } catch {
     return null;
   }
 }
