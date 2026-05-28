@@ -34,7 +34,7 @@ describe("ChatModal", () => {
       cb([]);
       return vi.fn();
     });
-    mockUseAuth.mockReturnValue({ user: { uid: "u1", phoneNumber: "+14795550000" } });
+    mockUseAuth.mockReturnValue({ user: { uid: "u1", phoneNumber: "+14795550000", getIdToken: vi.fn().mockResolvedValue("tok") } });
   });
 
   it("renders owner name and route in the header", () => {
@@ -140,7 +140,7 @@ describe("ChatModal", () => {
   });
 
   it("shows 'Passenger' as the header name when the user is the owner", async () => {
-    mockUseAuth.mockReturnValue({ user: { uid: "driver-uid", phoneNumber: "+1" } });
+    mockUseAuth.mockReturnValue({ user: { uid: "driver-uid", phoneNumber: "+1", getIdToken: vi.fn().mockResolvedValue("tok") } });
     render(<ChatModal {...defaultProps} />);
     expect(screen.getByText("Passenger")).toBeInTheDocument();
   });

@@ -13,10 +13,12 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: ["src/lib/**", "src/features/**"],
       exclude: [
-        "src/lib/firebase.ts",    // config adapter, no logic to test
-        "src/lib/firestore.ts",   // pure data-mapping helpers tested indirectly
-        "src/lib/constants.ts",   // static data, no logic
-        "src/lib/validation.ts",  // pre-existing utilities, tracked separately
+        "src/lib/firebase.ts",         // config adapter, no logic to test
+        "src/lib/adminFirebase.ts",    // firebase-admin wrappers, server-only, no unit tests
+        "src/lib/notifications.ts",    // browser push APIs (service worker, Notification), not testable in jsdom
+        "src/lib/firestore.ts",        // pure data-mapping helpers tested indirectly
+        "src/lib/constants.ts",        // static data, no logic
+        "src/lib/validation.ts",       // pre-existing utilities, tracked separately
       ],
       thresholds: {
         statements: 70,
