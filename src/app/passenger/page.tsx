@@ -38,6 +38,9 @@ export default function PassengerPage() {
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
   const [nameError, setNameError] = useState("");
+  const [minTime, setMinTime] = useState("");
+
+  useEffect(() => { setMinTime(minDepartureTime()); }, []);
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -313,7 +316,7 @@ export default function PassengerPage() {
                   <input
                     type="datetime-local"
                     value={newRequest.departureTime}
-                    min={minDepartureTime()}
+                    min={minTime}
                     onChange={(e) => setNewRequest({ ...newRequest, departureTime: e.target.value })}
                     className={inputClass}
                     required
@@ -351,7 +354,7 @@ export default function PassengerPage() {
                   <input
                     type="datetime-local"
                     value={newRequest.returnTime}
-                    min={newRequest.departureTime || minDepartureTime()}
+                    min={newRequest.departureTime || minTime}
                     onChange={(e) => setNewRequest({ ...newRequest, returnTime: e.target.value })}
                     className={inputClass}
                     required
