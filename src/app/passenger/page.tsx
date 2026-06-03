@@ -66,6 +66,10 @@ export default function PassengerPage() {
     const err = validateName(newRequest.passengerName);
     setNameError(err);
     if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
+    if (new Date(newRequest.departureTime) <= new Date()) {
+      toast("Travel time must be in the future.", "error");
+      return;
+    }
 
     const isDuplicate = requests.some(
       (r) => r.status === "active" && r.from === newRequest.from &&

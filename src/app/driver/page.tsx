@@ -66,6 +66,10 @@ export default function DriverPage() {
     const err = validateName(newJourney.driverName);
     setNameError(err);
     if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
+    if (new Date(newJourney.departureTime) <= new Date()) {
+      toast("Departure time must be in the future.", "error");
+      return;
+    }
 
     const isDuplicate = journeys.some(
       (j) => j.status === "active" && j.from === newJourney.from &&
