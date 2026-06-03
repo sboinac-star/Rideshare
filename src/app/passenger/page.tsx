@@ -334,7 +334,7 @@ export default function PassengerPage() {
                   onChange={(e) => setNewRequest({
                     ...newRequest,
                     roundTrip: e.target.checked,
-                    returnTime: e.target.checked ? newRequest.departureTime : "",
+                    returnTime: "",
                   })}
                   className="w-4 h-4 accent-purple-600"
                 />

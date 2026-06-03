@@ -334,7 +334,7 @@ export default function DriverPage() {
                   onChange={(e) => setNewJourney({
                     ...newJourney,
                     roundTrip: e.target.checked,
-                    returnTime: e.target.checked ? newJourney.departureTime : "",
+                    returnTime: "",
                   })}
                   className="w-4 h-4 accent-blue-600"
                 />
