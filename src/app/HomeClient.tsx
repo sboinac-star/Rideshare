@@ -497,12 +497,24 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
             </div>
             <div>
               <label className="block text-gray-700 font-semibold mb-2">Date</label>
-              <input
-                type="date"
-                value={searchDate}
-                onChange={(e) => setSearchDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {searchDate && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchDate("")}
+                    className="absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-lg leading-none"
+                    aria-label="Clear date"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
