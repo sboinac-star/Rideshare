@@ -110,7 +110,7 @@ export default function ChatModal({
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ paddingBottom: bottomOffset }}
+      style={{ paddingBottom: `max(${bottomOffset}px, env(safe-area-inset-bottom, 0px))` }}
     >
       <div
         className="bg-white w-full sm:max-w-md sm:rounded-xl shadow-2xl flex flex-col overflow-hidden"
@@ -120,7 +120,7 @@ export default function ChatModal({
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition"
+            className="text-gray-400 hover:text-gray-600 p-2 rounded-lg transition -ml-1"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +170,7 @@ export default function ChatModal({
         )}
 
         {/* Input */}
-        <div className="px-3 py-3 border-t border-gray-100 flex gap-2 shrink-0">
+        <div className="px-3 py-3 border-t border-gray-100 flex gap-2 items-center shrink-0">
           <input
             type="text"
             value={text}
@@ -184,11 +184,13 @@ export default function ChatModal({
             placeholder={chatReady ? "Type a message..." : "Connecting..."}
             disabled={!chatReady}
             className="flex-1 min-w-0 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+            style={{ fontSize: '16px' }}
           />
           <button
+            type="button"
             onClick={handleSend}
             disabled={!text.trim() || sending || !chatReady}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-full w-9 h-9 flex items-center justify-center transition shrink-0"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-full w-11 h-11 flex items-center justify-center transition shrink-0"
             aria-label="Send"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

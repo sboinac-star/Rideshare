@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavHeader from "./NavHeader";
@@ -14,6 +14,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2563eb",
+};
 
 export const metadata: Metadata = {
   title: "NWA Ride Share",
@@ -48,15 +55,14 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://www.googleapis.com" />
-        <meta name="theme-color" content="#2563eb" />
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <ToastProvider>
             <NavHeader />
             <main className="flex-1">{children}</main>
-            <footer className="bg-red-50 border-t border-red-200 px-4 py-3 text-center">
-              <p className="text-red-600 text-xs font-medium leading-snug max-w-2xl mx-auto">
+            <footer className="bg-red-50 border-t border-red-200 px-4 py-4 text-center">
+              <p className="text-red-600 text-sm sm:text-xs font-medium leading-snug max-w-2xl mx-auto">
                 <strong>Disclaimer:</strong> NWA Ride Share is a free community board and is not responsible for fraud, scams, identity theft, personal safety incidents, or any harm arising from interactions between users. Always meet in public places, verify the identity of drivers and passengers, never share sensitive financial information, and use your best judgment. Ride arrangements are solely between the parties involved. Use this service at your own risk.
               </p>
             </footer>

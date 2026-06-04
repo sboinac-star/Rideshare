@@ -24,6 +24,14 @@ body {
   color: var(--foreground);
 }
 
+/* Normalize date/datetime-local inputs to match text input appearance */
+input[type="date"],
+input[type="datetime-local"] {
+  line-height: normal;
+  min-height: 0;
+  color-scheme: light;
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
