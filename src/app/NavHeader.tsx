@@ -132,7 +132,7 @@ export default function NavHeader() {
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`relative py-2 text-sm font-medium rounded px-2 ${
+                className={`relative py-3 text-sm font-medium rounded px-3 ${
                   pathname === href ? "bg-blue-700 text-white" : "hover:bg-blue-700 transition"
                 }`}
               >
@@ -148,7 +148,7 @@ export default function NavHeader() {
               user ? (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-500">
                   <span className="text-blue-100 text-xs">{maskedPhone(user.phoneNumber)}</span>
-                  <button onClick={() => { signOut(); setOpen(false); }} className="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-lg transition">
+                  <button onClick={() => { signOut(); setOpen(false); }} className="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-2 rounded-lg transition">
                     Sign out
                   </button>
                 </div>

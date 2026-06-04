@@ -446,58 +446,58 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
           📢 {a.text}
         </div>
       ))}
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <section className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Carpooling Made Simple</h1>
-          <p className="text-xl text-gray-600 mb-8">Share rides across the USA. Affordable travel made easy.</p>
-          <div className="flex justify-center gap-4">
-            <Link href="/driver" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 md:py-12">
+        <section className="text-center mb-4 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Carpooling Made Simple</h1>
+          <p className="text-sm sm:text-base md:text-xl text-gray-600 mb-3 sm:mb-5">Share rides across the USA. Affordable travel made easy.</p>
+          <div className="flex flex-row justify-center gap-2 sm:gap-3">
+            <Link href="/driver" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-5 sm:px-8 rounded-lg transition text-sm sm:text-base">
               Post a Journey
             </Link>
-            <Link href="/passenger" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition">
+            <Link href="/passenger" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 sm:py-3 px-5 sm:px-8 rounded-lg transition text-sm sm:text-base">
               Request a Ride
             </Link>
           </div>
         </section>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 flex-1 sm:flex-none">
               <button
                 onClick={() => setActiveTab("rides")}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "rides" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-gray-900"}`}
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "rides" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-gray-900"}`}
               >
-                Available Rides {!loading && <span className="ml-1 text-xs font-normal">({filteredJourneys.length})</span>}
+                Rides {!loading && <span className="ml-1 text-xs font-normal">({filteredJourneys.length})</span>}
               </button>
               <button
                 onClick={() => setActiveTab("requests")}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "requests" ? "bg-white shadow text-purple-700" : "text-gray-600 hover:text-gray-900"}`}
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "requests" ? "bg-white shadow text-purple-700" : "text-gray-600 hover:text-gray-900"}`}
               >
-                Ride Requests {!requestsLoading && <span className="ml-1 text-xs font-normal">({filteredRequests.length})</span>}
+                Requests {!requestsLoading && <span className="ml-1 text-xs font-normal">({filteredRequests.length})</span>}
               </button>
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="soonest">Soonest first</option>
               <option value="seats">Most seats</option>
             </select>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">From</label>
+              <label className="block text-gray-700 font-semibold mb-1.5 text-sm sm:text-base">From</label>
               <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
             </div>
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">To</label>
+              <label className="block text-gray-700 font-semibold mb-1.5 text-sm sm:text-base">To</label>
               <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-gray-700 font-semibold">Date</label>
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-gray-700 font-semibold text-sm sm:text-base">Date</label>
                 {searchDate && (
                   <button
                     type="button"
@@ -522,7 +522,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
               <button
                 key={f}
                 onClick={() => setQuickFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                className={`px-4 py-2 rounded-full text-sm font-medium transition min-h-[40px] ${
                   quickFilter === f
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"

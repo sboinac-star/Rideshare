@@ -187,7 +187,7 @@ export default function PassengerPage() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Request a Ride</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Request a Ride</h1>
           <span className="text-sm text-gray-500">
             {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
           </span>
@@ -211,7 +211,7 @@ export default function PassengerPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-10">
+          <div className="bg-white rounded-lg shadow-lg p-5 sm:p-8 mb-10">
             <form onSubmit={handlePostRequest} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
@@ -395,7 +395,7 @@ export default function PassengerPage() {
                       {editingId === req.id ? (
                         <div className="space-y-3">
                           <p className="font-semibold text-gray-900">{req.from} → {req.to}</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid sm:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Travel Date & Time</label>
                               <input
@@ -419,13 +419,13 @@ export default function PassengerPage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditSave(req.id)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-1 px-4 rounded transition"
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-1 px-4 rounded transition"
+                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-2 px-4 rounded-lg transition"
                             >
                               Cancel
                             </button>
@@ -451,7 +451,7 @@ export default function PassengerPage() {
                                 <>
                                   <button
                                     onClick={() => handleShare(req)}
-                                    className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded transition"
+                                    className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     {copiedId === req.id ? "✓" : "📤"}
                                   </button>
@@ -460,13 +460,13 @@ export default function PassengerPage() {
                                       setEditingId(req.id);
                                       setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
                                     }}
-                                    className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded transition"
+                                    className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleCancelRequest(req.id)}
-                                    className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition"
+                                    className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Cancel
                                   </button>
@@ -474,7 +474,7 @@ export default function PassengerPage() {
                               )}
                               <button
                                 onClick={() => handleDeleteRequest(req.id)}
-                                className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-1 px-3 rounded transition"
+                                className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2 px-3 rounded-lg transition"
                               >
                                 Delete
                               </button>

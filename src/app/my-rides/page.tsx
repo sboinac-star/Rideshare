@@ -193,7 +193,7 @@ export default function MyRidesPage() {
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">My Rides</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Rides</h1>
           <span className="text-sm text-gray-500">
             {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
           </span>
@@ -281,13 +281,13 @@ export default function MyRidesPage() {
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={() => saveJourney(j.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1.5 px-4 rounded-lg transition"
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Save changes
                         </button>
                         <button
                           onClick={() => setEditingJourneyId(null)}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-1.5 px-4 rounded-lg transition"
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Cancel
                         </button>
@@ -329,7 +329,7 @@ export default function MyRidesPage() {
                             </button>
                             <button
                               onClick={() => cancelJourney(j.id)}
-                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1.5 px-4 rounded-lg transition"
+                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
                             >
                               Cancel
                             </button>
@@ -337,7 +337,7 @@ export default function MyRidesPage() {
                         )}
                         <button
                           onClick={() => deleteJourney(j.id)}
-                          className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-1.5 px-4 rounded-lg transition"
+                          className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Delete
                         </button>
@@ -406,13 +406,13 @@ export default function MyRidesPage() {
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={() => saveRequest(r.id)}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-1.5 px-4 rounded-lg transition"
+                          className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Save changes
                         </button>
                         <button
                           onClick={() => setEditingRequestId(null)}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-1.5 px-4 rounded-lg transition"
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Cancel
                         </button>
@@ -454,7 +454,7 @@ export default function MyRidesPage() {
                             </button>
                             <button
                               onClick={() => cancelRequest(r.id)}
-                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1.5 px-4 rounded-lg transition"
+                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
                             >
                               Cancel
                             </button>
@@ -462,7 +462,7 @@ export default function MyRidesPage() {
                         )}
                         <button
                           onClick={() => deleteRequest(r.id)}
-                          className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-1.5 px-4 rounded-lg transition"
+                          className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
                         >
                           Delete
                         </button>
