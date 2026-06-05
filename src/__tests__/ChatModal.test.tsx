@@ -116,7 +116,7 @@ describe("ChatModal", () => {
       expect(mockSendMessage).toHaveBeenCalledWith(
         "journey_j1_u1",
         "u1",
-        "+14795550000",
+        "Rider",
         "Hello!",
       );
     });
