@@ -37,7 +37,7 @@ export default function ChatModal({
   useEffect(() => {
     if (!user) return;
 
-    const myName = "Rider";
+    const myName = user.phoneNumber ?? "User";
     const participants: [string, string] = [ownerUid, user.uid];
 
     let cancelled = false;
@@ -88,7 +88,7 @@ export default function ChatModal({
     setSending(true);
     const msgText = text.trim();
     try {
-      await sendMessage(chatId, user.uid, "Rider", msgText);
+      await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", msgText);
       setText("");
       setFirstSent(true);
       // Fire-and-forget push notification to the other participant
@@ -96,7 +96,7 @@ export default function ChatModal({
         fetch("/api/notify", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId, text: msgText, senderName: "Rider" }),
+          body: JSON.stringify({ chatId, text: msgText, senderName: user.phoneNumber ?? "User" }),
         })
       ).catch(() => {});
     } finally {

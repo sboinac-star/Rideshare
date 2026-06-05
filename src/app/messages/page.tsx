@@ -8,11 +8,6 @@ import ChatModal from "@/features/chat/ChatModal";
 import { subscribeToUserChats } from "@/lib/chat";
 import type { Chat } from "@/lib/types";
 
-function safeName(name: string): string {
-  // Replace phone numbers already stored in old chats — never show raw digits to users
-  return /^\+?[\d\s\-().]{7,}$/.test(name.trim()) ? "Rider" : name;
-}
-
 function timeAgo(date: Date | null): string {
   if (!date) return "";
   const diff = Date.now() - date.getTime();
@@ -99,7 +94,7 @@ export default function MessagesPage() {
           <div className="space-y-2">
             {chats.map((chat) => {
               const otherUid = chat.participants.find((p) => p !== user.uid) ?? chat.participants[0];
-              const otherName = safeName(chat.participantNames[otherUid] ?? "Rider");
+              const otherName = chat.participantNames[otherUid] ?? "User";
               return (
                 <button
                   key={chat.id}
@@ -128,7 +123,7 @@ export default function MessagesPage() {
 
       {openChat && (() => {
         const otherUid = openChat.participants.find((p) => p !== user.uid) ?? openChat.participants[0];
-        const otherName = safeName(openChat.participantNames[otherUid] ?? "Rider");
+        const otherName = openChat.participantNames[otherUid] ?? "User";
         return (
           <ChatModal
             chatId={openChat.id}
