@@ -6,9 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Only applies to phone-auth users — custom token (preview/test) users are never blocked
     function isBlocked() {
       return isAuthenticated()
-        && request.auth.token.phone_number != null
+        && request.auth.token.firebase.sign_in_provider == 'phone'
+        && request.auth.token.phone_number is string
         && exists(/databases/$(database)/documents/blockedPhones/$(request.auth.token.phone_number));
     }
 
@@ -23,7 +25,7 @@ service cloud.firestore {
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
         && d.driverPhone is string
-        && d.availableSeats is int && d.availableSeats > 0 && d.availableSeats <= 8
+        && (d.availableSeats is int || d.availableSeats is float) && d.availableSeats > 0 && d.availableSeats <= 8
         && d.uid == request.auth.uid;
     }
 
@@ -36,7 +38,7 @@ service cloud.firestore {
     function isValidEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly(['availableSeats', 'departureTime', 'returnTime'])
-        && request.resource.data.availableSeats is int
+        && (request.resource.data.availableSeats is int || request.resource.data.availableSeats is float)
         && request.resource.data.availableSeats > 0
         && request.resource.data.availableSeats <= 8
         && resource.data.status == 'active';
@@ -59,7 +61,7 @@ service cloud.firestore {
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
         && d.passengerPhone is string
-        && d.seatsNeeded is int && d.seatsNeeded > 0 && d.seatsNeeded <= 8
+        && (d.seatsNeeded is int || d.seatsNeeded is float) && d.seatsNeeded > 0 && d.seatsNeeded <= 8
         && d.uid == request.auth.uid;
     }
 
@@ -72,7 +74,7 @@ service cloud.firestore {
     function isValidRequestEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly(['seatsNeeded', 'departureTime', 'returnTime'])
-        && request.resource.data.seatsNeeded is int
+        && (request.resource.data.seatsNeeded is int || request.resource.data.seatsNeeded is float)
         && request.resource.data.seatsNeeded > 0
         && request.resource.data.seatsNeeded <= 8
         && resource.data.status == 'active';
