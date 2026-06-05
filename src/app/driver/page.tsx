@@ -5,6 +5,8 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
+import LocationInput from "@/app/LocationInput";
+import DateTimePicker from "@/app/DateTimePicker";
 import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
 import { Journey } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
@@ -35,6 +37,8 @@ export default function DriverPage() {
     roundTrip: false,
     returnTime: "",
   });
+  const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
+  const [localCity, setLocalCity] = useState("");
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
   const [nameError, setNameError] = useState("");
@@ -68,15 +72,27 @@ export default function DriverPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newJourney.driverName);
     setNameError(err);
-    if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
+    if (err || !newJourney.departureTime) return;
+
+    if (tripType === "local") {
+      if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
+      if (!newJourney.pickupAddress.trim()) { toast("Pickup location is required for local rides.", "error"); return; }
+      if (!newJourney.dropoffAddress.trim()) { toast("Dropoff location is required for local rides.", "error"); return; }
+    } else {
+      if (!newJourney.from || !newJourney.to) return;
+    }
+
     if (new Date(newJourney.departureTime) <= new Date()) {
       toast("Departure time must be in the future.", "error");
       return;
     }
 
+    const finalFrom = tripType === "local" ? localCity : newJourney.from;
+    const finalTo = tripType === "local" ? localCity : newJourney.to;
+
     const isDuplicate = journeys.some(
-      (j) => j.status === "active" && j.from === newJourney.from &&
-             j.to === newJourney.to && j.departureTime === newJourney.departureTime
+      (j) => j.status === "active" && j.from === finalFrom &&
+             j.to === finalTo && j.departureTime === newJourney.departureTime
     );
     if (isDuplicate) {
       toast("You already have an active journey with the same route and time.", "error");
@@ -85,20 +101,31 @@ export default function DriverPage() {
 
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "journeys"), {
-        ...newJourney,
+      const journeyData: Record<string, unknown> = {
+        driverName: newJourney.driverName.trim(),
+        from: finalFrom,
+        to: finalTo,
+        pickupAddress: newJourney.pickupAddress.trim(),
+        dropoffAddress: newJourney.dropoffAddress.trim(),
+        departureTime: newJourney.departureTime,
+        availableSeats: Math.floor(Number(newJourney.availableSeats)),
+        roundTrip: tripType === "longdistance" ? newJourney.roundTrip : false,
+        returnTime: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnTime : null,
         driverPhone: user.phoneNumber ?? "",
         uid: user.uid,
         status: "active",
         createdAt: serverTimestamp(),
-      });
+      };
+      const ref = await addDoc(collection(db, "journeys"), journeyData);
       setSuccessId(ref.id);
       setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
+      setLocalCity("");
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
       toast("Journey posted! Passengers can now find you.");
-    } catch {
+    } catch (e) {
+      console.error("Failed to post journey:", e);
       toast("Failed to post journey. Please try again.", "error");
     } finally {
       setSubmitting(false);
@@ -213,6 +240,38 @@ export default function DriverPage() {
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-5 sm:p-8 mb-10">
             <form onSubmit={handlePostJourney} className="space-y-4">
+
+              {/* Trip Type Toggle */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTripType("longdistance")}
+                  className={`flex flex-col items-center gap-1 py-3 px-4 rounded-xl border-2 transition text-sm font-semibold ${
+                    tripType === "longdistance"
+                      ? "border-blue-600 bg-blue-50 text-blue-700"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-xl">🗺️</span>
+                  Long Distance
+                  <span className="text-xs font-normal text-gray-400">Different cities</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTripType("local")}
+                  className={`flex flex-col items-center gap-1 py-3 px-4 rounded-xl border-2 transition text-sm font-semibold ${
+                    tripType === "local"
+                      ? "border-green-600 bg-green-50 text-green-700"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-xl">📍</span>
+                  Local Ride
+                  <span className="text-xs font-normal text-gray-400">Within same city</span>
+                </button>
+              </div>
+
+              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
                 <input
@@ -230,100 +289,143 @@ export default function DriverPage() {
                 {nameError && <p className="text-red-500 text-xs mt-1">{nameError}</p>}
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                  <select
-                    value={fromCustom ? "Other" : newJourney.from}
-                    onChange={(e) => {
-                      if (e.target.value === "Other") { setFromCustom(true); setNewJourney({ ...newJourney, from: "" }); }
-                      else { setFromCustom(false); setNewJourney({ ...newJourney, from: e.target.value }); }
-                    }}
-                    className={inputClass}
-                    required={!fromCustom}
-                  >
-                    <option value="">Select departure location</option>
-                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                    <option value="Other">Other (enter manually)</option>
-                  </select>
-                  {fromCustom && (
+              {tripType === "local" ? (
+                /* ── LOCAL RIDE FIELDS ── */
+                <>
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-800">
+                    🏙️ Local ride — pick up and drop off within the same city. Specific addresses are required so riders know exactly where to meet.
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                     <input
                       type="text"
-                      value={newJourney.from}
-                      onChange={(e) => setNewJourney({ ...newJourney, from: e.target.value })}
-                      placeholder="Enter departure city"
-                      className={`mt-2 ${inputClass}`}
+                      value={localCity}
+                      onChange={(e) => setLocalCity(e.target.value)}
+                      placeholder="e.g. Bentonville, Fayetteville, Rogers…"
+                      className={inputClass}
                       required
-                      autoFocus
                     />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                  <select
-                    value={toCustom ? "Other" : newJourney.to}
-                    onChange={(e) => {
-                      if (e.target.value === "Other") { setToCustom(true); setNewJourney({ ...newJourney, to: "" }); }
-                      else { setToCustom(false); setNewJourney({ ...newJourney, to: e.target.value }); }
-                    }}
-                    className={inputClass}
-                    required={!toCustom}
-                  >
-                    <option value="">Select destination</option>
-                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                    <option value="Other">Other (enter manually)</option>
-                  </select>
-                  {toCustom && (
-                    <input
-                      type="text"
-                      value={newJourney.to}
-                      onChange={(e) => setNewJourney({ ...newJourney, to: e.target.value })}
-                      placeholder="Enter destination city"
-                      className={`mt-2 ${inputClass}`}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location <span className="text-red-500">*</span></label>
+                    <LocationInput
+                      value={newJourney.pickupAddress}
+                      onChange={(v) => setNewJourney({ ...newJourney, pickupAddress: v })}
+                      placeholder="Start typing an address or landmark…"
+                      cityHint={localCity}
+                      inputClass={inputClass}
                       required
-                      autoFocus
                     />
-                  )}
-                </div>
-              </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Location <span className="text-red-500">*</span></label>
+                    <LocationInput
+                      value={newJourney.dropoffAddress}
+                      onChange={(v) => setNewJourney({ ...newJourney, dropoffAddress: v })}
+                      placeholder="Start typing an address or landmark…"
+                      cityHint={localCity}
+                      inputClass={inputClass}
+                      required
+                    />
+                  </div>
+                </>
+              ) : (
+                /* ── LONG DISTANCE FIELDS ── */
+                <>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                      <select
+                        value={fromCustom ? "Other" : newJourney.from}
+                        onChange={(e) => {
+                          if (e.target.value === "Other") { setFromCustom(true); setNewJourney({ ...newJourney, from: "" }); }
+                          else { setFromCustom(false); setNewJourney({ ...newJourney, from: e.target.value }); }
+                        }}
+                        className={inputClass}
+                        required={!fromCustom}
+                      >
+                        <option value="">Select departure city</option>
+                        {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                        <option value="Other">Other (enter manually)</option>
+                      </select>
+                      {fromCustom && (
+                        <input
+                          type="text"
+                          value={newJourney.from}
+                          onChange={(e) => setNewJourney({ ...newJourney, from: e.target.value })}
+                          placeholder="Enter departure city"
+                          className={`mt-2 ${inputClass}`}
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                      <select
+                        value={toCustom ? "Other" : newJourney.to}
+                        onChange={(e) => {
+                          if (e.target.value === "Other") { setToCustom(true); setNewJourney({ ...newJourney, to: "" }); }
+                          else { setToCustom(false); setNewJourney({ ...newJourney, to: e.target.value }); }
+                        }}
+                        className={inputClass}
+                        required={!toCustom}
+                      >
+                        <option value="">Select destination</option>
+                        {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                        <option value="Other">Other (enter manually)</option>
+                      </select>
+                      {toCustom && (
+                        <input
+                          type="text"
+                          value={newJourney.to}
+                          onChange={(e) => setNewJourney({ ...newJourney, to: e.target.value })}
+                          placeholder="Enter destination city"
+                          className={`mt-2 ${inputClass}`}
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={newJourney.pickupAddress}
+                        onChange={(e) => setNewJourney({ ...newJourney, pickupAddress: e.target.value })}
+                        placeholder="e.g. 123 Main St, near Walmart"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={newJourney.dropoffAddress}
+                        onChange={(e) => setNewJourney({ ...newJourney, dropoffAddress: e.target.value })}
+                        placeholder="e.g. XNA Airport, Terminal A"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-4 items-end">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input
-                    type="text"
-                    value={newJourney.pickupAddress}
-                    onChange={(e) => setNewJourney({ ...newJourney, pickupAddress: e.target.value })}
-                    placeholder="e.g. 123 Main St, near Walmart"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input
-                    type="text"
-                    value={newJourney.dropoffAddress}
-                    onChange={(e) => setNewJourney({ ...newJourney, dropoffAddress: e.target.value })}
-                    placeholder="e.g. XNA Airport, Terminal A"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Departure Date & Time</label>
-                  <input
-                    type="datetime-local"
+                  <DateTimePicker
                     value={newJourney.departureTime}
-                    min={minTime}
-                    onChange={(e) => setNewJourney({ ...newJourney, departureTime: e.target.value })}
-                    className={inputClass}
+                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
+                    minDate={minTime.substring(0, 10)}
+                    minTime={minTime.substring(11, 16)}
+                    inputClass={inputClass}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Available Seats</label>
+                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Available Seats</label>
                   <select
                     value={newJourney.availableSeats}
                     onChange={(e) => setNewJourney({ ...newJourney, availableSeats: Number(e.target.value) })}
@@ -334,32 +436,32 @@ export default function DriverPage() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={newJourney.roundTrip}
-                  onChange={(e) => setNewJourney({
-                    ...newJourney,
-                    roundTrip: e.target.checked,
-                    returnTime: "",
-                  })}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
-              </label>
-
-              {newJourney.roundTrip && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={newJourney.returnTime}
-                    min={newJourney.departureTime || minTime}
-                    onChange={(e) => setNewJourney({ ...newJourney, returnTime: e.target.value })}
-                    className={inputClass}
-                    required
-                  />
-                </div>
+              {/* Round trip only for long-distance — local rides don't need a scheduled return */}
+              {tripType === "longdistance" && (
+                <>
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newJourney.roundTrip}
+                      onChange={(e) => setNewJourney({ ...newJourney, roundTrip: e.target.checked, returnTime: "" })}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
+                  </label>
+                  {newJourney.roundTrip && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
+                      <DateTimePicker
+                        value={newJourney.returnTime}
+                        onChange={(v) => setNewJourney({ ...newJourney, returnTime: v })}
+                        minDate={newJourney.departureTime.substring(0, 10) || minTime.substring(0, 10)}
+                        minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
+                        inputClass={inputClass}
+                        required
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <button
@@ -398,11 +500,10 @@ export default function DriverPage() {
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Departure Date & Time</label>
-                              <input
-                                type="datetime-local"
+                              <DateTimePicker
                                 value={editData.departureTime}
-                                onChange={(e) => setEditData({ ...editData, departureTime: e.target.value })}
-                                className={inputClass}
+                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                                inputClass={inputClass}
                               />
                             </div>
                             <div>
