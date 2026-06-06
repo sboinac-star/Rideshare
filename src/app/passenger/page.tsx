@@ -6,10 +6,11 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
-import { RideRequest } from "@/lib/types";
+import { RideRequest, Journey } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
+import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
 
 export default function PassengerPage() {
   const toast = useToast();
@@ -17,6 +18,9 @@ export default function PassengerPage() {
   const [showSignIn, setShowSignIn] = useState(false);
 
   const [requests, setRequests] = useState<RideRequest[]>([]);
+  const [myJourneys, setMyJourneys] = useState<Journey[]>([]);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,38 +55,25 @@ export default function PassengerPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
-    const q = query(collection(db, "requests"), where("uid", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as RideRequest))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
-      setRequests(data);
-      setLoading(false);
-    }, () => setLoading(false));
-    return () => unsubscribe();
+    const unsubR = onSnapshot(
+      query(collection(db, "requests"), where("uid", "==", user.uid)),
+      (snapshot) => {
+        const data = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as RideRequest))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
+        setRequests(data);
+        setLoading(false);
+      }, () => setLoading(false));
+    const unsubJ = onSnapshot(
+      query(collection(db, "journeys"), where("uid", "==", user.uid)),
+      (snapshot) => {
+        setMyJourneys(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Journey)));
+      });
+    return () => { unsubR(); unsubJ(); };
   }, [user]);
 
-  const handlePostRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) { setShowSignIn(true); return; }
-    const err = validateName(newRequest.passengerName);
-    setNameError(err);
-    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
-    if (new Date(newRequest.departureTime) <= new Date()) {
-      toast("Travel time must be in the future.", "error");
-      return;
-    }
-
-    const isDuplicate = requests.some(
-      (r) => r.status === "active" && r.from === newRequest.from &&
-             r.to === newRequest.to && r.departureTime === newRequest.departureTime
-    );
-    if (isDuplicate) {
-      toast("You already have an active request with the same route and time.", "error");
-      return;
-    }
-
+  const doPostRequest = async () => {
     setSubmitting(true);
     try {
       const ref = await addDoc(collection(db, "requests"), {
@@ -101,7 +92,35 @@ export default function PassengerPage() {
       toast("Failed to post request. Please try again.", "error");
     } finally {
       setSubmitting(false);
+      setPendingSubmit(false);
     }
+  };
+
+  const handlePostRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { setShowSignIn(true); return; }
+    const err = validateName(newRequest.passengerName);
+    setNameError(err);
+    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
+    if (new Date(newRequest.departureTime) <= new Date()) {
+      toast("Travel time must be in the future.", "error");
+      return;
+    }
+    const isDuplicate = requests.some(
+      (r) => r.status === "active" && r.from === newRequest.from &&
+             r.to === newRequest.to && r.departureTime === newRequest.departureTime
+    );
+    if (isDuplicate) {
+      toast("You already have an active request with the same route and time.", "error");
+      return;
+    }
+    const pending = getPendingCompletionItems(myJourneys, requests);
+    if (pending.length > 0) {
+      setPendingSubmit(true);
+      setShowCompletionPrompt(true);
+      return;
+    }
+    await doPostRequest();
   };
 
   const handleCancelRequest = async (requestId: string) => {
@@ -182,8 +201,19 @@ export default function PassengerPage() {
     );
   }
 
+  const pendingItems = getPendingCompletionItems(myJourneys, requests);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {showCompletionPrompt && pendingItems.length > 0 && (
+        <CompletionPromptModal
+          items={pendingItems}
+          onDone={() => {
+            setShowCompletionPrompt(false);
+            if (pendingSubmit) doPostRequest();
+          }}
+        />
+      )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Request a Ride</h1>
