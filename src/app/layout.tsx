@@ -27,6 +27,16 @@ export const metadata: Metadata = {
   description:
     "Carpooling and ride sharing in Northwest Arkansas — Fayetteville, Bentonville, Rogers, Springdale and beyond. Find or post a ride today.",
   metadataBase: new URL("https://nwa-rideshare.vercel.app"),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "NWA Rides",
+  },
+  icons: {
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
+  },
   openGraph: {
     title: "NWA Ride Share",
     description:
