@@ -87,8 +87,7 @@ export default function DriverPage() {
     try {
       const ref = await addDoc(collection(db, "journeys"), {
         ...newJourney,
-        driverPhone: user.phoneNumber ?? "",
-        uid: user.uid,
+        uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
