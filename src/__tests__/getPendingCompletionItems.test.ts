@@ -18,7 +18,6 @@ const makeJourney = (overrides: Partial<Journey> = {}): Journey => ({
   to: "Rogers",
   departureTime: past,
   availableSeats: 2,
-  driverPhone: "+15005550001",
   status: "active",
   ...overrides,
 });
@@ -30,7 +29,6 @@ const makeRequest = (overrides: Partial<RideRequest> = {}): RideRequest => ({
   to: "Springdale",
   departureTime: past,
   seatsNeeded: 1,
-  passengerPhone: "+15005550002",
   status: "active",
   ...overrides,
 });

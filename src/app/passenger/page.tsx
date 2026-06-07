@@ -78,7 +78,6 @@ export default function PassengerPage() {
     try {
       const ref = await addDoc(collection(db, col("requests")), {
         ...newRequest,
-        passengerPhone: user!.phoneNumber ?? "",
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),

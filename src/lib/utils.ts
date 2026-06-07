@@ -67,7 +67,6 @@ export function shareText(
     dropoffAddress?: string;
     departureTime: string;
     availableSeats: number;
-    driverPhone: string;
   },
   url?: string
 ): string {
@@ -77,7 +76,6 @@ export function shareText(
     journey.dropoffAddress ? `📍 Dropoff: ${journey.dropoffAddress}` : "",
     `📅 ${formatDateTime(journey.departureTime)}`,
     `💺 ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available`,
-    `📞 Contact: ${formatPhone(journey.driverPhone)}`,
     `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];
   return lines.filter(Boolean).join("\n");
@@ -92,7 +90,6 @@ export function shareRequestText(
     dropoffAddress?: string;
     departureTime: string;
     seatsNeeded: number;
-    passengerPhone: string;
   },
   url?: string
 ): string {
@@ -102,7 +99,6 @@ export function shareRequestText(
     req.dropoffAddress ? `📍 Dropoff: ${req.dropoffAddress}` : "",
     `📅 ${formatDateTime(req.departureTime)}`,
     `💺 ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
-    `📞 Contact: ${formatPhone(req.passengerPhone)}`,
     `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];
   return lines.filter(Boolean).join("\n");
