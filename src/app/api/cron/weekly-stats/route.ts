@@ -82,7 +82,7 @@ async function sendEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "NWA Ride Share <stats@nwa-rideshare.vercel.app>",
+      from: "NWA Ride Share <onboarding@resend.dev>",
       to,
       subject: `NWA Ride Share Weekly Stats — ${new Date().toDateString()}`,
       html,
