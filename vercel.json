@@ -10,8 +10,5 @@
       "main": true,
       "staging": true
     }
-  },
-  "env": {
-    "NEXT_PUBLIC_VERCEL_ENV": "@vercel_env"
   }
 }
