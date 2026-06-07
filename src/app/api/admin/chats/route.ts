@@ -1,10 +1,11 @@
-import { adminDb, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, verifyAdmin, forbidden, adminCol,
+} from "@/lib/adminFirebase";
 
 export async function GET(req: Request) {
   if (!await verifyAdmin(req)) return forbidden();
   const db = adminDb();
 
-  const snap = await db.collection("chats").orderBy("updatedAt", "desc").limit(100).get();
+  const snap = await db.collection(adminCol("chats")).orderBy("updatedAt", "desc").limit(100).get();
   const chats = snap.docs.map((d) => {
     const data = d.data();
     return {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/lib/firebase", () => ({ db: {} }));
+vi.mock("@/lib/firebase", () => ({ db: {}, col: (n: string) => n }));
 vi.mock("firebase/firestore", () => ({ updateDoc: vi.fn(), doc: vi.fn() }));
 vi.mock("@/app/ToastProvider", () => ({ useToast: () => vi.fn() }));
 vi.mock("@/lib/utils", () => ({ formatDateTime: (s: string) => s }));

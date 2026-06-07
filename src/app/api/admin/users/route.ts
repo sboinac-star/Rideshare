@@ -1,4 +1,5 @@
-import { adminDb, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, verifyAdmin, forbidden, adminCol,
+} from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
@@ -6,9 +7,9 @@ export async function GET(req: Request) {
   const db = adminDb();
 
   const [journeySnap, requestSnap, blockedSnap] = await Promise.all([
-    db.collection("journeys").select("uid", "driverPhone", "driverName", "status").get(),
-    db.collection("requests").select("uid", "passengerPhone", "passengerName", "status").get(),
-    db.collection("blockedPhones").get(),
+    db.collection(adminCol("journeys")).select("uid", "driverPhone", "driverName", "status").get(),
+    db.collection(adminCol("requests")).select("uid", "passengerPhone", "passengerName", "status").get(),
+    db.collection(adminCol("blockedPhones")).get(),
   ]);
 
   const blockedPhones = new Set(blockedSnap.docs.map((d) => d.id));
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid" }, { status: 400 });
   }
 
-  const ref = adminDb().collection("blockedPhones").doc(phone);
+  const ref = adminDb().collection(adminCol("blockedPhones")).doc(phone);
   if (action === "block") {
     await ref.set({ blockedAt: FieldValue.serverTimestamp() });
   } else {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import {
   collection, query, where, onSnapshot,
   updateDoc, deleteDoc, doc,
@@ -42,7 +42,7 @@ export default function MyRidesPage() {
     if (!user) { setLoadingJ(false); setLoadingR(false); return; }
 
     const unsubJ = onSnapshot(
-      query(collection(db, "journeys"), where("uid", "==", user.uid)),
+      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
       (snap) => {
         setJourneys(
           snap.docs
@@ -56,7 +56,7 @@ export default function MyRidesPage() {
     );
 
     const unsubR = onSnapshot(
-      query(collection(db, "requests"), where("uid", "==", user.uid)),
+      query(collection(db, col("requests")), where("uid", "==", user.uid)),
       (snap) => {
         setRequests(
           snap.docs
@@ -84,7 +84,7 @@ export default function MyRidesPage() {
   const saveJourney = async (id: string) => {
     if (!journeyEdit.departureTime) return;
     try {
-      await updateDoc(doc(db, "journeys", id), {
+      await updateDoc(doc(db, col("journeys"), id), {
         departureTime: journeyEdit.departureTime,
         returnTime: journeyEdit.returnTime || null,
         availableSeats: journeyEdit.availableSeats,
@@ -99,7 +99,7 @@ export default function MyRidesPage() {
   const completeJourney = async (id: string) => {
     if (!confirm("Mark this journey as completed?")) return;
     try {
-      await updateDoc(doc(db, "journeys", id), { status: "completed" });
+      await updateDoc(doc(db, col("journeys"), id), { status: "completed" });
       toast("Journey marked as completed.");
     } catch {
       toast("Failed to update. Please try again.", "error");
@@ -109,7 +109,7 @@ export default function MyRidesPage() {
   const cancelJourney = async (id: string) => {
     if (!confirm("Cancel this journey?")) return;
     try {
-      await updateDoc(doc(db, "journeys", id), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), id), { status: "cancelled" });
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel.", "error");
@@ -119,7 +119,7 @@ export default function MyRidesPage() {
   const deleteJourney = async (id: string) => {
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", id));
+      await deleteDoc(doc(db, col("journeys"), id));
       toast("Journey deleted.");
     } catch {
       toast("Failed to delete.", "error");
@@ -138,7 +138,7 @@ export default function MyRidesPage() {
   const saveRequest = async (id: string) => {
     if (!requestEdit.departureTime) return;
     try {
-      await updateDoc(doc(db, "requests", id), {
+      await updateDoc(doc(db, col("requests"), id), {
         departureTime: requestEdit.departureTime,
         returnTime: requestEdit.returnTime || null,
         seatsNeeded: requestEdit.seatsNeeded,
@@ -153,7 +153,7 @@ export default function MyRidesPage() {
   const completeRequest = async (id: string) => {
     if (!confirm("Mark this request as completed?")) return;
     try {
-      await updateDoc(doc(db, "requests", id), { status: "completed" });
+      await updateDoc(doc(db, col("requests"), id), { status: "completed" });
       toast("Request marked as completed.");
     } catch {
       toast("Failed to update. Please try again.", "error");
@@ -163,7 +163,7 @@ export default function MyRidesPage() {
   const cancelRequest = async (id: string) => {
     if (!confirm("Cancel this request?")) return;
     try {
-      await updateDoc(doc(db, "requests", id), { status: "cancelled" });
+      await updateDoc(doc(db, col("requests"), id), { status: "cancelled" });
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel.", "error");
@@ -173,7 +173,7 @@ export default function MyRidesPage() {
   const deleteRequest = async (id: string) => {
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", id));
+      await deleteDoc(doc(db, col("requests"), id));
       toast("Request deleted.");
     } catch {
       toast("Failed to delete.", "error");

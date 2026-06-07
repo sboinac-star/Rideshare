@@ -10,7 +10,7 @@ const mockDeleteDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockOnSnapshot = vi.hoisted(() => vi.fn());
 const mockServerTimestamp = vi.hoisted(() => vi.fn(() => "SERVER_TIMESTAMP"));
 
-vi.mock("@/lib/firebase", () => ({ db: {} }));
+vi.mock("@/lib/firebase", () => ({ db: {}, col: (n: string) => n }));
 
 vi.mock("firebase/firestore", () => ({
   collection: vi.fn((_, col) => col),

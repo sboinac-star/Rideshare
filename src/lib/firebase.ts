@@ -16,6 +16,11 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+// Prefixes collection names for staging isolation.
+// Set NEXT_PUBLIC_COLLECTION_PREFIX=staging_ in Vercel Preview env vars.
+export const col = (name: string) =>
+  `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;
+
 if (process.env.NODE_ENV === "development" && !auth.emulatorConfig) {
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
 }

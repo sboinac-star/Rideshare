@@ -9,7 +9,7 @@ const mockDeleteDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockDoc = vi.hoisted(() => vi.fn((db: unknown, col: string, id: string) => ({ col, id })));
 const mockOnSnapshot = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/firebase", () => ({ db: {} }));
+vi.mock("@/lib/firebase", () => ({ db: {}, col: (n: string) => n }));
 
 vi.mock("firebase/firestore", () => ({
   collection: vi.fn(),

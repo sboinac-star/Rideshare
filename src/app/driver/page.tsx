@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
@@ -56,7 +56,7 @@ export default function DriverPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const unsubJ = onSnapshot(
-      query(collection(db, "journeys"), where("uid", "==", user.uid)),
+      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
       (snapshot) => {
         const data = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as Journey))
@@ -66,7 +66,7 @@ export default function DriverPage() {
         setLoading(false);
       }, () => setLoading(false));
     const unsubR = onSnapshot(
-      query(collection(db, "requests"), where("uid", "==", user.uid)),
+      query(collection(db, col("requests")), where("uid", "==", user.uid)),
       (snapshot) => {
         setMyRequests(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest)));
       });
@@ -76,7 +76,7 @@ export default function DriverPage() {
   const doPostJourney = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "journeys"), {
+      const ref = await addDoc(collection(db, col("journeys")), {
         ...newJourney,
         driverPhone: user!.phoneNumber ?? "",
         uid: user!.uid,
@@ -127,7 +127,7 @@ export default function DriverPage() {
   const handleCancelJourney = async (journeyId: string) => {
     if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled" });
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
@@ -137,7 +137,7 @@ export default function DriverPage() {
   const handleDeleteJourney = async (journeyId: string) => {
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch {
       toast("Failed to delete. Please try again.", "error");
@@ -159,7 +159,7 @@ export default function DriverPage() {
   const handleEditSave = async (journeyId: string) => {
     if (!editData.departureTime) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), {
+      await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
         availableSeats: editData.availableSeats,
       });

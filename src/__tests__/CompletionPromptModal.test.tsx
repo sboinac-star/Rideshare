@@ -11,7 +11,7 @@ vi.mock("firebase/firestore", () => ({
   doc: mockDoc,
 }));
 
-vi.mock("@/lib/firebase", () => ({ db: {} }));
+vi.mock("@/lib/firebase", () => ({ db: {}, col: (n: string) => n }));
 
 vi.mock("@/app/ToastProvider", () => ({
   useToast: () => mockToast,
