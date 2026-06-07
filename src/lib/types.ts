@@ -38,6 +38,13 @@ export interface Message {
   createdAt: Date | null;
 }
 
+export interface RideWatch {
+  id: string;
+  uid: string;
+  journeyId: string;
+  route: string;
+}
+
 export interface Chat {
   id: string;
   participants: string[];
