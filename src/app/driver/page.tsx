@@ -38,6 +38,7 @@ export default function DriverPage() {
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
+    recurring: "none" as "none" | "weekly" | "weekdays",
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -84,7 +85,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -391,6 +392,24 @@ export default function DriverPage() {
                   />
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Repeats</label>
+                <select
+                  value={newJourney.recurring}
+                  onChange={(e) => setNewJourney({ ...newJourney, recurring: e.target.value as "none" | "weekly" | "weekdays" })}
+                  className={inputClass}
+                >
+                  <option value="none">One-time ride</option>
+                  <option value="weekly">Every week (same day &amp; time)</option>
+                  <option value="weekdays">Every weekday (Mon–Fri)</option>
+                </select>
+                {newJourney.recurring !== "none" && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    This ride will appear weekly. Cancel anytime from My Rides.
+                  </p>
+                )}
+              </div>
 
               <button
                 type="submit"

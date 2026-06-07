@@ -255,9 +255,11 @@ export default function MyRidesPage() {
                 <div key={j.id} className="bg-white rounded-lg shadow p-5">
                   {editingJourneyId === j.id ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-semibold text-gray-900">{j.from} → {j.to}</span>
                         {j.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                        {j.recurring === "weekly" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekly</span>}
+                        {j.recurring === "weekdays" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekdays</span>}
                       </div>
 
                       <div className="grid sm:grid-cols-2 gap-3">

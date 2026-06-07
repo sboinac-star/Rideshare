@@ -569,6 +569,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-gray-900">{journey.driverName}</p>
                             {journey.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                            {journey.recurring === "weekly" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekly</span>}
+                            {journey.recurring === "weekdays" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekdays</span>}
                           </div>
                           <Link href={`/journey/${journey.id}`} className="font-semibold text-gray-800 hover:text-blue-600 hover:underline">{journey.from} → {journey.to}</Link>
                           {journey.pickupAddress && <p className="text-xs text-gray-500">From: {journey.pickupAddress}</p>}
