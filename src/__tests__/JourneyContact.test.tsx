@@ -26,6 +26,17 @@ vi.mock("@/features/chat/ChatModal", () => ({
 
 vi.mock("@/lib/chat", () => ({ buildChatId: vi.fn(() => "journey_j1_u2") }));
 
+const mockUser = (uid: string) => ({
+  uid,
+  phoneNumber: "+1",
+  getIdToken: vi.fn().mockResolvedValue("mock-token"),
+});
+
+// Block check returns not-blocked by default
+vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+  json: () => Promise.resolve({ blocked: false }),
+}));
+
 const props = {
   journeyId: "j1",
   ownerUid: "driver-uid",
@@ -43,7 +54,7 @@ describe("JourneyContact", () => {
   });
 
   it("shows owner message when the signed-in user is the driver", () => {
-    mockUseAuth.mockReturnValue({ user: { uid: "driver-uid" }, authLoading: false });
+    mockUseAuth.mockReturnValue({ user: mockUser("driver-uid"), authLoading: false });
     render(<JourneyContact {...props} />);
     expect(screen.getByText("This is your journey.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
@@ -56,7 +67,7 @@ describe("JourneyContact", () => {
   });
 
   it("shows the Chat button for a signed-in non-owner", () => {
-    mockUseAuth.mockReturnValue({ user: { uid: "other-uid" }, authLoading: false });
+    mockUseAuth.mockReturnValue({ user: mockUser("other-uid"), authLoading: false });
     render(<JourneyContact {...props} />);
     expect(screen.getByRole("button", { name: /chat with driver/i })).toBeInTheDocument();
   });
@@ -69,7 +80,7 @@ describe("JourneyContact", () => {
   });
 
   it("opens ChatModal directly when a signed-in user clicks Chat", () => {
-    mockUseAuth.mockReturnValue({ user: { uid: "other-uid", phoneNumber: "+1" }, authLoading: false });
+    mockUseAuth.mockReturnValue({ user: mockUser("other-uid"), authLoading: false });
     render(<JourneyContact {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /chat with driver/i }));
     expect(screen.getByTestId("chat-modal")).toBeInTheDocument();
@@ -82,8 +93,6 @@ describe("JourneyContact", () => {
     render(<JourneyContact {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /chat with driver/i }));
     fireEvent.click(screen.getByText("Success"));
-    // After onSuccess, showChat becomes true — but user is still null so ChatModal won't render
-    // (real flow: auth state updates and user becomes non-null)
     expect(screen.getByTestId("sign-in-modal")).toBeInTheDocument();
   });
 
@@ -96,7 +105,7 @@ describe("JourneyContact", () => {
   });
 
   it("closes ChatModal when onClose is called", () => {
-    mockUseAuth.mockReturnValue({ user: { uid: "other-uid" }, authLoading: false });
+    mockUseAuth.mockReturnValue({ user: mockUser("other-uid"), authLoading: false });
     render(<JourneyContact {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /chat with driver/i }));
     expect(screen.getByTestId("chat-modal")).toBeInTheDocument();
