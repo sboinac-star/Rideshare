@@ -43,7 +43,7 @@ service cloud.firestore {
     }
 
     match /journeys/{journeyId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
       allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
       allow delete: if isAuthenticated() && (
@@ -79,7 +79,7 @@ service cloud.firestore {
     }
 
     match /requests/{requestId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
       allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
       allow delete: if isAuthenticated() && (
