@@ -1,4 +1,5 @@
-import { adminDb, adminMessaging, verifyUser } from "@/lib/adminFirebase";
+import { adminDb, adminMessaging, verifyUser, adminCol,
+} from "@/lib/adminFirebase";
 
 export async function POST(req: Request) {
   const senderUid = await verifyUser(req);
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   const db = adminDb();
 
   // Find the other participant
-  const chatDoc = await db.collection("chats").doc(chatId).get();
+  const chatDoc = await db.collection(adminCol("chats")).doc(chatId).get();
   if (!chatDoc.exists) return Response.json({ ok: true });
 
   const participants: string[] = chatDoc.data()?.participants ?? [];
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   if (!recipientUid) return Response.json({ ok: true });
 
   // Get recipient's FCM token
-  const tokenDoc = await db.collection("fcmTokens").doc(recipientUid).get();
+  const tokenDoc = await db.collection(adminCol("fcmTokens")).doc(recipientUid).get();
   const fcmToken = tokenDoc.data()?.token as string | undefined;
   if (!fcmToken) return Response.json({ ok: true });
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     // Stale token — remove it so we don't keep trying
     const code = (e as { code?: string })?.code;
     if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
-      await db.collection("fcmTokens").doc(recipientUid).delete();
+      await db.collection(adminCol("fcmTokens")).doc(recipientUid).delete();
     } else {
       console.error("[push] send error:", e);
     }

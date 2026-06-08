@@ -20,11 +20,10 @@ service cloud.firestore {
 
     function isValidJourney() {
       let d = request.resource.data;
-      return d.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'driverPhone', 'uid'])
+      return d.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'uid'])
         && d.driverName is string && d.driverName.size() > 0
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
-        && d.driverPhone is string
         && (d.availableSeats is int || d.availableSeats is float) && d.availableSeats > 0 && d.availableSeats <= 8
         && d.uid == request.auth.uid;
     }
@@ -32,6 +31,12 @@ service cloud.firestore {
     function isCancelUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'active';
+    }
+
+    function isCompleteUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
         && resource.data.status == 'active';
     }
 
@@ -45,22 +50,18 @@ service cloud.firestore {
     }
 
     match /journeys/{journeyId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
-      allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.uid ||
-        (resource.data.driverPhone != null && request.auth.token.phone_number == resource.data.driverPhone)
-      );
+      allow update: if isOwner() && (isCancelUpdate() || isCompleteUpdate() || isValidEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
     }
 
     function isValidRequest() {
       let d = request.resource.data;
-      return d.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'passengerPhone', 'uid'])
+      return d.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'uid'])
         && d.passengerName is string && d.passengerName.size() > 0
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
-        && d.passengerPhone is string
         && (d.seatsNeeded is int || d.seatsNeeded is float) && d.seatsNeeded > 0 && d.seatsNeeded <= 8
         && d.uid == request.auth.uid;
     }
@@ -68,6 +69,12 @@ service cloud.firestore {
     function isCancelRequestUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'active';
+    }
+
+    function isCompleteRequestUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
         && resource.data.status == 'active';
     }
 
@@ -81,13 +88,10 @@ service cloud.firestore {
     }
 
     match /requests/{requestId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
-      allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.uid ||
-        (resource.data.passengerPhone != null && request.auth.token.phone_number == resource.data.passengerPhone)
-      );
+      allow update: if isOwner() && (isCancelRequestUpdate() || isCompleteRequestUpdate() || isValidRequestEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
     }
 
     function isParticipant(chatData) {

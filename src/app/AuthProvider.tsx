@@ -40,12 +40,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
+    const timeout = setTimeout(() => setAuthLoading(false), 5000);
     const unsub = onAuthStateChanged(auth, (u) => {
+      clearTimeout(timeout);
       setUser(u);
       setAuthLoading(false);
       if (u) registerPushToken(u.uid);
     });
-    return unsub;
+    return () => { unsub(); clearTimeout(timeout); };
   }, []);
 
   const sendOTP = async (phone: string) => {

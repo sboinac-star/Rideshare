@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
@@ -310,14 +310,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, col("announcements")), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       setAnnouncements(snap.docs.map((d) => ({ id: d.id, text: d.data().text as string })));
     });
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "journeys"), where("status", "==", "active"));
+    const q = query(collection(db, col("journeys")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
@@ -330,7 +330,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "requests"), where("status", "==", "active"));
+    const q = query(collection(db, col("requests")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
@@ -398,7 +398,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch (err) {
       console.error("Delete journey failed:", err);
@@ -410,7 +410,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", requestId));
+      await deleteDoc(doc(db, col("requests"), requestId));
       toast("Request deleted.");
     } catch (err) {
       console.error("Delete request failed:", err);
@@ -422,7 +422,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!reportJourney || !reportReason) return;
     setReportSubmitting(true);
     try {
-      await addDoc(collection(db, "reports"), {
+      await addDoc(collection(db, col("reports")), {
         journeyId: reportJourney.id,
         reason: reportReason,
         createdAt: serverTimestamp(),
@@ -601,7 +601,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {user && ((journey.uid && journey.uid === user.uid) || (journey.driverPhone && journey.driverPhone === user.phoneNumber)) ? (
+                      {user && journey.uid && journey.uid === user.uid ? (
                         <button
                           onClick={() => handleDeleteJourney(journey.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
@@ -693,7 +693,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === req.id ? "✓ Copied" : "📤 Share"}
                       </button>
-                      {user && ((req.uid && req.uid === user.uid) || (req.passengerPhone && req.passengerPhone === user.phoneNumber)) && (
+                      {user && req.uid && req.uid === user.uid && (
                         <button
                           onClick={() => handleDeleteRequest(req.id)}
                           className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"

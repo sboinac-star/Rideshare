@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "nwa-rideshare-all-usa"
+    "default": "nwa-rideshare-all-usa",
+    "production": "nwa-rideshare-all-usa",
+    "staging": "nwa-rideshare-staging"
   }
 }
