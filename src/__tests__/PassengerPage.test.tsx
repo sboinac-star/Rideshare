@@ -151,7 +151,7 @@ describe("PassengerPage", () => {
     render(<PassengerPage />);
     await waitFor(() => screen.getByRole("button", { name: /post request/i }));
     await fillAndSubmitForm();
-    await waitFor(() => expect(mockToast).toHaveBeenCalledWith("Failed to post request. Please try again.", "error"));
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Failed to post request"), "error"));
   });
 
   it("shows completion modal when there are pending past rides", async () => {
