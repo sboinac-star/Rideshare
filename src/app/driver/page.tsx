@@ -89,8 +89,9 @@ export default function DriverPage() {
       setToCustom(false);
       setNameError("");
       toast("Journey posted! Passengers can now find you.");
-    } catch {
-      toast("Failed to post journey. Please try again.", "error");
+    } catch (e) {
+      console.error("[post-journey]", e);
+      toast(`Failed to post journey: ${(e as { message?: string })?.message ?? e}`, "error");
     } finally {
       setSubmitting(false);
       setPendingSubmit(false);
