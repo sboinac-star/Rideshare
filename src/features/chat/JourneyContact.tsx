@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import ChatModal from "@/features/chat/ChatModal";
@@ -17,6 +17,19 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
   const { user, authLoading } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!user || user.uid === ownerUid) return;
+    user.getIdToken().then((token) =>
+      fetch(`/api/block?blockedUid=${ownerUid}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d: { blocked: boolean }) => setIsBlocked(d.blocked))
+        .catch(() => {})
+    );
+  }, [user, ownerUid]);
 
   if (authLoading) return null;
 
@@ -36,6 +49,8 @@ export default function JourneyContact({ journeyId, ownerUid, driverName, route 
     <div className="border-t border-gray-100 pt-5">
       {isOwner ? (
         <p className="text-center text-gray-500 text-sm">This is your journey.</p>
+      ) : isBlocked ? (
+        <p className="text-center text-gray-400 text-sm">You have blocked this driver.</p>
       ) : (
         <>
           <p className="text-center text-gray-500 text-sm mb-3">
