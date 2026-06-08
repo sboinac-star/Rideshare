@@ -1,30 +1,52 @@
-import { adminDb, verifyAdmin, forbidden, adminCol,
+import { adminDb, adminAuth, verifyAdmin, forbidden, adminCol,
 } from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
   if (!await verifyAdmin(req)) return forbidden();
   const db = adminDb();
+  const auth = adminAuth();
 
   const [journeySnap, requestSnap, blockedSnap] = await Promise.all([
-    db.collection(adminCol("journeys")).select("uid", "driverPhone", "driverName", "status").get(),
-    db.collection(adminCol("requests")).select("uid", "passengerPhone", "passengerName", "status").get(),
+    db.collection(adminCol("journeys")).select("uid", "driverName", "status").get(),
+    db.collection(adminCol("requests")).select("uid", "passengerName", "status").get(),
     db.collection(adminCol("blockedPhones")).get(),
   ]);
 
   const blockedPhones = new Set(blockedSnap.docs.map((d) => d.id));
+
+  // Collect unique UIDs across all listings
+  const uidSet = new Set<string>();
+  for (const d of journeySnap.docs) { if (d.data().uid) uidSet.add(d.data().uid); }
+  for (const d of requestSnap.docs) { if (d.data().uid) uidSet.add(d.data().uid); }
+
+  // Look up phone numbers from Firebase Auth (server-side only — never stored in ride docs)
+  const phoneByUid = new Map<string, string>();
+  await Promise.all(
+    Array.from(uidSet).map(async (uid) => {
+      try {
+        const u = await auth.getUser(uid);
+        if (u.phoneNumber) phoneByUid.set(uid, u.phoneNumber);
+      } catch {
+        // user may have been deleted
+      }
+    })
+  );
+
   const userMap = new Map<string, { phone: string; name: string; journeys: number; requests: number; blocked: boolean }>();
 
   for (const d of journeySnap.docs) {
-    const { uid, driverPhone, driverName } = d.data();
+    const { uid, driverName } = d.data();
     if (!uid) continue;
-    const existing = userMap.get(uid) ?? { phone: driverPhone, name: driverName, journeys: 0, requests: 0, blocked: blockedPhones.has(driverPhone) };
+    const phone = phoneByUid.get(uid) ?? "";
+    const existing = userMap.get(uid) ?? { phone, name: driverName, journeys: 0, requests: 0, blocked: blockedPhones.has(phone) };
     userMap.set(uid, { ...existing, journeys: existing.journeys + 1 });
   }
   for (const d of requestSnap.docs) {
-    const { uid, passengerPhone, passengerName } = d.data();
+    const { uid, passengerName } = d.data();
     if (!uid) continue;
-    const existing = userMap.get(uid) ?? { phone: passengerPhone, name: passengerName, journeys: 0, requests: 0, blocked: blockedPhones.has(passengerPhone) };
+    const phone = phoneByUid.get(uid) ?? "";
+    const existing = userMap.get(uid) ?? { phone, name: passengerName, journeys: 0, requests: 0, blocked: blockedPhones.has(phone) };
     userMap.set(uid, { ...existing, requests: existing.requests + 1 });
   }
 
