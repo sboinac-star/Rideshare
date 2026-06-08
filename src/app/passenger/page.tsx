@@ -88,8 +88,9 @@ export default function PassengerPage() {
       setToCustom(false);
       setNameError("");
       toast("Request posted! Drivers can now find you.");
-    } catch {
-      toast("Failed to post request. Please try again.", "error");
+    } catch (e) {
+      console.error("[post-request]", e);
+      toast(`Failed to post request: ${(e as { message?: string })?.message ?? e}`, "error");
     } finally {
       setSubmitting(false);
       setPendingSubmit(false);
