@@ -111,6 +111,15 @@ export default function MyRidesPage() {
     try {
       await updateDoc(doc(db, "journeys", id), { status: "cancelled" });
       toast("Journey cancelled.");
+      const j = journeys.find((x) => x.id === id);
+      if (j && user) {
+        const token = await user.getIdToken();
+        fetch("/api/watch/notify", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ journeyId: id, route: `${j.from} → ${j.to}`, message: "This ride was cancelled." }),
+        }).catch(() => {});
+      }
     } catch {
       toast("Failed to cancel.", "error");
     }
