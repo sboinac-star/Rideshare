@@ -12,6 +12,7 @@ export interface Journey {
   status: string;
   roundTrip?: boolean;
   returnTime?: string;
+  recurring?: "none" | "weekly" | "weekdays";
 }
 
 export interface RideRequest {
