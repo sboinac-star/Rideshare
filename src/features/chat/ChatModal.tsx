@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/AuthProvider";
-import { getOrCreateChat, sendMessage, subscribeToMessages } from "@/lib/chat";
+import { getOrCreateChat, sendMessage, subscribeToMessages, lookupUserName } from "@/lib/chat";
 import type { Message } from "@/lib/types";
+import BlockButton from "@/app/BlockButton";
 
 type Props = {
   chatId: string;
@@ -31,28 +32,31 @@ export default function ChatModal({
   const [chatReady, setChatReady] = useState(false);
   const [firstSent, setFirstSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const myNameRef = useRef<string>("");
   const [bottomOffset, setBottomOffset] = useState(0);
   const [visH, setVisH] = useState(0);
 
   useEffect(() => {
     if (!user) return;
 
-    const myName = user.phoneNumber ?? "User";
-    const participants: [string, string] = [ownerUid, user.uid];
-
     let cancelled = false;
     let unsubMessages: (() => void) | null = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatReady(false);
 
-    getOrCreateChat(chatId, participants, listingType, listingId, route, {
-      [ownerUid]: ownerName,
-      [user.uid]: myName,
-    }).then(() => {
+    (async () => {
+      const myName = await lookupUserName(user.uid);
+      myNameRef.current = myName;
+      if (cancelled) return;
+      const participants: [string, string] = [ownerUid, user.uid];
+      await getOrCreateChat(chatId, participants, listingType, listingId, route, {
+        [ownerUid]: ownerName,
+        [user.uid]: myName,
+      });
       if (cancelled) return;
       setChatReady(true);
       unsubMessages = subscribeToMessages(chatId, setMessages);
-    }).catch(() => {
+    })().catch(() => {
       if (!cancelled) setChatReady(true);
     });
 
@@ -88,7 +92,7 @@ export default function ChatModal({
     setSending(true);
     const msgText = text.trim();
     try {
-      await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", msgText);
+      await sendMessage(chatId, user.uid, myNameRef.current, msgText);
       setText("");
       setFirstSent(true);
       // Fire-and-forget push notification to the other participant
@@ -96,7 +100,7 @@ export default function ChatModal({
         fetch("/api/notify", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId, text: msgText, senderName: user.phoneNumber ?? "User" }),
+          body: JSON.stringify({ chatId, text: msgText, senderName: myNameRef.current }),
         })
       ).catch(() => {});
     } finally {
@@ -131,6 +135,7 @@ export default function ChatModal({
             <p className="font-semibold text-gray-900 truncate">{otherName}</p>
             <p className="text-xs text-gray-500 truncate">{route}</p>
           </div>
+          <BlockButton blockedUid={ownerUid} blockedName={ownerName} />
         </div>
 
         {/* Messages */}

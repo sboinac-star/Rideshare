@@ -305,9 +305,21 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set());
   const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
+  const [blockedUids, setBlockedUids] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) { setBlockedUids(new Set()); return; }
+    user.getIdToken().then((token) =>
+      fetch("/api/block/list", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { uids: string[] }) => setBlockedUids(new Set(d.uids)))
+        .catch(() => {})
+    );
+  }, [user]);
 
   useEffect(() => {
     const q = query(collection(db, col("announcements")), orderBy("createdAt", "desc"));
@@ -365,8 +377,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       return a.departureTime > b.departureTime ? 1 : -1;
     });
 
-  const filteredJourneys = sort(applyFilters(journeys));
-  const filteredRequests = sort(applyFilters(requests));
+  const filteredJourneys = sort(applyFilters(journeys)).filter((j) => !blockedUids.has(j.uid ?? ""));
+  const filteredRequests = sort(applyFilters(requests)).filter((r) => !blockedUids.has(r.uid ?? ""));
 
   const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all";
 
@@ -392,6 +404,23 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       setCopiedId(req.id);
       setTimeout(() => setCopiedId(null), 2000);
     }
+  };
+
+  const toggleWatch = async (journey: Journey) => {
+    if (!user) { setShowSignIn(true); return; }
+    const token = await user.getIdToken();
+    const res = await fetch("/api/watch", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ journeyId: journey.id, route: `${journey.from} → ${journey.to}` }),
+    });
+    const data = await res.json() as { watching: boolean };
+    setWatchedIds((prev) => {
+      const next = new Set(prev);
+      data.watching ? next.add(journey.id) : next.delete(journey.id);
+      return next;
+    });
+    toast(data.watching ? "🔔 You'll be notified if this ride changes." : "Watch removed.");
   };
 
   const handleDeleteJourney = async (journeyId: string) => {
@@ -569,6 +598,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-gray-900">{journey.driverName}</p>
                             {journey.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                            {journey.recurring === "weekly" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekly</span>}
+                            {journey.recurring === "weekdays" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekdays</span>}
                           </div>
                           <Link href={`/journey/${journey.id}`} className="font-semibold text-gray-800 hover:text-blue-600 hover:underline">{journey.from} → {journey.to}</Link>
                           {journey.pickupAddress && <p className="text-xs text-gray-500">From: {journey.pickupAddress}</p>}
@@ -601,6 +632,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                       >
                         {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
                       </button>
+                      {user && journey.uid !== user.uid && (
+                        <button
+                          onClick={() => toggleWatch(journey)}
+                          className={`px-3 py-2 font-medium rounded-lg transition text-sm ${watchedIds.has(journey.id) ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                        >
+                          {watchedIds.has(journey.id) ? "🔔 Watching" : "🔕 Watch"}
+                        </button>
+                      )}
                       {user && journey.uid && journey.uid === user.uid ? (
                         <button
                           onClick={() => handleDeleteJourney(journey.id)}
