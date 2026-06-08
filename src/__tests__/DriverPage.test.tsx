@@ -60,7 +60,7 @@ function setupJourneySnapshot(overrides = {}) {
         id: "j1",
         data: () => ({
           driverName: "Alice", from: "Fayetteville", to: "Rogers",
-          departureTime: future, availableSeats: 2, driverPhone: "+15005550001",
+          departureTime: future, availableSeats: 2,
           status: "active", roundTrip: false, createdAt: { seconds: 1000 },
           ...overrides,
         }),

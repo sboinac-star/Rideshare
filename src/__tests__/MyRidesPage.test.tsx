@@ -38,7 +38,7 @@ const makeJourneySnap = (overrides = {}) => ({
     id: "j1",
     data: () => ({
       driverName: "Alice", from: "Fayetteville", to: "Rogers",
-      departureTime: future, availableSeats: 2, driverPhone: "+15005550001",
+      departureTime: future, availableSeats: 2,
       status: "active", roundTrip: false, createdAt: { seconds: 1000 },
       ...overrides,
     }),
@@ -50,7 +50,7 @@ const makeRequestSnap = (overrides = {}) => ({
     id: "r1",
     data: () => ({
       passengerName: "Bob", from: "Bentonville", to: "Springdale",
-      departureTime: future, seatsNeeded: 1, passengerPhone: "+15005550002",
+      departureTime: future, seatsNeeded: 1,
       status: "active", roundTrip: false, createdAt: { seconds: 999 },
       ...overrides,
     }),

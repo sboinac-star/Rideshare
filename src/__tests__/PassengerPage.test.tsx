@@ -64,7 +64,7 @@ function setupRequestSnapshot(overrides = {}) {
           id: "r1",
           data: () => ({
             passengerName: "Bob", from: "Bentonville", to: "Springdale",
-            departureTime: future, seatsNeeded: 1, passengerPhone: "+15005550002",
+            departureTime: future, seatsNeeded: 1,
             status: "active", roundTrip: false, createdAt: { seconds: 999 },
             ...overrides,
           }),
