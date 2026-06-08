@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/AuthProvider";
 import { getOrCreateChat, sendMessage, subscribeToMessages, lookupUserName } from "@/lib/chat";
 import type { Message } from "@/lib/types";
+import BlockButton from "@/app/BlockButton";
 
 type Props = {
   chatId: string;
@@ -134,6 +135,7 @@ export default function ChatModal({
             <p className="font-semibold text-gray-900 truncate">{otherName}</p>
             <p className="text-xs text-gray-500 truncate">{route}</p>
           </div>
+          <BlockButton blockedUid={ownerUid} blockedName={ownerName} />
         </div>
 
         {/* Messages */}
