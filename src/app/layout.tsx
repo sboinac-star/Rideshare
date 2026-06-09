@@ -4,6 +4,7 @@ import "./globals.css";
 import NavHeader from "./NavHeader";
 import ToastProvider from "./ToastProvider";
 import AuthProvider from "./AuthProvider";
+import PageTracker from "./PageTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,6 +70,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <ToastProvider>
+            <PageTracker />
             <NavHeader />
             <main className="flex-1">{children}</main>
             <footer className="bg-red-50 border-t border-red-200 px-4 py-4 text-center">

@@ -15,7 +15,7 @@ async function adminFetch(user: { getIdToken: () => Promise<string> }, path: str
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type DayCount = { date: string; journeys: number; requests: number; chats: number };
+type DayCount = { date: string; journeys: number; requests: number; chats: number; pageViews: number };
 type Stats = {
   activeJourneys: number;
   activeRequests: number;
@@ -190,6 +190,26 @@ function Dashboard({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
         <BarChart
           data={stats.dailyCounts}
           series={[{ key: "chats", color: "#22c55e", label: "Chats" }]}
+        />
+      </div>
+
+      {/* Page views chart */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-1">
+          Page views per day <span className="font-normal text-gray-400">(last 14 days)</span>
+        </p>
+        <div className="flex gap-4 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-sm bg-orange-400" />
+            Visits
+          </div>
+          <span className="text-xs text-gray-400 ml-auto">
+            Total: {stats.dailyCounts.reduce((s, d) => s + d.pageViews, 0).toLocaleString()} hits
+          </span>
+        </div>
+        <BarChart
+          data={stats.dailyCounts}
+          series={[{ key: "pageViews", color: "#fb923c", label: "Page Views" }]}
         />
       </div>
 
