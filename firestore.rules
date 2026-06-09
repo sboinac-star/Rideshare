@@ -172,6 +172,7 @@ service cloud.firestore {
     match /blockedPhones/{phone} { allow read, write: if false; }
     match /announcements/{id} { allow read: if true; allow write: if false; }
     match /weeklyStats/{docId} { allow read, write: if false; }
+    match /pageViews/{docId} { allow read, write: if false; }
 
     // ── Staging collections (staging_ prefix) ───────────────────────────────
 
@@ -245,6 +246,7 @@ service cloud.firestore {
     match /staging_blockedPhones/{phone} { allow read, write: if false; }
     match /staging_announcements/{id} { allow read: if true; allow write: if false; }
     match /staging_weeklyStats/{docId} { allow read, write: if false; }
+    match /staging_pageViews/{docId} { allow read, write: if false; }
 
     match /{document=**} {
       allow read, write: if false;

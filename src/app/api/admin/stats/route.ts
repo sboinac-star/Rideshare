@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   // Daily counts for last 14 days
   const days = 14;
-  const dailyCounts: { date: string; journeys: number; requests: number; chats: number }[] = [];
+  const dailyCounts: { date: string; journeys: number; requests: number; chats: number; pageViews: number }[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
     const start = new Date();
@@ -23,10 +23,13 @@ export async function GET(req: Request) {
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
 
-    const [j, r, c] = await Promise.all([
+    const isoDate = start.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const [j, r, c, pv] = await Promise.all([
       db.collection(adminCol("journeys")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
       db.collection(adminCol("requests")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
       db.collection(adminCol("chats")).where("updatedAt", ">=", start).where("updatedAt", "<", end).count().get(),
+      db.collection(adminCol("pageViews")).doc(isoDate).get(),
     ]);
 
     dailyCounts.push({
@@ -34,6 +37,7 @@ export async function GET(req: Request) {
       journeys: j.data().count,
       requests: r.data().count,
       chats: c.data().count,
+      pageViews: (pv.data()?.hits as number) ?? 0,
     });
   }
 
