@@ -151,6 +151,10 @@ service cloud.firestore {
 
     match /pageViews/{docId} { allow read, write: if false; }
 
+    match /jcb_orders/{orderId} {
+      allow read, write: if true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
