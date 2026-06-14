@@ -288,6 +288,42 @@ function SignInPage() {
   );
 }
 
+function AnnouncementBanner({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = text.split("\n").filter(Boolean);
+  const isMultiLine = lines.length > 1;
+  const preview = lines[0];
+
+  return (
+    <div className="bg-blue-700 text-white text-sm px-4 py-3 font-medium">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-start gap-2">
+          <span className="text-base shrink-0 mt-0.5">📢</span>
+          <div className="flex-1">
+            {isMultiLine && !expanded ? (
+              <span>{preview}</span>
+            ) : (
+              <div className="space-y-1">
+                {lines.map((line, i) => (
+                  <p key={i} className={line.match(/^\d+\./) ? "pl-2" : ""}>{line}</p>
+                ))}
+              </div>
+            )}
+          </div>
+          {isMultiLine && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="shrink-0 text-xs underline opacity-80 hover:opacity-100 transition ml-2 mt-0.5"
+            >
+              {expanded ? "Show less" : "Show steps ▼"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomeClient({ initialJourneys }: { initialJourneys: Journey[] }) {
   const toast = useToast();
   const { user, authLoading } = useAuth();
@@ -442,9 +478,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {announcements.map((a) => (
-        <div key={a.id} className="bg-blue-700 text-white text-sm text-center px-4 py-2.5 font-medium">
-          📢 {a.text}
-        </div>
+        <AnnouncementBanner key={a.id} text={a.text} />
       ))}
       <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 md:py-12">
         <section className="text-center mb-4 sm:mb-8">
