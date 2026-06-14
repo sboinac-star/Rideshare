@@ -333,7 +333,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .filter((j) => !isPast(j.departureTime) && !TEST_UIDS.includes(j.uid ?? ""))
+        .filter((j) => !isPast(j.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(j.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
@@ -346,7 +346,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
-        .filter((r) => !isPast(r.departureTime) && !TEST_UIDS.includes(r.uid ?? ""))
+        .filter((r) => !isPast(r.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(r.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setRequests(data);
       setRequestsLoading(false);
