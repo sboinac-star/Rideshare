@@ -22,7 +22,7 @@ async function fetchInitialJourneys(): Promise<Journey[]> {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           structuredQuery: {
-            from: [{ collectionId: "journeys" }],
+            from: [{ collectionId: `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}journeys` }],
             where: {
               fieldFilter: {
                 field: { fieldPath: "status" },
