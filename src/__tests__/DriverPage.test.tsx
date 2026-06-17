@@ -27,14 +27,6 @@ vi.mock("firebase/firestore", () => ({
 vi.mock("@/app/ToastProvider", () => ({ useToast: () => mockToast }));
 vi.mock("@/app/AuthProvider", () => ({ useAuth: () => ({ user: mockUser, authLoading: false }) }));
 vi.mock("@/app/SignInModal", () => ({ default: () => <div>SignInModal</div> }));
-vi.mock("@/app/CompletionPromptModal", () => ({
-  default: ({ onDone }: { onDone: () => void }) => (
-    <div data-testid="completion-modal">
-      <button onClick={onDone}>Done</button>
-    </div>
-  ),
-  getPendingCompletionItems: vi.fn(() => []),
-}));
 vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 vi.mock("@/lib/utils", () => ({
   formatDateTime: (s: string) => s,
@@ -145,19 +137,6 @@ describe("DriverPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
     await fillAndSubmitForm();
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith("Failed to post journey. Please try again.", "error"));
-  });
-
-  it("shows completion modal when there are pending past rides", async () => {
-    const { getPendingCompletionItems } = await import("@/app/CompletionPromptModal");
-    vi.mocked(getPendingCompletionItems).mockReturnValue([
-      { id: "j-old", type: "journey", from: "A", to: "B", departureTime: past },
-    ]);
-    setupEmptySnapshot();
-    const { default: DriverPage } = await import("@/app/driver/page");
-    render(<DriverPage />);
-    await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
-    await fillAndSubmitForm();
-    await waitFor(() => expect(screen.getByTestId("completion-modal")).toBeInTheDocument());
   });
 
   it("renders existing journeys", async () => {
