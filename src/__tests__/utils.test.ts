@@ -130,14 +130,13 @@ describe("shareText", () => {
     to: "Dallas",
     departureTime: "2026-06-01T08:00",
     availableSeats: 2,
-    driverPhone: "4795550123",
   };
 
-  it("contains route, seat count, and phone", () => {
+  it("contains route and seat count", () => {
     const text = shareText(journey);
     expect(text).toContain("Bentonville → Dallas");
     expect(text).toContain("2 seats available");
-    expect(text).toContain("(479) 555-0123");
+    expect(text).not.toContain("Contact:");
   });
 
   it("includes a custom URL when provided", () => {
@@ -172,7 +171,6 @@ describe("shareRequestText", () => {
     to: "OKC",
     departureTime: "2026-06-01T09:00",
     seatsNeeded: 1,
-    passengerPhone: "4795550199",
   };
 
   it("contains route and seats needed", () => {
