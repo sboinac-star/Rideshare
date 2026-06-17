@@ -7,11 +7,17 @@ export async function GET(req: Request) {
   const db = adminDb();
 
   // Current snapshot counts
-  const [journeys, requests, chats, reports] = await Promise.all([
+  const [journeys, requests, chats, reports,
+    completedJourneys, cancelledJourneys, completedRequests, cancelledRequests,
+  ] = await Promise.all([
     db.collection(col("journeys")).where("status", "==", "active").count().get(),
     db.collection(col("requests")).where("status", "==", "active").count().get(),
     db.collection(col("chats")).count().get(),
     db.collection(col("reports")).where("resolved", "!=", true).count().get(),
+    db.collection(col("journeys")).where("status", "==", "completed").count().get(),
+    db.collection(col("journeys")).where("status", "==", "cancelled").count().get(),
+    db.collection(col("requests")).where("status", "==", "completed").count().get(),
+    db.collection(col("requests")).where("status", "==", "cancelled").count().get(),
   ]);
 
   // Daily counts for last 14 days
@@ -63,6 +69,10 @@ export async function GET(req: Request) {
     activeRequests: requests.data().count,
     totalChats: chats.data().count,
     pendingReports: reports.data().count,
+    completedJourneys: completedJourneys.data().count,
+    cancelledJourneys: cancelledJourneys.data().count,
+    completedRequests: completedRequests.data().count,
+    cancelledRequests: cancelledRequests.data().count,
     dailyCounts,
     repeatUsers,
     oneTimeUsers,
