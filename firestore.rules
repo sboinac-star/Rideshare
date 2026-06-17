@@ -248,6 +248,8 @@ service cloud.firestore {
     match /staging_weeklyStats/{docId} { allow read, write: if false; }
     match /staging_pageViews/{docId} { allow read, write: if false; }
 
+    match /pageViews/{docId} { allow read, write: if false; }
+
     match /{document=**} {
       allow read, write: if false;
     }
