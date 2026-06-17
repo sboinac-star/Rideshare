@@ -1,4 +1,4 @@
-import { adminDb, adminMessaging, verifyUser, adminCol } from "@/lib/adminFirebase";
+import { adminDb, adminMessaging, verifyUser } from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 // GET /api/watch?journeyId=xxx — check if current user is watching
@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   if (!journeyId) return Response.json({ watching: false });
 
   const db = adminDb();
-  const snap = await db.collection(adminCol("rideWatches"))
+  const snap = await db.collection("rideWatches")
     .where("uid", "==", uid)
     .where("journeyId", "==", journeyId)
     .limit(1)
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (!journeyId || !route) return Response.json({ error: "Invalid" }, { status: 400 });
 
   const db = adminDb();
-  const col = adminCol("rideWatches");
+  const col = "rideWatches";
 
   const existing = await db.collection(col)
     .where("uid", "==", uid)
@@ -62,7 +62,7 @@ export async function notifyWatchers(
   const db = adminDb();
   const messaging = adminMessaging();
 
-  const watchSnap = await db.collection(adminCol("rideWatches"))
+  const watchSnap = await db.collection("rideWatches")
     .where("journeyId", "==", journeyId)
     .get();
 
@@ -73,7 +73,7 @@ export async function notifyWatchers(
       .filter((d) => d.data().uid !== excludeUid)
       .map(async (d) => {
         const watcherUid = d.data().uid as string;
-        const tokenDoc = await db.collection(adminCol("fcmTokens")).doc(watcherUid).get();
+        const tokenDoc = await db.collection("fcmTokens").doc(watcherUid).get();
         const token = tokenDoc.data()?.token as string | undefined;
         if (!token) return;
         try {
@@ -87,7 +87,7 @@ export async function notifyWatchers(
           });
         } catch {
           // stale token — clean up
-          await db.collection(adminCol("fcmTokens")).doc(watcherUid).delete();
+          await db.collection("fcmTokens").doc(watcherUid).delete();
         }
       })
   );
