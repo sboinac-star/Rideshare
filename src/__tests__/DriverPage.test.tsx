@@ -128,6 +128,17 @@ describe("DriverPage", () => {
     expect(mockToast).toHaveBeenCalledWith("Journey posted! Passengers can now find you.");
   });
 
+  it("includes driverPhone in posted journey doc", async () => {
+    setupEmptySnapshot();
+    const { default: DriverPage } = await import("@/app/driver/page");
+    render(<DriverPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
+    await fillAndSubmitForm();
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+    const docData = mockAddDoc.mock.calls[0][1];
+    expect(docData).toHaveProperty("driverPhone", mockUser.phoneNumber);
+  });
+
   it("shows success state after posting", async () => {
     setupEmptySnapshot();
     const { default: DriverPage } = await import("@/app/driver/page");

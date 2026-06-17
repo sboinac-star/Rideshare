@@ -227,3 +227,4 @@ describe("subscribeToUserChats", () => {
     expect(chat.updatedAt).toEqual(fakeDate);
   });
 });
+
