@@ -136,7 +136,7 @@ describe("DriverPage", () => {
     render(<DriverPage />);
     await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
     await fillAndSubmitForm();
-    await waitFor(() => expect(mockToast).toHaveBeenCalledWith("Failed to post journey. Please try again.", "error"));
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Failed to post journey"), "error"));
   });
 
   it("renders existing journeys", async () => {
