@@ -19,6 +19,8 @@ function getAdminApp(): App {
 export const adminDb = () => getFirestore(getAdminApp());
 export const adminAuth = () => getAuth(getAdminApp());
 export const adminMessaging = () => getMessaging(getAdminApp());
+export const adminCol = (name: string) =>
+  `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;
 
 export function getAdminPhones(): string[] {
   return (process.env.ADMIN_PHONES ?? "")
