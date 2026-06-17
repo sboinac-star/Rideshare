@@ -32,6 +32,12 @@ service cloud.firestore {
         && resource.data.status == 'active';
     }
 
+    function isCompleteUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
+        && resource.data.status == 'active';
+    }
+
     function isValidEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly(['availableSeats', 'departureTime', 'returnTime'])
@@ -44,7 +50,7 @@ service cloud.firestore {
     match /journeys/{journeyId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
-      allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
+      allow update: if isOwner() && (isCancelUpdate() || isCompleteUpdate() || isValidEdit());
       allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
     }
 
@@ -64,6 +70,12 @@ service cloud.firestore {
         && resource.data.status == 'active';
     }
 
+    function isCompleteRequestUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
+        && resource.data.status == 'active';
+    }
+
     function isValidRequestEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly(['seatsNeeded', 'departureTime', 'returnTime'])
@@ -76,7 +88,7 @@ service cloud.firestore {
     match /requests/{requestId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
-      allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
+      allow update: if isOwner() && (isCancelRequestUpdate() || isCompleteRequestUpdate() || isValidRequestEdit());
       allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
     }
 

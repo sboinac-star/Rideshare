@@ -6,10 +6,11 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
-import { Journey } from "@/lib/types";
+import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
+import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
 
 export default function DriverPage() {
   const toast = useToast();
@@ -17,6 +18,9 @@ export default function DriverPage() {
   const [showSignIn, setShowSignIn] = useState(false);
 
   const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [myRequests, setMyRequests] = useState<RideRequest[]>([]);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,38 +55,25 @@ export default function DriverPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
-    const q = query(collection(db, "journeys"), where("uid", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Journey))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
-      setJourneys(data);
-      setLoading(false);
-    }, () => setLoading(false));
-    return () => unsubscribe();
+    const unsubJ = onSnapshot(
+      query(collection(db, "journeys"), where("uid", "==", user.uid)),
+      (snapshot) => {
+        const data = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Journey))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
+        setJourneys(data);
+        setLoading(false);
+      }, () => setLoading(false));
+    const unsubR = onSnapshot(
+      query(collection(db, "requests"), where("uid", "==", user.uid)),
+      (snapshot) => {
+        setMyRequests(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest)));
+      });
+    return () => { unsubJ(); unsubR(); };
   }, [user]);
 
-  const handlePostJourney = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) { setShowSignIn(true); return; }
-    const err = validateName(newJourney.driverName);
-    setNameError(err);
-    if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
-    if (new Date(newJourney.departureTime) <= new Date()) {
-      toast("Departure time must be in the future.", "error");
-      return;
-    }
-
-    const isDuplicate = journeys.some(
-      (j) => j.status === "active" && j.from === newJourney.from &&
-             j.to === newJourney.to && j.departureTime === newJourney.departureTime
-    );
-    if (isDuplicate) {
-      toast("You already have an active journey with the same route and time.", "error");
-      return;
-    }
-
+  const doPostJourney = async () => {
     setSubmitting(true);
     try {
       const ref = await addDoc(collection(db, "journeys"), {
@@ -101,7 +92,35 @@ export default function DriverPage() {
       toast("Failed to post journey. Please try again.", "error");
     } finally {
       setSubmitting(false);
+      setPendingSubmit(false);
     }
+  };
+
+  const handlePostJourney = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { setShowSignIn(true); return; }
+    const err = validateName(newJourney.driverName);
+    setNameError(err);
+    if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
+    if (new Date(newJourney.departureTime) <= new Date()) {
+      toast("Departure time must be in the future.", "error");
+      return;
+    }
+    const isDuplicate = journeys.some(
+      (j) => j.status === "active" && j.from === newJourney.from &&
+             j.to === newJourney.to && j.departureTime === newJourney.departureTime
+    );
+    if (isDuplicate) {
+      toast("You already have an active journey with the same route and time.", "error");
+      return;
+    }
+    const pending = getPendingCompletionItems(journeys, myRequests);
+    if (pending.length > 0) {
+      setPendingSubmit(true);
+      setShowCompletionPrompt(true);
+      return;
+    }
+    await doPostJourney();
   };
 
   const handleCancelJourney = async (journeyId: string) => {
@@ -182,8 +201,19 @@ export default function DriverPage() {
     );
   }
 
+  const pendingItems = getPendingCompletionItems(journeys, myRequests);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {showCompletionPrompt && pendingItems.length > 0 && (
+        <CompletionPromptModal
+          items={pendingItems}
+          onDone={() => {
+            setShowCompletionPrompt(false);
+            if (pendingSubmit) doPostJourney();
+          }}
+        />
+      )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Post a Journey</h1>
