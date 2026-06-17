@@ -6,6 +6,7 @@ export async function autoCompleteAndNudge() {
   const db = adminDb();
   const now = new Date().toISOString();
   const batch = db.batch();
+  let batchSize = 0;
   const nudgeTargets: { uid: string; route: string; journeyId: string }[] = [];
 
   for (const colName of ["journeys", "requests"] as const) {
@@ -20,6 +21,7 @@ export async function autoCompleteAndNudge() {
         status: "completed",
         completedAt: FieldValue.serverTimestamp(),
       });
+      batchSize++;
 
       const data = docSnap.data();
       const uid = data.uid as string | undefined;
@@ -31,7 +33,7 @@ export async function autoCompleteAndNudge() {
     }
   }
 
-  if (nudgeTargets.length > 0) await batch.commit();
+  if (batchSize > 0) await batch.commit();
 
   // Send nudge push to each driver — fire and forget, don't block
   await Promise.allSettled(

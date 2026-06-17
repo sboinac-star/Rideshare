@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   const provided = new URL(req.url).searchParams.get("secret");
   const cronHeader = req.headers.get("x-vercel-cron-signature");
 
-  if (secret && provided !== secret && !cronHeader) {
+  if ((!secret && !cronHeader) || (secret && provided !== secret && !cronHeader)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
