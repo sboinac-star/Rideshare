@@ -11,9 +11,13 @@ export default function FeedbackButton() {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  const reset = () => { setOpen(false); setDone(false); setError(""); setText(""); };
 
   const submit = async () => {
     if (!text.trim()) return;
+    setError("");
     setSubmitting(true);
     try {
       await addDoc(collection(db, "feedback"), {
@@ -22,8 +26,8 @@ export default function FeedbackButton() {
         createdAt: serverTimestamp(),
       });
       setDone(true);
-      setText("");
-      setTimeout(() => { setOpen(false); setDone(false); }, 2000);
+    } catch {
+      setError("Failed to send. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -46,12 +50,18 @@ export default function FeedbackButton() {
                 <div className="text-4xl mb-2">🙏</div>
                 <p className="font-semibold text-gray-900">Thanks for your feedback!</p>
                 <p className="text-sm text-gray-500 mt-1">We read every suggestion.</p>
+                <button
+                  onClick={reset}
+                  className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition"
+                >
+                  Close
+                </button>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-1">
                   <h2 className="text-lg font-bold text-gray-900">Suggestions & Feedback</h2>
-                  <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                  <button onClick={reset} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
                 </div>
                 <p className="text-sm text-gray-500 mb-4">Share a feature idea, report a problem, or tell us how we can improve.</p>
                 <textarea
@@ -61,6 +71,7 @@ export default function FeedbackButton() {
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
+                {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
                 <button
                   onClick={submit}
                   disabled={!text.trim() || submitting}
