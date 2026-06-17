@@ -64,7 +64,7 @@ export default function NavHeader() {
     <>
       <header className="sticky top-0 z-50 bg-blue-600 text-white shadow-lg">
         <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold tracking-tight" onClick={() => setOpen(false)}>
+          <Link href="/" className="text-2xl font-bold tracking-tight" onClick={() => { setOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             NWA Ride Share
           </Link>
 
