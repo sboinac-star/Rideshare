@@ -42,8 +42,7 @@ export default function FlyerClient() {
                 { icon: "✅", text: "100% free" },
               ].map(({ icon, text }) => (
                 <div key={text} className="feature-item">
-                  <span>{icon}</span>
-                  <span>{text}</span>
+                  <span>{icon}</span><span>{text}</span>
                 </div>
               ))}
             </div>
@@ -53,17 +52,16 @@ export default function FlyerClient() {
             </div>
           </div>
 
-          {/* Right: QR */}
+          {/* Right */}
           <div className="right">
             <div className="qr-box">
-              <QRCode value={APP_URL} size={240} />
+              <QRCode value={APP_URL} size={220} />
             </div>
             <div className="scan-label">Scan to open</div>
             <div className="url">{APP_URL}</div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="footer-band">
           No fees · No downloads · Community-run · nwa-rideshare.vercel.app
         </div>
@@ -71,138 +69,75 @@ export default function FlyerClient() {
 
       <style>{`
         #flyer {
-          width: 210mm;
-          height: 297mm;
+          width: 680px;
           margin: 0 auto 32px;
           background: #fff;
           display: flex;
           flex-direction: column;
           font-family: 'Geist', 'Inter', system-ui, sans-serif;
-          box-shadow: 0 4px 32px rgba(0,0,0,0.15);
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+          border-radius: 12px;
           overflow: hidden;
-          box-sizing: border-box;
         }
-
         .header-band {
           background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
           color: #fff;
-          padding: 28px 44px 24px;
+          padding: 24px 36px 20px;
           text-align: center;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
-        .logo    { font-size: 34px; font-weight: 900; letter-spacing: -0.5px; }
-        .tagline { font-size: 13px; color: #bfdbfe; margin-top: 6px; }
+        .logo    { font-size: 30px; font-weight: 900; }
+        .tagline { font-size: 12px; color: #bfdbfe; margin-top: 5px; }
 
         .body {
-          flex: 1;
           display: flex;
-          padding: 32px 44px;
-          gap: 32px;
+          padding: 28px 36px;
+          gap: 28px;
           align-items: center;
-          overflow: hidden;
         }
-
         .left {
           flex: 1;
-          padding-right: 32px;
+          padding-right: 28px;
           border-right: 2px solid #e5e7eb;
         }
-        .headline {
-          font-size: 26px;
-          font-weight: 900;
-          color: #1e3a8a;
-          line-height: 1.2;
-          margin-bottom: 10px;
-        }
-        .sub {
-          font-size: 12px;
-          color: #374151;
-          line-height: 1.6;
-          margin-bottom: 20px;
-        }
+        .headline { font-size: 24px; font-weight: 900; color: #1e3a8a; line-height: 1.2; margin-bottom: 10px; }
+        .sub      { font-size: 12px; color: #374151; line-height: 1.6; margin-bottom: 18px; }
 
-        .features {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
+        .features { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
         .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: #eff6ff;
-          border-radius: 10px;
-          padding: 9px 12px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #1e40af;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          display: flex; align-items: center; gap: 9px;
+          background: #eff6ff; border-radius: 9px;
+          padding: 8px 11px; font-size: 12px; font-weight: 600; color: #1e40af;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
-        .feature-item span:first-child { font-size: 16px; }
+        .feature-item span:first-child { font-size: 15px; }
 
         .cities {
-          font-size: 10.5px;
-          color: #6b7280;
-          background: #f9fafb;
-          border-radius: 8px;
-          padding: 8px 12px;
-          line-height: 1.5;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          font-size: 10px; color: #6b7280;
+          background: #f9fafb; border-radius: 7px; padding: 7px 11px; line-height: 1.5;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
 
-        .right {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-        }
+        .right { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .qr-box {
-          border: 5px solid #2563eb;
-          border-radius: 16px;
-          padding: 14px;
-          background: #fff;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          border: 4px solid #2563eb; border-radius: 14px; padding: 12px; background: #fff;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
-        .scan-label {
-          font-size: 14px;
-          font-weight: 800;
-          color: #1e3a8a;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        .url {
-          font-size: 9.5px;
-          color: #6b7280;
-          font-family: monospace;
-          text-align: center;
-        }
+        .scan-label { font-size: 13px; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 1px; }
+        .url        { font-size: 9px; color: #6b7280; font-family: monospace; text-align: center; }
 
         .footer-band {
-          background: #1e3a8a;
-          color: #93c5fd;
-          text-align: center;
-          padding: 12px 44px;
-          font-size: 11px;
-          font-weight: 500;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          background: #1e3a8a; color: #93c5fd;
+          text-align: center; padding: 11px 36px;
+          font-size: 10.5px; font-weight: 500;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
 
         @media print {
-          @page { size: A4; margin: 0; }
+          @page { margin: 12mm; }
           html, body { margin: 0; padding: 0; background: #fff; }
           .print\\:hidden { display: none !important; }
-          #flyer {
-            width: 210mm;
-            height: 297mm;
-            margin: 0;
-            box-shadow: none;
-          }
+          #flyer { width: 100%; box-shadow: none; border-radius: 0; margin: 0; }
         }
       `}</style>
     </>
