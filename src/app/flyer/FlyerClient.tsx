@@ -74,7 +74,7 @@ export default function FlyerClient() {
           -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
         .logo { font-size: 16px; font-weight: 900; white-space: nowrap; }
-        .meta { display: flex; gap: 7px; align-items: center; font-size: 10px; color: #bfdbfe; flex-wrap: wrap; justify-content: flex-end; }
+        .meta { display: flex; gap: 7px; align-items: center; font-size: 13px; font-weight: 600; color: #fff; flex-wrap: wrap; justify-content: flex-end; }
 
         .qr-section {
           display: flex;
@@ -100,15 +100,15 @@ export default function FlyerClient() {
           letter-spacing: 1px;
           text-align: center;
         }
-        .url { font-size: 10px; color: #9ca3af; font-family: monospace; }
+        .url { font-size: 13px; font-weight: 600; color: #1e40af; font-family: monospace; }
 
         .footer-band {
           background: #1e3a8a;
           color: #93c5fd;
           text-align: center;
           padding: 10px 24px;
-          font-size: 10px;
-          font-weight: 500;
+          font-size: 13px;
+          font-weight: 600;
           -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
 
