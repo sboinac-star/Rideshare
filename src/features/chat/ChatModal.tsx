@@ -44,7 +44,12 @@ export default function ChatModal({
     setChatReady(false);
 
     (async () => {
-      const myName = await lookupUserName(user.uid);
+      let myName = "";
+      try {
+        myName = await lookupUserName(user.uid);
+      } catch {
+        // proceed with empty name if lookup fails
+      }
       myNameRef.current = myName;
       if (cancelled) return;
       const participants: [string, string] = [ownerUid, user.uid];
