@@ -56,7 +56,7 @@ export default function PassengerPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const unsubR = onSnapshot(
-      query(collection(db, col("requests")), where("uid", "==", user.uid)),
+      query(collection(db, "requests"), where("uid", "==", user.uid)),
       (snapshot) => {
         const data = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as RideRequest))
@@ -66,7 +66,7 @@ export default function PassengerPage() {
         setLoading(false);
       }, () => setLoading(false));
     const unsubJ = onSnapshot(
-      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
+      query(collection(db, "journeys"), where("uid", "==", user.uid)),
       (snapshot) => {
         setMyJourneys(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Journey)));
       });
@@ -76,7 +76,7 @@ export default function PassengerPage() {
   const doPostRequest = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, col("requests")), {
+      const ref = await addDoc(collection(db, "requests"), {
         ...newRequest,
         uid: user!.uid,
         status: "active",
@@ -88,12 +88,40 @@ export default function PassengerPage() {
       setToCustom(false);
       setNameError("");
       toast("Request posted! Drivers can now find you.");
-    } catch {
-      toast("Failed to post request. Please try again.", "error");
+    } catch (e) {
+      console.error("[post-request]", e);
+      toast(`Failed to post request: ${(e as { message?: string })?.message ?? e}`, "error");
     } finally {
       setSubmitting(false);
       setPendingSubmit(false);
     }
+  };
+
+  const handlePostRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { setShowSignIn(true); return; }
+    const err = validateName(newRequest.passengerName);
+    setNameError(err);
+    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
+    if (new Date(newRequest.departureTime) <= new Date()) {
+      toast("Travel time must be in the future.", "error");
+      return;
+    }
+    const isDuplicate = requests.some(
+      (r) => r.status === "active" && r.from === newRequest.from &&
+             r.to === newRequest.to && r.departureTime === newRequest.departureTime
+    );
+    if (isDuplicate) {
+      toast("You already have an active request with the same route and time.", "error");
+      return;
+    }
+    const pending = getPendingCompletionItems(myJourneys, requests);
+    if (pending.length > 0) {
+      setPendingSubmit(true);
+      setShowCompletionPrompt(true);
+      return;
+    }
+    await doPostRequest();
   };
 
   const handlePostRequest = async (e: React.FormEvent) => {

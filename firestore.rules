@@ -153,6 +153,17 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && request.auth.uid == uid;
     }
 
+    match /pageViews/{docId} { allow read, write: if false; }
+
+    match /feedback/{docId} {
+      allow read, delete: if false;
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['text', 'createdAt'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

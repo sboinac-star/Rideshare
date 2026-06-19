@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/AuthProvider";
 import { formatDateTime } from "@/lib/utils";
 
-type Tab = "dashboard" | "listings" | "reports" | "chats" | "users" | "announcements";
+type Tab = "dashboard" | "listings" | "reports" | "chats" | "users" | "announcements" | "feedback";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -15,12 +15,16 @@ async function adminFetch(user: { getIdToken: () => Promise<string> }, path: str
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type DayCount = { date: string; journeys: number; requests: number; chats: number };
+type DayCount = { date: string; journeys: number; requests: number; chats: number; pageViews: number };
 type Stats = {
   activeJourneys: number;
   activeRequests: number;
   totalChats: number;
   pendingReports: number;
+  completedJourneys: number;
+  cancelledJourneys: number;
+  completedRequests: number;
+  cancelledRequests: number;
   dailyCounts: DayCount[];
   repeatUsers: number;
   oneTimeUsers: number;
@@ -191,6 +195,71 @@ function Dashboard({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
           data={stats.dailyCounts}
           series={[{ key: "chats", color: "#22c55e", label: "Chats" }]}
         />
+      </div>
+
+      {/* Page views chart */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-1">
+          Page views per day <span className="font-normal text-gray-400">(last 14 days)</span>
+        </p>
+        <div className="flex gap-4 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-sm bg-orange-400" />
+            Visits
+          </div>
+          <span className="text-xs text-gray-400 ml-auto">
+            Total: {stats.dailyCounts.reduce((s, d) => s + d.pageViews, 0).toLocaleString()} hits
+          </span>
+        </div>
+        <BarChart
+          data={stats.dailyCounts}
+          series={[{ key: "pageViews", color: "#fb923c", label: "Page Views" }]}
+        />
+      </div>
+
+      {/* Ride completion stats */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-4">Ride outcomes</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Journeys</p>
+            <div className="space-y-1.5">
+              {[
+                { label: "Active", value: stats.activeJourneys, color: "text-green-600" },
+                { label: "Completed", value: stats.completedJourneys, color: "text-blue-600" },
+                { label: "Cancelled", value: stats.cancelledJourneys, color: "text-red-500" },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">{s.label}</span>
+                  <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center border-t pt-1 mt-1">
+                <span className="text-sm font-medium text-gray-700">Total</span>
+                <span className="text-sm font-bold text-gray-900">{stats.activeJourneys + stats.completedJourneys + stats.cancelledJourneys}</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Requests</p>
+            <div className="space-y-1.5">
+              {[
+                { label: "Active", value: stats.activeRequests, color: "text-green-600" },
+                { label: "Completed", value: stats.completedRequests, color: "text-blue-600" },
+                { label: "Cancelled", value: stats.cancelledRequests, color: "text-red-500" },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">{s.label}</span>
+                  <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center border-t pt-1 mt-1">
+                <span className="text-sm font-medium text-gray-700">Total</span>
+                <span className="text-sm font-bold text-gray-900">{stats.activeRequests + stats.completedRequests + stats.cancelledRequests}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Repeat vs one-time users */}
@@ -574,6 +643,59 @@ function Announcements({ user }: { user: NonNullable<ReturnType<typeof useAuth>[
   );
 }
 
+type FeedbackItem = { id: string; text: string; uid: string | null; createdAt: string | null };
+
+function Feedback({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user"]> }) {
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const r = await adminFetch(user, "/api/admin/feedback");
+    const data = await r.json();
+    setItems(data.feedback ?? []);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this feedback?")) return;
+    setDeleting(id);
+    await adminFetch(user, "/api/admin/feedback", { method: "DELETE", body: JSON.stringify({ id }) });
+    await load();
+    setDeleting(null);
+  };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-500">{items.length} submission{items.length !== 1 ? "s" : ""}</p>
+      {items.length === 0 && <p className="text-gray-400 text-sm">No feedback yet.</p>}
+      {items.map((item) => (
+        <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-900">{item.text}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
+              {item.uid ? ` · uid: ${item.uid.slice(0, 8)}…` : " · anonymous"}
+            </p>
+          </div>
+          <button
+            onClick={() => remove(item.id)}
+            disabled={deleting === item.id}
+            className="shrink-0 text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50 transition disabled:opacity-50"
+          >
+            {deleting === item.id ? "…" : "Delete"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Spinner() {
   return (
     <div className="flex justify-center py-8">
@@ -600,6 +722,7 @@ export default function AdminPage() {
     { id: "chats", label: "Chats" },
     { id: "users", label: "Users" },
     { id: "announcements", label: "Announcements" },
+    { id: "feedback", label: "Feedback" },
   ];
 
   if (authLoading) {
@@ -652,6 +775,7 @@ export default function AdminPage() {
         {tab === "chats" && <Chats user={user} />}
         {tab === "users" && <Users user={user} />}
         {tab === "announcements" && <Announcements user={user} />}
+        {tab === "feedback" && <Feedback user={user} />}
       </div>
     </div>
   );

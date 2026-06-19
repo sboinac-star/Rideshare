@@ -38,6 +38,7 @@ export default function DriverPage() {
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
+    recurring: "none" as "none" | "weekly" | "weekdays",
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -56,7 +57,7 @@ export default function DriverPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const unsubJ = onSnapshot(
-      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
+      query(collection(db, "journeys"), where("uid", "==", user.uid)),
       (snapshot) => {
         const data = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as Journey))
@@ -66,7 +67,7 @@ export default function DriverPage() {
         setLoading(false);
       }, () => setLoading(false));
     const unsubR = onSnapshot(
-      query(collection(db, col("requests")), where("uid", "==", user.uid)),
+      query(collection(db, "requests"), where("uid", "==", user.uid)),
       (snapshot) => {
         setMyRequests(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest)));
       });
@@ -76,24 +77,52 @@ export default function DriverPage() {
   const doPostJourney = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, col("journeys")), {
+      const ref = await addDoc(collection(db, "journeys"), {
         ...newJourney,
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
       toast("Journey posted! Passengers can now find you.");
-    } catch {
-      toast("Failed to post journey. Please try again.", "error");
+    } catch (e) {
+      console.error("[post-journey]", e);
+      toast(`Failed to post journey: ${(e as { message?: string })?.message ?? e}`, "error");
     } finally {
       setSubmitting(false);
       setPendingSubmit(false);
     }
+  };
+
+  const handlePostJourney = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { setShowSignIn(true); return; }
+    const err = validateName(newJourney.driverName);
+    setNameError(err);
+    if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
+    if (new Date(newJourney.departureTime) <= new Date()) {
+      toast("Departure time must be in the future.", "error");
+      return;
+    }
+    const isDuplicate = journeys.some(
+      (j) => j.status === "active" && j.from === newJourney.from &&
+             j.to === newJourney.to && j.departureTime === newJourney.departureTime
+    );
+    if (isDuplicate) {
+      toast("You already have an active journey with the same route and time.", "error");
+      return;
+    }
+    const pending = getPendingCompletionItems(journeys, myRequests);
+    if (pending.length > 0) {
+      setPendingSubmit(true);
+      setShowCompletionPrompt(true);
+      return;
+    }
+    await doPostJourney();
   };
 
   const handlePostJourney = async (e: React.FormEvent) => {
@@ -390,6 +419,24 @@ export default function DriverPage() {
                   />
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Repeats</label>
+                <select
+                  value={newJourney.recurring}
+                  onChange={(e) => setNewJourney({ ...newJourney, recurring: e.target.value as "none" | "weekly" | "weekdays" })}
+                  className={inputClass}
+                >
+                  <option value="none">One-time ride</option>
+                  <option value="weekly">Every week (same day &amp; time)</option>
+                  <option value="weekdays">Every weekday (Mon–Fri)</option>
+                </select>
+                {newJourney.recurring !== "none" && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    This ride will appear weekly. Cancel anytime from My Rides.
+                  </p>
+                )}
+              </div>
 
               <button
                 type="submit"
