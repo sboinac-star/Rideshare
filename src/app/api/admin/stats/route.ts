@@ -1,4 +1,4 @@
-import { adminDb, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, verifyAdmin, forbidden, adminCol } from "@/lib/adminFirebase";
 
 const col = (name: string) => `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;
 

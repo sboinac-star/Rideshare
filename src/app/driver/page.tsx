@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
@@ -77,7 +77,7 @@ export default function DriverPage() {
   const doPostJourney = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "journeys"), {
+      const ref = await addDoc(collection(db, col("journeys")), {
         ...newJourney,
         uid: user!.uid,
         status: "active",
@@ -128,7 +128,7 @@ export default function DriverPage() {
   const handleCancelJourney = async (journeyId: string) => {
     if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled" });
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
@@ -138,7 +138,7 @@ export default function DriverPage() {
   const handleDeleteJourney = async (journeyId: string) => {
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch {
       toast("Failed to delete. Please try again.", "error");
@@ -160,7 +160,7 @@ export default function DriverPage() {
   const handleEditSave = async (journeyId: string) => {
     if (!editData.departureTime) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), {
+      await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
         availableSeats: editData.availableSeats,
       });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
@@ -76,7 +76,7 @@ export default function PassengerPage() {
   const doPostRequest = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "requests"), {
+      const ref = await addDoc(collection(db, col("requests")), {
         ...newRequest,
         uid: user!.uid,
         status: "active",
@@ -127,7 +127,7 @@ export default function PassengerPage() {
   const handleCancelRequest = async (requestId: string) => {
     if (!confirm("Are you sure you want to cancel this request?")) return;
     try {
-      await updateDoc(doc(db, "requests", requestId), { status: "cancelled" });
+      await updateDoc(doc(db, col("requests"), requestId), { status: "cancelled" });
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
@@ -137,7 +137,7 @@ export default function PassengerPage() {
   const handleDeleteRequest = async (requestId: string) => {
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", requestId));
+      await deleteDoc(doc(db, col("requests"), requestId));
       toast("Request deleted.");
     } catch {
       toast("Failed to delete. Please try again.", "error");
@@ -159,7 +159,7 @@ export default function PassengerPage() {
   const handleEditSave = async (requestId: string) => {
     if (!editData.departureTime) return;
     try {
-      await updateDoc(doc(db, "requests", requestId), {
+      await updateDoc(doc(db, col("requests"), requestId), {
         departureTime: editData.departureTime,
         seatsNeeded: editData.seatsNeeded,
       });

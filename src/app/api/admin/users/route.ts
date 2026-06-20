@@ -1,4 +1,4 @@
-import { adminDb, adminAuth, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, adminAuth, verifyAdmin, forbidden, adminCol } from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid" }, { status: 400 });
   }
 
-  const ref = adminDb().collection("blockedPhones").doc(phone);
+  const ref = adminDb().collection(adminCol("blockedPhones")).doc(phone);
   if (action === "block") {
     await ref.set({ blockedAt: FieldValue.serverTimestamp() });
   } else {
