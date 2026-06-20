@@ -76,7 +76,7 @@ export default function PassengerPage() {
   const doPostRequest = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "requests"), {
+      const ref = await addDoc(collection(db, col("requests")), {
         ...newRequest,
         uid: user!.uid,
         status: "active",

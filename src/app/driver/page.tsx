@@ -77,7 +77,7 @@ export default function DriverPage() {
   const doPostJourney = async () => {
     setSubmitting(true);
     try {
-      const ref = await addDoc(collection(db, "journeys"), {
+      const ref = await addDoc(collection(db, col("journeys")), {
         ...newJourney,
         uid: user!.uid,
         status: "active",
