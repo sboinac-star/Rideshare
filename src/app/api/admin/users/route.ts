@@ -1,4 +1,4 @@
-import { adminDb, adminAuth, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, adminAuth, verifyAdmin, forbidden, adminCol } from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
