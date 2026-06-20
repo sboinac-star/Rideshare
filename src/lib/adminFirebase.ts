@@ -19,9 +19,6 @@ function getAdminApp(): App {
 export const adminDb = () => getFirestore(getAdminApp());
 export const adminAuth = () => getAuth(getAdminApp());
 export const adminMessaging = () => getMessaging(getAdminApp());
-export const adminCol = (name: string) =>
-  `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;
-
 // Server-side collection prefix — mirrors NEXT_PUBLIC_COLLECTION_PREFIX
 export const adminCol = (name: string) =>
   `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;

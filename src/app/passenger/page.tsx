@@ -124,33 +124,6 @@ export default function PassengerPage() {
     await doPostRequest();
   };
 
-  const handlePostRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) { setShowSignIn(true); return; }
-    const err = validateName(newRequest.passengerName);
-    setNameError(err);
-    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
-    if (new Date(newRequest.departureTime) <= new Date()) {
-      toast("Travel time must be in the future.", "error");
-      return;
-    }
-    const isDuplicate = requests.some(
-      (r) => r.status === "active" && r.from === newRequest.from &&
-             r.to === newRequest.to && r.departureTime === newRequest.departureTime
-    );
-    if (isDuplicate) {
-      toast("You already have an active request with the same route and time.", "error");
-      return;
-    }
-    const pending = getPendingCompletionItems(myJourneys, requests);
-    if (pending.length > 0) {
-      setPendingSubmit(true);
-      setShowCompletionPrompt(true);
-      return;
-    }
-    await doPostRequest();
-  };
-
   const handleCancelRequest = async (requestId: string) => {
     if (!confirm("Are you sure you want to cancel this request?")) return;
     try {

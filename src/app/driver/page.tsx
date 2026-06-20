@@ -125,33 +125,6 @@ export default function DriverPage() {
     await doPostJourney();
   };
 
-  const handlePostJourney = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) { setShowSignIn(true); return; }
-    const err = validateName(newJourney.driverName);
-    setNameError(err);
-    if (err || !newJourney.from || !newJourney.to || !newJourney.departureTime) return;
-    if (new Date(newJourney.departureTime) <= new Date()) {
-      toast("Departure time must be in the future.", "error");
-      return;
-    }
-    const isDuplicate = journeys.some(
-      (j) => j.status === "active" && j.from === newJourney.from &&
-             j.to === newJourney.to && j.departureTime === newJourney.departureTime
-    );
-    if (isDuplicate) {
-      toast("You already have an active journey with the same route and time.", "error");
-      return;
-    }
-    const pending = getPendingCompletionItems(journeys, myRequests);
-    if (pending.length > 0) {
-      setPendingSubmit(true);
-      setShowCompletionPrompt(true);
-      return;
-    }
-    await doPostJourney();
-  };
-
   const handleCancelJourney = async (journeyId: string) => {
     if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
