@@ -30,8 +30,15 @@ vi.mock("@/lib/utils", () => ({
   minDepartureTime: () => "2026-01-01T00:00",
 }));
 
-const future = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
-const past = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
+// Generate timestamps in LOCAL time format — new Date(str) with no timezone
+// suffix treats the string as local time, so UTC strings from toISOString()
+// cause isPast checks to flip in non-UTC timezones (e.g. CDT = UTC-5).
+function localISO(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+const future = localISO(new Date(Date.now() + 2 * 60 * 60 * 1000));
+const past = localISO(new Date(Date.now() - 2 * 60 * 60 * 1000));
 
 const makeJourneySnap = (overrides = {}) => ({
   docs: [{

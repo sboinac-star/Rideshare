@@ -12,6 +12,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@media print {
+  header, footer, [data-feedback-button] {
+    display: none !important;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

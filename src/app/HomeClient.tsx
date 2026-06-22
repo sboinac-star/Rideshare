@@ -310,6 +310,17 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
+  const [blockedUids, setBlockedUids] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) { setBlockedUids(new Set()); return; }
+    user.getIdToken().then((token) =>
+      fetch("/api/block/list", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { uids: string[] }) => setBlockedUids(new Set(d.uids)))
+        .catch(() => {})
+    );
+  }, [user]);
 
   useEffect(() => {
     const q = query(collection(db, col("announcements")), orderBy("createdAt", "desc"));
@@ -323,7 +334,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .filter((j) => !isPast(j.departureTime) && !TEST_UIDS.includes(j.uid ?? ""))
+        .filter((j) => !isPast(j.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(j.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
@@ -336,7 +347,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
-        .filter((r) => !isPast(r.departureTime) && !TEST_UIDS.includes(r.uid ?? ""))
+        .filter((r) => !isPast(r.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(r.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setRequests(data);
       setRequestsLoading(false);
@@ -367,8 +378,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       return a.departureTime > b.departureTime ? 1 : -1;
     });
 
-  const filteredJourneys = sort(applyFilters(journeys));
-  const filteredRequests = sort(applyFilters(requests));
+  const filteredJourneys = sort(applyFilters(journeys)).filter((j) => !blockedUids.has(j.uid ?? ""));
+  const filteredRequests = sort(applyFilters(requests)).filter((r) => !blockedUids.has(r.uid ?? ""));
 
   const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all";
 

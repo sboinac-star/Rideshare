@@ -50,10 +50,12 @@ export async function sendMessage(
     text,
     createdAt: serverTimestamp(),
   });
-  await updateDoc(doc(db, col("chats"), chatId), {
+  // Best-effort: update the chat-list preview. A failure here must not surface
+  // as a send error to the user — the message itself is already written above.
+  updateDoc(doc(db, col("chats"), chatId), {
     lastMessage: text.slice(0, 100),
     updatedAt: serverTimestamp(),
-  });
+  }).catch(() => {});
 }
 
 export function subscribeToMessages(
@@ -109,18 +111,18 @@ export function subscribeToUserChats(
 
 export async function lookupUserName(uid: string): Promise<string> {
   const jSnap = await getDocs(
-    query(collection(db, "journeys"), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
+    query(collection(db, col("journeys")), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
   );
   if (!jSnap.empty) {
     const name = jSnap.docs[0].data().driverName as string | undefined;
     if (name) return name;
   }
   const rSnap = await getDocs(
-    query(collection(db, "requests"), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
+    query(collection(db, col("requests")), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
   );
   if (!rSnap.empty) {
     const name = rSnap.docs[0].data().passengerName as string | undefined;
     if (name) return name;
   }
-  return "";
+  return "User";
 }
