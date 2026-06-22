@@ -5,6 +5,8 @@ import { formatDateTime, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 import JourneyContact from "@/features/chat/JourneyContact";
 import DeleteListingButton from "@/features/listings/DeleteListingButton";
+import StarRating from "@/app/StarRating";
+import RateButton from "@/app/RateButton";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -98,6 +100,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
             <div>
               <p className="font-bold text-gray-900 text-lg">{journey.driverName}</p>
               <p className="text-gray-500 text-sm">Driver</p>
+              {journey.uid && <StarRating uid={journey.uid} />}
             </div>
             {journey.roundTrip && (
               <span className="ml-auto text-xs bg-blue-50 text-blue-700 font-medium px-2 py-1 rounded-full">↔ Round trip</span>
@@ -145,6 +148,13 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
                 route={`${journey.from} → ${journey.to}`}
               />
               <DeleteListingButton collection="journeys" docId={journey.id} ownerUid={journey.uid} />
+              {journey.status === "completed" && (
+                <RateButton
+                  ratedUid={journey.uid}
+                  ratedName={journey.driverName}
+                  journeyId={journey.id}
+                />
+              )}
             </>
           ) : (
             <div className="border-t border-gray-100 pt-5">

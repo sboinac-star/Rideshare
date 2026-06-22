@@ -8,8 +8,16 @@ vi.mock("@/lib/utils", () => ({ formatDateTime: (s: string) => s }));
 import { getPendingCompletionItems } from "@/app/CompletionPromptModal";
 import type { Journey, RideRequest } from "@/lib/types";
 
-const future = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16);
-const past = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16);
+// Generate timestamps in LOCAL time format (no timezone suffix) to match
+// how datetime-local inputs and Firestore data are stored and compared.
+// toISOString() returns UTC, which new Date(str) would misinterpret as local
+// time in non-UTC timezones, causing isPast checks to flip.
+function localISO(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+const future = localISO(new Date(Date.now() + 60 * 60 * 1000));
+const past = localISO(new Date(Date.now() - 60 * 60 * 1000));
 
 const makeJourney = (overrides: Partial<Journey> = {}): Journey => ({
   id: "j1",

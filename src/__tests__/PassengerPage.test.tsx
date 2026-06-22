@@ -27,6 +27,14 @@ vi.mock("firebase/firestore", () => ({
 vi.mock("@/app/ToastProvider", () => ({ useToast: () => mockToast }));
 vi.mock("@/app/AuthProvider", () => ({ useAuth: () => ({ user: mockUser, authLoading: false }) }));
 vi.mock("@/app/SignInModal", () => ({ default: () => <div>SignInModal</div> }));
+vi.mock("@/app/CompletionPromptModal", () => ({
+  default: ({ onDone }: { onDone: () => void }) => (
+    <div data-testid="completion-modal">
+      <button onClick={onDone}>Done</button>
+    </div>
+  ),
+  getPendingCompletionItems: vi.fn(() => []),
+}));
 vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 vi.mock("@/lib/utils", () => ({
   formatDateTime: (s: string) => s,
@@ -35,8 +43,15 @@ vi.mock("@/lib/utils", () => ({
 }));
 vi.mock("@/lib/constants", () => ({ locations: ["Fayetteville", "Rogers", "Bentonville"] }));
 
-const future = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
-const past = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
+// Generate timestamps in LOCAL time format — new Date(str) with no timezone
+// suffix treats the string as local time, so UTC strings from toISOString()
+// cause isPast checks to flip in non-UTC timezones (e.g. CDT = UTC-5).
+function localISO(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+const future = localISO(new Date(Date.now() + 2 * 60 * 60 * 1000));
+const past = localISO(new Date(Date.now() - 2 * 60 * 60 * 1000));
 
 function setupEmptySnapshot() {
   mockOnSnapshot.mockImplementation((_q: unknown, cb: (snap: unknown) => void) => {
@@ -144,6 +159,19 @@ describe("PassengerPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /post request/i }));
     await fillAndSubmitForm();
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.stringContaining("Failed to post request"), "error"));
+  });
+
+  it("shows completion modal when there are pending past rides", async () => {
+    const { getPendingCompletionItems } = await import("@/app/CompletionPromptModal");
+    vi.mocked(getPendingCompletionItems).mockReturnValue([
+      { id: "j-old", type: "journey", from: "A", to: "B", departureTime: past },
+    ]);
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post request/i }));
+    await fillAndSubmitForm();
+    await waitFor(() => expect(screen.getByTestId("completion-modal")).toBeInTheDocument());
   });
 
   it("renders existing requests", async () => {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import QRCode from "react-qr-code";
 
 export const metadata = {
   title: "About — NWA Ride Share",
@@ -70,6 +71,24 @@ export default function AboutPage() {
             <li>Trust your instincts — you can decline any ride for any reason.</li>
             <li>Verify the driver&apos;s phone number before getting in the car.</li>
           </ul>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6 flex flex-col sm:flex-row items-center gap-6">
+          <div className="shrink-0">
+            <QRCode value="https://nwa-rideshare.vercel.app" size={120} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Share this app</h2>
+            <p className="text-gray-600 text-sm mb-3">
+              Know someone who needs a ride or drives regularly? Scan or share this QR code — no app download needed, works on any phone.
+            </p>
+            <Link
+              href="/flyer"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition"
+            >
+              Print a flyer →
+            </Link>
+          </div>
         </div>
 
         <p className="text-center text-gray-500 text-sm">

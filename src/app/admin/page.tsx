@@ -262,6 +262,7 @@ function Dashboard({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
         </div>
       </div>
 
+
       {/* Repeat vs one-time users */}
       <div className="bg-white rounded-xl p-5 shadow-sm">
         <p className="text-sm font-semibold text-gray-700 mb-4">User retention</p>

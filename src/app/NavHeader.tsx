@@ -56,6 +56,7 @@ export default function NavHeader() {
     { href: "/passenger", label: "Request Ride" },
     { href: "/my-rides", label: "My Rides" },
     { href: "/messages", label: "Messages", badge: unreadCount },
+    { href: "/resources", label: "Resources" },
     { href: "/about", label: "About" },
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
