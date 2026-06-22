@@ -50,10 +50,12 @@ export async function sendMessage(
     text,
     createdAt: serverTimestamp(),
   });
-  await updateDoc(doc(db, col("chats"), chatId), {
+  // Best-effort: update the chat-list preview. A failure here must not surface
+  // as a send error to the user — the message itself is already written above.
+  updateDoc(doc(db, col("chats"), chatId), {
     lastMessage: text.slice(0, 100),
     updatedAt: serverTimestamp(),
-  });
+  }).catch(() => {});
 }
 
 export function subscribeToMessages(
