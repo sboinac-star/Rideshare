@@ -7,7 +7,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot
 import { locations } from "@/lib/constants";
 import LocationInput from "@/app/LocationInput";
 import DateTimePicker from "@/app/DateTimePicker";
-import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
+import { formatTimeRange, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest, Journey } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -26,7 +26,7 @@ export default function PassengerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", endTime: "", seatsNeeded: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -37,6 +37,7 @@ export default function PassengerPage() {
     pickupAddress: "",
     dropoffAddress: "",
     departureTime: "",
+    endTime: "",
     seatsNeeded: 1,
     roundTrip: false,
     returnTime: "",
@@ -93,7 +94,7 @@ export default function PassengerPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "" });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", endTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -112,7 +113,7 @@ export default function PassengerPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newRequest.passengerName);
     setNameError(err);
-    if (err || !newRequest.departureTime) return;
+    if (err || !newRequest.departureTime || !newRequest.endTime) return;
 
     if (tripType === "local") {
       if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
@@ -124,6 +125,10 @@ export default function PassengerPage() {
 
     if (new Date(newRequest.departureTime) <= new Date()) {
       toast("Travel time must be in the future.", "error");
+      return;
+    }
+    if (new Date(newRequest.endTime) <= new Date(newRequest.departureTime)) {
+      toast("End time must be after the start time.", "error");
       return;
     }
 
@@ -181,10 +186,15 @@ export default function PassengerPage() {
   };
 
   const handleEditSave = async (requestId: string) => {
-    if (!editData.departureTime) return;
+    if (!editData.departureTime || !editData.endTime) return;
+    if (new Date(editData.endTime) <= new Date(editData.departureTime)) {
+      toast("End time must be after the start time.", "error");
+      return;
+    }
     try {
       await updateDoc(doc(db, col("requests"), requestId), {
         departureTime: editData.departureTime,
+        endTime: editData.endTime,
         seatsNeeded: editData.seatsNeeded,
       });
       setEditingId(null);
@@ -443,14 +453,29 @@ export default function PassengerPage() {
               <div className="grid md:grid-cols-2 gap-4 items-end">
                 <div>
                   <DateTimePicker
+                    label="Available From"
                     value={newRequest.departureTime}
-                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
+                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v, endTime: "" })}
                     minDate={minTime.substring(0, 10)}
                     minTime={minTime.substring(11, 16)}
                     inputClass={inputClass}
                     required
                   />
                 </div>
+                <div>
+                  <DateTimePicker
+                    label="Available Until"
+                    value={newRequest.endTime}
+                    onChange={(v) => setNewRequest({ ...newRequest, endTime: v })}
+                    minDate={newRequest.departureTime.substring(0, 10) || minTime.substring(0, 10)}
+                    minTime={newRequest.departureTime.substring(11, 16) || minTime.substring(11, 16)}
+                    inputClass={inputClass}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4 items-end">
+                <div />
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Seats Needed</label>
                   <select
@@ -525,13 +550,26 @@ export default function PassengerPage() {
                           <p className="font-semibold text-gray-900">{req.from} → {req.to}</p>
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Travel Date & Time</label>
                               <DateTimePicker
+                                label="Available From"
                                 value={editData.departureTime}
-                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                                onChange={(v) => setEditData({ ...editData, departureTime: v, endTime: "" })}
                                 inputClass={inputClass}
                               />
                             </div>
+                            <div>
+                              <DateTimePicker
+                                label="Available Until"
+                                value={editData.endTime}
+                                onChange={(v) => setEditData({ ...editData, endTime: v })}
+                                minDate={editData.departureTime.substring(0, 10)}
+                                minTime={editData.departureTime.substring(11, 16)}
+                                inputClass={inputClass}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div />
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Seats Needed</label>
                               <select
@@ -564,7 +602,7 @@ export default function PassengerPage() {
                             <p className="font-semibold text-lg text-gray-900">{req.from} → {req.to}</p>
                             {req.pickupAddress && <p className="text-gray-500 text-xs">From: {req.pickupAddress}</p>}
                             {req.dropoffAddress && <p className="text-gray-500 text-xs">To: {req.dropoffAddress}</p>}
-                            <p className="text-gray-600 text-sm">{formatDateTime(req.departureTime)}</p>
+                            <p className="text-gray-600 text-sm">{formatTimeRange(req.departureTime, req.endTime)}</p>
                             <p className="text-gray-600 text-sm">{req.passengerName} · {req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"} needed</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
@@ -585,7 +623,7 @@ export default function PassengerPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(req.id);
-                                      setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
+                                      setEditData({ departureTime: req.departureTime, endTime: req.endTime ?? "", seatsNeeded: req.seatsNeeded });
                                     }}
                                     className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >

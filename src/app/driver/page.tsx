@@ -7,7 +7,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot
 import { locations } from "@/lib/constants";
 import LocationInput from "@/app/LocationInput";
 import DateTimePicker from "@/app/DateTimePicker";
-import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
+import { formatTimeRange, minDepartureTime, shareText } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -26,7 +26,7 @@ export default function DriverPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", availableSeats: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", endTime: "", availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -37,6 +37,7 @@ export default function DriverPage() {
     pickupAddress: "",
     dropoffAddress: "",
     departureTime: "",
+    endTime: "",
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
@@ -95,7 +96,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", endTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -114,7 +115,7 @@ export default function DriverPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newJourney.driverName);
     setNameError(err);
-    if (err || !newJourney.departureTime) return;
+    if (err || !newJourney.departureTime || !newJourney.endTime) return;
 
     if (tripType === "local") {
       if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
@@ -126,6 +127,10 @@ export default function DriverPage() {
 
     if (new Date(newJourney.departureTime) <= new Date()) {
       toast("Departure time must be in the future.", "error");
+      return;
+    }
+    if (new Date(newJourney.endTime) <= new Date(newJourney.departureTime)) {
+      toast("End time must be after the start time.", "error");
       return;
     }
 
@@ -183,10 +188,15 @@ export default function DriverPage() {
   };
 
   const handleEditSave = async (journeyId: string) => {
-    if (!editData.departureTime) return;
+    if (!editData.departureTime || !editData.endTime) return;
+    if (new Date(editData.endTime) <= new Date(editData.departureTime)) {
+      toast("End time must be after the start time.", "error");
+      return;
+    }
     try {
       await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
+        endTime: editData.endTime,
         availableSeats: editData.availableSeats,
       });
       setEditingId(null);
@@ -445,14 +455,29 @@ export default function DriverPage() {
               <div className="grid md:grid-cols-2 gap-4 items-end">
                 <div>
                   <DateTimePicker
+                    label="Available From"
                     value={newJourney.departureTime}
-                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
+                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v, endTime: "" })}
                     minDate={minTime.substring(0, 10)}
                     minTime={minTime.substring(11, 16)}
                     inputClass={inputClass}
                     required
                   />
                 </div>
+                <div>
+                  <DateTimePicker
+                    label="Available Until"
+                    value={newJourney.endTime}
+                    onChange={(v) => setNewJourney({ ...newJourney, endTime: v })}
+                    minDate={newJourney.departureTime.substring(0, 10) || minTime.substring(0, 10)}
+                    minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
+                    inputClass={inputClass}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4 items-end">
+                <div />
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Available Seats</label>
                   <select
@@ -546,13 +571,26 @@ export default function DriverPage() {
                           <p className="font-semibold text-gray-900">{journey.from} → {journey.to}</p>
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Departure Date & Time</label>
                               <DateTimePicker
+                                label="Available From"
                                 value={editData.departureTime}
-                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                                onChange={(v) => setEditData({ ...editData, departureTime: v, endTime: "" })}
                                 inputClass={inputClass}
                               />
                             </div>
+                            <div>
+                              <DateTimePicker
+                                label="Available Until"
+                                value={editData.endTime}
+                                onChange={(v) => setEditData({ ...editData, endTime: v })}
+                                minDate={editData.departureTime.substring(0, 10)}
+                                minTime={editData.departureTime.substring(11, 16)}
+                                inputClass={inputClass}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div />
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Available Seats</label>
                               <select
@@ -585,7 +623,7 @@ export default function DriverPage() {
                             <p className="font-semibold text-lg text-gray-900">{journey.from} → {journey.to}</p>
                             {journey.pickupAddress && <p className="text-gray-500 text-xs">From: {journey.pickupAddress}</p>}
                             {journey.dropoffAddress && <p className="text-gray-500 text-xs">To: {journey.dropoffAddress}</p>}
-                            <p className="text-gray-600 text-sm">{formatDateTime(journey.departureTime)}</p>
+                            <p className="text-gray-600 text-sm">{formatTimeRange(journey.departureTime, journey.endTime)}</p>
                             <p className="text-gray-600 text-sm">{journey.driverName} · {journey.availableSeats} seats available</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
@@ -606,7 +644,7 @@ export default function DriverPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(journey.id);
-                                      setEditData({ departureTime: journey.departureTime, availableSeats: journey.availableSeats });
+                                      setEditData({ departureTime: journey.departureTime, endTime: journey.endTime ?? "", availableSeats: journey.availableSeats });
                                     }}
                                     className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >

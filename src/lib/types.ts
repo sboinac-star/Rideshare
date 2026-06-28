@@ -7,6 +7,7 @@ export interface Journey {
   pickupAddress?: string;
   dropoffAddress?: string;
   departureTime: string;
+  endTime?: string;
   availableSeats: number;
   driverPhone?: string;
   status: string;
@@ -24,6 +25,7 @@ export interface RideRequest {
   pickupAddress?: string;
   dropoffAddress?: string;
   departureTime: string;
+  endTime?: string;
   seatsNeeded: number;
   passengerPhone?: string;
   status: string;

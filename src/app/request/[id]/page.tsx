@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { RideRequest } from "@/lib/types";
-import { formatDateTime, relativeTime } from "@/lib/utils";
+import { formatTimeRange, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 import RequestContact from "@/features/chat/RequestContact";
 import DeleteListingButton from "@/features/listings/DeleteListingButton";
@@ -26,6 +26,7 @@ async function fetchRequest(id: string): Promise<RideRequest | null> {
       pickupAddress: f.pickupAddress ? String(parseValue(f.pickupAddress)) : undefined,
       dropoffAddress: f.dropoffAddress ? String(parseValue(f.dropoffAddress)) : undefined,
       departureTime: String(parseValue(f.departureTime) ?? ""),
+      endTime: f.endTime ? String(parseValue(f.endTime)) : undefined,
       seatsNeeded: Number(parseValue(f.seatsNeeded) ?? 1),
       uid: f.uid ? String(parseValue(f.uid)) : undefined,
       passengerPhone: String(parseValue(f.passengerPhone) ?? ""),
@@ -43,10 +44,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!req) return { title: "Request Not Found — NWA Ride Share" };
   return {
     title: `Ride Needed: ${req.from} → ${req.to} — NWA Ride Share`,
-    description: `${req.passengerName} needs a ride from ${req.from} to ${req.to} on ${formatDateTime(req.departureTime)}. ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed.`,
+    description: `${req.passengerName} needs a ride from ${req.from} to ${req.to} on ${formatTimeRange(req.departureTime, req.endTime)}. ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed.`,
     openGraph: {
       title: `🙋 Ride Needed: ${req.from} → ${req.to}`,
-      description: `${formatDateTime(req.departureTime)} · ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
+      description: `${formatTimeRange(req.departureTime, req.endTime)} · ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
       url: `/request/${id}/`,
     },
   };
@@ -118,7 +119,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               <span className="text-lg mt-0.5">📅</span>
               <div>
                 <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Travel Date</p>
-                <p className="font-semibold text-gray-900">{formatDateTime(req.departureTime)}</p>
+                <p className="font-semibold text-gray-900">{formatTimeRange(req.departureTime, req.endTime)}</p>
                 {rel && <p className="text-sm text-purple-600 font-medium">{rel}</p>}
               </div>
             </div>

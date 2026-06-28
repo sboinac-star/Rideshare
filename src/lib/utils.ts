@@ -10,6 +10,19 @@ export function formatDateTime(dt: string): string {
   });
 }
 
+export function formatTimeRange(start: string, end?: string): string {
+  if (!start) return start;
+  const startFmt = new Date(start).toLocaleString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  if (!end) return startFmt;
+  const endFmt = new Date(end).toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  return `${startFmt} – ${endFmt}`;
+}
+
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 10) {
@@ -66,6 +79,7 @@ export function shareText(
     pickupAddress?: string;
     dropoffAddress?: string;
     departureTime: string;
+    endTime?: string;
     availableSeats: number;
   },
   url?: string
@@ -74,7 +88,7 @@ export function shareText(
     `🚗 Rideshare: ${journey.from} → ${journey.to}`,
     journey.pickupAddress ? `📍 Pickup: ${journey.pickupAddress}` : "",
     journey.dropoffAddress ? `📍 Dropoff: ${journey.dropoffAddress}` : "",
-    `📅 ${formatDateTime(journey.departureTime)}`,
+    `📅 ${formatTimeRange(journey.departureTime, journey.endTime)}`,
     `💺 ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available`,
     `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];
@@ -89,6 +103,7 @@ export function shareRequestText(
     pickupAddress?: string;
     dropoffAddress?: string;
     departureTime: string;
+    endTime?: string;
     seatsNeeded: number;
   },
   url?: string
@@ -97,7 +112,7 @@ export function shareRequestText(
     `🙋 Ride Needed: ${req.from} → ${req.to}`,
     req.pickupAddress ? `📍 Pickup: ${req.pickupAddress}` : "",
     req.dropoffAddress ? `📍 Dropoff: ${req.dropoffAddress}` : "",
-    `📅 ${formatDateTime(req.departureTime)}`,
+    `📅 ${formatTimeRange(req.departureTime, req.endTime)}`,
     `💺 ${req.seatsNeeded} seat${req.seatsNeeded !== 1 ? "s" : ""} needed`,
     `🔗 ${url ?? "https://nwa-rideshare.vercel.app"}`,
   ];

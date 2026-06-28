@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Journey } from "@/lib/types";
-import { formatDateTime, relativeTime } from "@/lib/utils";
+import { formatTimeRange, relativeTime } from "@/lib/utils";
 import { parseValue, FirestoreValue } from "@/lib/firestore";
 import JourneyContact from "@/features/chat/JourneyContact";
 import DeleteListingButton from "@/features/listings/DeleteListingButton";
@@ -28,6 +28,7 @@ async function fetchJourney(id: string): Promise<Journey | null> {
       pickupAddress: f.pickupAddress ? String(parseValue(f.pickupAddress)) : undefined,
       dropoffAddress: f.dropoffAddress ? String(parseValue(f.dropoffAddress)) : undefined,
       departureTime: String(parseValue(f.departureTime) ?? ""),
+      endTime: f.endTime ? String(parseValue(f.endTime)) : undefined,
       availableSeats: Number(parseValue(f.availableSeats) ?? 0),
       uid: f.uid ? String(parseValue(f.uid)) : undefined,
       driverPhone: String(parseValue(f.driverPhone) ?? ""),
@@ -45,10 +46,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!journey) return { title: "Journey Not Found — NWA Ride Share" };
   return {
     title: `${journey.from} → ${journey.to} — NWA Ride Share`,
-    description: `${journey.driverName} is driving from ${journey.from} to ${journey.to} on ${formatDateTime(journey.departureTime)}. ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available.`,
+    description: `${journey.driverName} is driving from ${journey.from} to ${journey.to} on ${formatTimeRange(journey.departureTime, journey.endTime)}. ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available.`,
     openGraph: {
       title: `🚗 ${journey.from} → ${journey.to}`,
-      description: `${formatDateTime(journey.departureTime)} · ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available`,
+      description: `${formatTimeRange(journey.departureTime, journey.endTime)} · ${journey.availableSeats} seat${journey.availableSeats !== 1 ? "s" : ""} available`,
       url: `/journey/${id}/`,
     },
   };
@@ -121,7 +122,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
               <span className="text-lg mt-0.5">📅</span>
               <div>
                 <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Departure</p>
-                <p className="font-semibold text-gray-900">{formatDateTime(journey.departureTime)}</p>
+                <p className="font-semibold text-gray-900">{formatTimeRange(journey.departureTime, journey.endTime)}</p>
                 {rel && <p className="text-sm text-blue-600 font-medium">{rel}</p>}
               </div>
             </div>

@@ -17,13 +17,15 @@ function datePart(dt: string) { return dt ? dt.substring(0, 10) : ""; }
 function timePart(dt: string) { return dt ? dt.substring(11, 16) : ""; }
 function combine(date: string, time: string) { return date && time ? `${date}T${time}` : ""; }
 
-export default function DateTimePicker({ value, onChange, minDate, minTime, required, inputClass = "" }: Props) {
+export default function DateTimePicker({ value, onChange, minDate, minTime, label, required, inputClass = "" }: Props) {
   const date = datePart(value);
   const time = timePart(value);
   const effectiveMinTime = date && minDate && date === minDate ? minTime : undefined;
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div>
+      {label && <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</label>}
+      <div className="grid grid-cols-2 gap-2">
       <div>
         <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date</label>
         <input
@@ -45,6 +47,7 @@ export default function DateTimePicker({ value, onChange, minDate, minTime, requ
           className={inputClass}
           required={required && !!date}
         />
+      </div>
       </div>
     </div>
   );
