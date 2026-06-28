@@ -87,17 +87,22 @@ async function fillAndSubmitForm(departureTime = future) {
   const toSelect = screen.getAllByRole("combobox")[1];
   fireEvent.change(toSelect, { target: { value: "Rogers" } });
 
-  // The datetime input has no for/id association — query by type
-  const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-  fireEvent.change(timeInput, { target: { value: departureTime } });
+  // DateTimePicker renders separate date + time inputs
+  const [datePart, timePart] = departureTime.split("T");
+  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+  const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+  fireEvent.change(dateInput, { target: { value: datePart } });
+  fireEvent.change(timeInput, { target: { value: timePart } });
 
   fireEvent.submit(document.querySelector("form")!);
 }
 
 describe("DriverPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { getPendingCompletionItems } = await import("@/app/CompletionPromptModal");
+    vi.mocked(getPendingCompletionItems).mockReturnValue([]);
   });
 
   it("renders post journey form", async () => {
@@ -201,6 +206,41 @@ describe("DriverPage", () => {
     await waitFor(() => expect(mockDeleteDoc).toHaveBeenCalled());
   });
 
+  it("posts a local ride with same city for from and to", async () => {
+    setupEmptySnapshot();
+    const { default: DriverPage } = await import("@/app/driver/page");
+    render(<DriverPage />);
+    await waitFor(() => screen.getByRole("button", { name: /^post journey$/i }));
+
+    // Switch to Local mode
+    fireEvent.click(screen.getByRole("button", { name: /local/i }));
+
+    const nameInput = screen.getByPlaceholderText(/enter your full name/i);
+    fireEvent.change(nameInput, { target: { value: "Alice" } });
+
+    // Local city text input
+    const cityInput = screen.getByPlaceholderText(/Bentonville, Fayetteville/i);
+    fireEvent.change(cityInput, { target: { value: "Bentonville" } });
+
+    // Pickup and dropoff — both use LocationInput with same placeholder
+    const [pickupInput, dropoffInput] = screen.getAllByPlaceholderText(/Start typing an address/i);
+    fireEvent.change(pickupInput, { target: { value: "123 Main St" } });
+    fireEvent.change(dropoffInput, { target: { value: "Walmart HQ" } });
+
+    const [datePart, timePart] = future.split("T");
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
+
+    fireEvent.submit(document.querySelector("form")!);
+
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalledWith(
+      "journeys",
+      expect.objectContaining({ from: "Bentonville", to: "Bentonville" })
+    ));
+  });
+
   it("prevents duplicate journey", async () => {
     setupJourneySnapshot();
     const { default: DriverPage } = await import("@/app/driver/page");
@@ -213,8 +253,11 @@ describe("DriverPage", () => {
     fireEvent.change(fromSelect, { target: { value: "Fayetteville" } });
     const toSelect = screen.getAllByRole("combobox")[1];
     fireEvent.change(toSelect, { target: { value: "Rogers" } });
-    const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-    fireEvent.change(timeInput, { target: { value: future } });
+    const [datePart, timePart] = future.split("T");
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
     fireEvent.submit(document.querySelector("form")!);
 
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(

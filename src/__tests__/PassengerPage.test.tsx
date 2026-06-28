@@ -95,16 +95,22 @@ async function fillAndSubmitForm(departureTime = future) {
   const toSelect = screen.getAllByRole("combobox")[1];
   fireEvent.change(toSelect, { target: { value: "Fayetteville" } });
 
-  const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-  fireEvent.change(timeInput, { target: { value: departureTime } });
+  // DateTimePicker renders separate date + time inputs
+  const [datePart, timePart] = departureTime.split("T");
+  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+  const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+  fireEvent.change(dateInput, { target: { value: datePart } });
+  fireEvent.change(timeInput, { target: { value: timePart } });
 
   fireEvent.submit(document.querySelector("form")!);
 }
 
 describe("PassengerPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { getPendingCompletionItems } = await import("@/app/CompletionPromptModal");
+    vi.mocked(getPendingCompletionItems).mockReturnValue([]);
   });
 
   it("renders post request form", async () => {
@@ -199,6 +205,41 @@ describe("PassengerPage", () => {
     await waitFor(() => expect(mockDeleteDoc).toHaveBeenCalled());
   });
 
+  it("posts a local ride request with same city for from and to", async () => {
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /^post request$/i }));
+
+    // Switch to Local mode
+    fireEvent.click(screen.getByRole("button", { name: /local/i }));
+
+    const nameInput = screen.getByPlaceholderText(/enter your full name/i);
+    fireEvent.change(nameInput, { target: { value: "Bob" } });
+
+    // Local city text input
+    const cityInput = screen.getByPlaceholderText(/Bentonville, Fayetteville/i);
+    fireEvent.change(cityInput, { target: { value: "Rogers" } });
+
+    // Pickup and dropoff — both use LocationInput with same placeholder
+    const [pickupInput, dropoffInput] = screen.getAllByPlaceholderText(/Start typing an address/i);
+    fireEvent.change(pickupInput, { target: { value: "456 Oak Ave" } });
+    fireEvent.change(dropoffInput, { target: { value: "Pinnacle Hills" } });
+
+    const [datePart, timePart] = future.split("T");
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
+
+    fireEvent.submit(document.querySelector("form")!);
+
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalledWith(
+      "requests",
+      expect.objectContaining({ from: "Rogers", to: "Rogers" })
+    ));
+  });
+
   it("prevents duplicate request", async () => {
     // Snapshot with Bentonville → Fayetteville to match what we fill in the form
     setupRequestSnapshot({ from: "Bentonville", to: "Fayetteville", departureTime: future });
@@ -212,8 +253,11 @@ describe("PassengerPage", () => {
     fireEvent.change(fromSelect, { target: { value: "Bentonville" } });
     const toSelect = screen.getAllByRole("combobox")[1];
     fireEvent.change(toSelect, { target: { value: "Fayetteville" } });
-    const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-    fireEvent.change(timeInput, { target: { value: future } });
+    const [datePart, timePart] = future.split("T");
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
     fireEvent.submit(document.querySelector("form")!);
 
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(
