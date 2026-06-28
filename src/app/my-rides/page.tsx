@@ -100,7 +100,7 @@ export default function MyRidesPage() {
   const completeJourney = async (id: string) => {
     if (!confirm("Mark this journey as completed?")) return;
     try {
-      await updateDoc(doc(db, col("journeys"), id), { status: "completed" });
+      await updateDoc(doc(db, "journeys", id), { status: "completed" });
       toast("Journey marked as completed.");
     } catch {
       toast("Failed to update. Please try again.", "error");
@@ -163,7 +163,7 @@ export default function MyRidesPage() {
   const completeRequest = async (id: string) => {
     if (!confirm("Mark this request as completed?")) return;
     try {
-      await updateDoc(doc(db, col("requests"), id), { status: "completed" });
+      await updateDoc(doc(db, "requests", id), { status: "completed" });
       toast("Request marked as completed.");
     } catch {
       toast("Failed to update. Please try again.", "error");

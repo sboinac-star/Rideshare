@@ -1,5 +1,4 @@
-import { adminDb, adminAuth, verifyAdmin, forbidden, adminCol,
-} from "@/lib/adminFirebase";
+import { adminDb, adminAuth, verifyAdmin, forbidden, adminCol } from "@/lib/adminFirebase";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
@@ -8,9 +7,9 @@ export async function GET(req: Request) {
   const auth = adminAuth();
 
   const [journeySnap, requestSnap, blockedSnap] = await Promise.all([
-    db.collection(adminCol("journeys")).select("uid", "driverName", "status").get(),
-    db.collection(adminCol("requests")).select("uid", "passengerName", "status").get(),
-    db.collection(adminCol("blockedPhones")).get(),
+    db.collection("journeys").select("uid", "driverName", "status").get(),
+    db.collection("requests").select("uid", "passengerName", "status").get(),
+    db.collection("blockedPhones").get(),
   ]);
 
   const blockedPhones = new Set(blockedSnap.docs.map((d) => d.id));

@@ -11,6 +11,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import ChatModal from "@/features/chat/ChatModal";
+import FeedbackButton from "@/app/FeedbackButton";
 import { buildChatId } from "@/lib/chat";
 
 const TEST_UIDS = ["test-user-1", "test-user-2"];
@@ -870,6 +871,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
           </div>
         </div>
       )}
+      <FeedbackButton />
     </div>
   );
 }

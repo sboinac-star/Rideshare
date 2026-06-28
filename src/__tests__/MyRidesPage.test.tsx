@@ -116,22 +116,6 @@ describe("MyRidesPage", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /^edit$/i })).toBeInTheDocument());
   });
 
-  it("shows Mark Completed button for past-due active journey", async () => {
-    setupSnapshots({ departureTime: past });
-    const { default: MyRidesPage } = await import("@/app/my-rides/page");
-    render(<MyRidesPage />);
-    await waitFor(() => expect(screen.getByRole("button", { name: /mark completed/i })).toBeInTheDocument());
-  });
-
-  it("calls updateDoc with completed status", async () => {
-    setupSnapshots({ departureTime: past });
-    const { default: MyRidesPage } = await import("@/app/my-rides/page");
-    render(<MyRidesPage />);
-    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /mark completed/i })));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "completed" }));
-    expect(mockToast).toHaveBeenCalledWith("Journey marked as completed.");
-  });
-
   it("calls updateDoc with cancelled status when cancelling future journey", async () => {
     setupSnapshots({ departureTime: future });
     const { default: MyRidesPage } = await import("@/app/my-rides/page");

@@ -5,11 +5,17 @@ export async function GET(req: Request) {
   const db = adminDb();
 
   // Current snapshot counts
-  const [journeys, requests, chats, reports] = await Promise.all([
+  const [journeys, requests, chats, reports,
+    completedJourneys, cancelledJourneys, completedRequests, cancelledRequests,
+  ] = await Promise.all([
     db.collection(adminCol("journeys")).where("status", "==", "active").count().get(),
     db.collection(adminCol("requests")).where("status", "==", "active").count().get(),
     db.collection(adminCol("chats")).count().get(),
     db.collection(adminCol("reports")).where("resolved", "!=", true).count().get(),
+    db.collection(adminCol("journeys")).where("status", "==", "completed").count().get(),
+    db.collection(adminCol("journeys")).where("status", "==", "cancelled").count().get(),
+    db.collection(adminCol("requests")).where("status", "==", "completed").count().get(),
+    db.collection(adminCol("requests")).where("status", "==", "cancelled").count().get(),
   ]);
 
   // Daily counts for last 14 days
@@ -22,8 +28,7 @@ export async function GET(req: Request) {
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
-
-    const isoDate = start.toISOString().slice(0, 10); // YYYY-MM-DD
+    const isoDate = start.toISOString().slice(0, 10);
 
     const [j, r, c, pv] = await Promise.all([
       db.collection(adminCol("journeys")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
@@ -62,6 +67,10 @@ export async function GET(req: Request) {
     activeRequests: requests.data().count,
     totalChats: chats.data().count,
     pendingReports: reports.data().count,
+    completedJourneys: completedJourneys.data().count,
+    cancelledJourneys: cancelledJourneys.data().count,
+    completedRequests: completedRequests.data().count,
+    cancelledRequests: cancelledRequests.data().count,
     dailyCounts,
     repeatUsers,
     oneTimeUsers,

@@ -61,7 +61,7 @@ export default function DriverPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
     const unsubJ = onSnapshot(
-      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
+      query(collection(db, "journeys"), where("uid", "==", user.uid)),
       (snapshot) => {
         const data = snapshot.docs
           .map((d) => ({ id: d.id, ...d.data() } as Journey))
@@ -71,7 +71,7 @@ export default function DriverPage() {
         setLoading(false);
       }, () => setLoading(false));
     const unsubR = onSnapshot(
-      query(collection(db, col("requests")), where("uid", "==", user.uid)),
+      query(collection(db, "requests"), where("uid", "==", user.uid)),
       (snapshot) => {
         setMyRequests(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest)));
       });
