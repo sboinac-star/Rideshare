@@ -453,28 +453,18 @@ export default function DriverPage() {
                 </>
               )}
 
-              <div className="grid md:grid-cols-2 gap-4 items-end">
-                <div>
-                  <DateTimePicker
-                    label="Available From"
-                    value={newJourney.departureTime}
-                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
-                    minDate={minTime.substring(0, 10)}
-                    minTime={minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</label>
-                  <select
-                    value={newJourney.durationHours}
-                    onChange={(e) => setNewJourney({ ...newJourney, durationHours: Number(e.target.value) })}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
-                  </select>
-                </div>
+              <div>
+                <DateTimePicker
+                  label="Available From"
+                  value={newJourney.departureTime}
+                  onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
+                  minDate={minTime.substring(0, 10)}
+                  minTime={minTime.substring(11, 16)}
+                  inputClass={inputClass}
+                  required
+                  durationHours={newJourney.durationHours}
+                  onDurationChange={(h) => setNewJourney({ ...newJourney, durationHours: h })}
+                />
               </div>
               <div className="grid md:grid-cols-2 gap-4 items-end">
                 <div />
@@ -569,25 +559,15 @@ export default function DriverPage() {
                       {editingId === journey.id ? (
                         <div className="space-y-3">
                           <p className="font-semibold text-gray-900">{journey.from} → {journey.to}</p>
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div>
-                              <DateTimePicker
-                                label="Available From"
-                                value={editData.departureTime}
-                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
-                                inputClass={inputClass}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                              <select
-                                value={editData.durationHours}
-                                onChange={(e) => setEditData({ ...editData, durationHours: Number(e.target.value) })}
-                                className={inputClass}
-                              >
-                                {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
-                              </select>
-                            </div>
+                          <div>
+                            <DateTimePicker
+                              label="Available From"
+                              value={editData.departureTime}
+                              onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                              inputClass={inputClass}
+                              durationHours={editData.durationHours}
+                              onDurationChange={(h) => setEditData({ ...editData, durationHours: h })}
+                            />
                           </div>
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div />

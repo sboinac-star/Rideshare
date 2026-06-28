@@ -451,28 +451,18 @@ export default function PassengerPage() {
                 </>
               )}
 
-              <div className="grid md:grid-cols-2 gap-4 items-end">
-                <div>
-                  <DateTimePicker
-                    label="Available From"
-                    value={newRequest.departureTime}
-                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
-                    minDate={minTime.substring(0, 10)}
-                    minTime={minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</label>
-                  <select
-                    value={newRequest.durationHours}
-                    onChange={(e) => setNewRequest({ ...newRequest, durationHours: Number(e.target.value) })}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
-                  </select>
-                </div>
+              <div>
+                <DateTimePicker
+                  label="Available From"
+                  value={newRequest.departureTime}
+                  onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
+                  minDate={minTime.substring(0, 10)}
+                  minTime={minTime.substring(11, 16)}
+                  inputClass={inputClass}
+                  required
+                  durationHours={newRequest.durationHours}
+                  onDurationChange={(h) => setNewRequest({ ...newRequest, durationHours: h })}
+                />
               </div>
               <div className="grid md:grid-cols-2 gap-4 items-end">
                 <div />
@@ -548,25 +538,15 @@ export default function PassengerPage() {
                       {editingId === req.id ? (
                         <div className="space-y-3">
                           <p className="font-semibold text-gray-900">{req.from} → {req.to}</p>
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div>
-                              <DateTimePicker
-                                label="Available From"
-                                value={editData.departureTime}
-                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
-                                inputClass={inputClass}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                              <select
-                                value={editData.durationHours}
-                                onChange={(e) => setEditData({ ...editData, durationHours: Number(e.target.value) })}
-                                className={inputClass}
-                              >
-                                {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
-                              </select>
-                            </div>
+                          <div>
+                            <DateTimePicker
+                              label="Available From"
+                              value={editData.departureTime}
+                              onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                              inputClass={inputClass}
+                              durationHours={editData.durationHours}
+                              onDurationChange={(h) => setEditData({ ...editData, durationHours: h })}
+                            />
                           </div>
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div />
