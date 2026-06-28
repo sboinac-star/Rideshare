@@ -87,17 +87,12 @@ async function fillAndSubmitForm(departureTime = future) {
   const toSelect = screen.getAllByRole("combobox")[1];
   fireEvent.change(toSelect, { target: { value: "Rogers" } });
 
-  // DateTimePicker renders separate date + time inputs (two pickers: from + until)
+  // DateTimePicker renders separate date + time inputs
   const [datePart, timePart] = departureTime.split("T");
-  const dateInputs = document.querySelectorAll('input[type="date"]');
-  const timeInputs = document.querySelectorAll('input[type="time"]');
-  // First pair = "Available From", second pair = "Available Until"
-  fireEvent.change(dateInputs[0], { target: { value: datePart } });
-  fireEvent.change(timeInputs[0], { target: { value: timePart } });
-  fireEvent.change(dateInputs[1], { target: { value: datePart } });
-  const [endH, endM] = timePart.split(":").map(Number);
-  const endTimePart = `${String(endH + 2).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-  fireEvent.change(timeInputs[1], { target: { value: endTimePart } });
+  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+  const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+  fireEvent.change(dateInput, { target: { value: datePart } });
+  fireEvent.change(timeInput, { target: { value: timePart } });
 
   fireEvent.submit(document.querySelector("form")!);
 }
@@ -233,13 +228,10 @@ describe("DriverPage", () => {
     fireEvent.change(dropoffInput, { target: { value: "Walmart HQ" } });
 
     const [datePart, timePart] = future.split("T");
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    const timeInputs = document.querySelectorAll('input[type="time"]');
-    fireEvent.change(dateInputs[0], { target: { value: datePart } });
-    fireEvent.change(timeInputs[0], { target: { value: timePart } });
-    fireEvent.change(dateInputs[1], { target: { value: datePart } });
-    const [endH, endM] = timePart.split(":").map(Number);
-    fireEvent.change(timeInputs[1], { target: { value: `${String(endH + 2).padStart(2, "0")}:${String(endM).padStart(2, "0")}` } });
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
 
     fireEvent.submit(document.querySelector("form")!);
 
@@ -262,13 +254,10 @@ describe("DriverPage", () => {
     const toSelect = screen.getAllByRole("combobox")[1];
     fireEvent.change(toSelect, { target: { value: "Rogers" } });
     const [datePart, timePart] = future.split("T");
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    const timeInputs = document.querySelectorAll('input[type="time"]');
-    fireEvent.change(dateInputs[0], { target: { value: datePart } });
-    fireEvent.change(timeInputs[0], { target: { value: timePart } });
-    fireEvent.change(dateInputs[1], { target: { value: datePart } });
-    const [endH, endM] = timePart.split(":").map(Number);
-    fireEvent.change(timeInputs[1], { target: { value: `${String(endH + 2).padStart(2, "0")}:${String(endM).padStart(2, "0")}` } });
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: datePart } });
+    fireEvent.change(timeInput, { target: { value: timePart } });
     fireEvent.submit(document.querySelector("form")!);
 
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(

@@ -26,7 +26,7 @@ export default function PassengerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", endTime: "", seatsNeeded: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", durationHours: 2, seatsNeeded: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ export default function PassengerPage() {
     pickupAddress: "",
     dropoffAddress: "",
     departureTime: "",
-    endTime: "",
+    durationHours: 2,
     seatsNeeded: 1,
     roundTrip: false,
     returnTime: "",
@@ -50,6 +50,13 @@ export default function PassengerPage() {
   const [minTime, setMinTime] = useState("");
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
+
+  const addHours = (dt: string, hours: number): string => {
+    const d = new Date(dt);
+    d.setMinutes(d.getMinutes() + hours * 60);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -87,6 +94,7 @@ export default function PassengerPage() {
         ...newRequest,
         from: finalFrom,
         to: finalTo,
+        endTime: addHours(newRequest.departureTime, newRequest.durationHours),
         roundTrip: tripType === "longdistance" ? newRequest.roundTrip : false,
         returnTime: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnTime : null,
         uid: user!.uid,
@@ -94,7 +102,7 @@ export default function PassengerPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", endTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "" });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", durationHours: 2, seatsNeeded: 1, roundTrip: false, returnTime: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -113,7 +121,7 @@ export default function PassengerPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newRequest.passengerName);
     setNameError(err);
-    if (err || !newRequest.departureTime || !newRequest.endTime) return;
+    if (err || !newRequest.departureTime) return;
 
     if (tripType === "local") {
       if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
@@ -127,10 +135,7 @@ export default function PassengerPage() {
       toast("Travel time must be in the future.", "error");
       return;
     }
-    if (new Date(newRequest.endTime) <= new Date(newRequest.departureTime)) {
-      toast("End time must be after the start time.", "error");
-      return;
-    }
+
 
     const finalFrom = tripType === "local" ? localCity : newRequest.from;
     const finalTo = tripType === "local" ? localCity : newRequest.to;
@@ -186,15 +191,11 @@ export default function PassengerPage() {
   };
 
   const handleEditSave = async (requestId: string) => {
-    if (!editData.departureTime || !editData.endTime) return;
-    if (new Date(editData.endTime) <= new Date(editData.departureTime)) {
-      toast("End time must be after the start time.", "error");
-      return;
-    }
+    if (!editData.departureTime) return;
     try {
       await updateDoc(doc(db, col("requests"), requestId), {
         departureTime: editData.departureTime,
-        endTime: editData.endTime,
+        endTime: addHours(editData.departureTime, editData.durationHours),
         seatsNeeded: editData.seatsNeeded,
       });
       setEditingId(null);
@@ -455,7 +456,7 @@ export default function PassengerPage() {
                   <DateTimePicker
                     label="Available From"
                     value={newRequest.departureTime}
-                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v, endTime: "" })}
+                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
                     minDate={minTime.substring(0, 10)}
                     minTime={minTime.substring(11, 16)}
                     inputClass={inputClass}
@@ -463,15 +464,14 @@ export default function PassengerPage() {
                   />
                 </div>
                 <div>
-                  <DateTimePicker
-                    label="Available Until"
-                    value={newRequest.endTime}
-                    onChange={(v) => setNewRequest({ ...newRequest, endTime: v })}
-                    minDate={newRequest.departureTime.substring(0, 10) || minTime.substring(0, 10)}
-                    minTime={newRequest.departureTime.substring(11, 16) || minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                  />
+                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</label>
+                  <select
+                    value={newRequest.durationHours}
+                    onChange={(e) => setNewRequest({ ...newRequest, durationHours: Number(e.target.value) })}
+                    className={inputClass}
+                  >
+                    {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4 items-end">
@@ -558,14 +558,14 @@ export default function PassengerPage() {
                               />
                             </div>
                             <div>
-                              <DateTimePicker
-                                label="Available Until"
-                                value={editData.endTime}
-                                onChange={(v) => setEditData({ ...editData, endTime: v })}
-                                minDate={editData.departureTime.substring(0, 10)}
-                                minTime={editData.departureTime.substring(11, 16)}
-                                inputClass={inputClass}
-                              />
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                              <select
+                                value={editData.durationHours}
+                                onChange={(e) => setEditData({ ...editData, durationHours: Number(e.target.value) })}
+                                className={inputClass}
+                              >
+                                {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
+                              </select>
                             </div>
                           </div>
                           <div className="grid sm:grid-cols-2 gap-3">
@@ -623,7 +623,7 @@ export default function PassengerPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(req.id);
-                                      setEditData({ departureTime: req.departureTime, endTime: req.endTime ?? "", seatsNeeded: req.seatsNeeded });
+                                      setEditData({ departureTime: req.departureTime, durationHours: req.endTime ? Math.round((new Date(req.endTime).getTime() - new Date(req.departureTime).getTime()) / 3600000) || 2 : 2, seatsNeeded: req.seatsNeeded });
                                     }}
                                     className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >

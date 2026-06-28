@@ -26,7 +26,7 @@ export default function DriverPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", endTime: "", availableSeats: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", durationHours: 2, availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ export default function DriverPage() {
     pickupAddress: "",
     dropoffAddress: "",
     departureTime: "",
-    endTime: "",
+    durationHours: 2,
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
@@ -51,6 +51,13 @@ export default function DriverPage() {
   const [minTime, setMinTime] = useState("");
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
+
+  const addHours = (dt: string, hours: number): string => {
+    const d = new Date(dt);
+    d.setMinutes(d.getMinutes() + hours * 60);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -88,6 +95,7 @@ export default function DriverPage() {
         ...newJourney,
         from: finalFrom,
         to: finalTo,
+        endTime: addHours(newJourney.departureTime, newJourney.durationHours),
         roundTrip: tripType === "longdistance" ? newJourney.roundTrip : false,
         returnTime: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnTime : null,
         driverPhone: user!.phoneNumber ?? "",
@@ -96,7 +104,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", endTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", durationHours: 2, availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -115,7 +123,7 @@ export default function DriverPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newJourney.driverName);
     setNameError(err);
-    if (err || !newJourney.departureTime || !newJourney.endTime) return;
+    if (err || !newJourney.departureTime) return;
 
     if (tripType === "local") {
       if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
@@ -129,10 +137,7 @@ export default function DriverPage() {
       toast("Departure time must be in the future.", "error");
       return;
     }
-    if (new Date(newJourney.endTime) <= new Date(newJourney.departureTime)) {
-      toast("End time must be after the start time.", "error");
-      return;
-    }
+
 
     const finalFrom = tripType === "local" ? localCity : newJourney.from;
     const finalTo = tripType === "local" ? localCity : newJourney.to;
@@ -188,15 +193,11 @@ export default function DriverPage() {
   };
 
   const handleEditSave = async (journeyId: string) => {
-    if (!editData.departureTime || !editData.endTime) return;
-    if (new Date(editData.endTime) <= new Date(editData.departureTime)) {
-      toast("End time must be after the start time.", "error");
-      return;
-    }
+    if (!editData.departureTime) return;
     try {
       await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
-        endTime: editData.endTime,
+        endTime: addHours(editData.departureTime, editData.durationHours),
         availableSeats: editData.availableSeats,
       });
       setEditingId(null);
@@ -457,7 +458,7 @@ export default function DriverPage() {
                   <DateTimePicker
                     label="Available From"
                     value={newJourney.departureTime}
-                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v, endTime: "" })}
+                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
                     minDate={minTime.substring(0, 10)}
                     minTime={minTime.substring(11, 16)}
                     inputClass={inputClass}
@@ -465,15 +466,14 @@ export default function DriverPage() {
                   />
                 </div>
                 <div>
-                  <DateTimePicker
-                    label="Available Until"
-                    value={newJourney.endTime}
-                    onChange={(v) => setNewJourney({ ...newJourney, endTime: v })}
-                    minDate={newJourney.departureTime.substring(0, 10) || minTime.substring(0, 10)}
-                    minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                  />
+                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</label>
+                  <select
+                    value={newJourney.durationHours}
+                    onChange={(e) => setNewJourney({ ...newJourney, durationHours: Number(e.target.value) })}
+                    className={inputClass}
+                  >
+                    {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4 items-end">
@@ -579,14 +579,14 @@ export default function DriverPage() {
                               />
                             </div>
                             <div>
-                              <DateTimePicker
-                                label="Available Until"
-                                value={editData.endTime}
-                                onChange={(v) => setEditData({ ...editData, endTime: v })}
-                                minDate={editData.departureTime.substring(0, 10)}
-                                minTime={editData.departureTime.substring(11, 16)}
-                                inputClass={inputClass}
-                              />
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                              <select
+                                value={editData.durationHours}
+                                onChange={(e) => setEditData({ ...editData, durationHours: Number(e.target.value) })}
+                                className={inputClass}
+                              >
+                                {[1, 2, 3, 4, 6, 8].map((h) => <option key={h} value={h}>+{h} {h === 1 ? "hour" : "hours"}</option>)}
+                              </select>
                             </div>
                           </div>
                           <div className="grid sm:grid-cols-2 gap-3">
@@ -644,7 +644,7 @@ export default function DriverPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(journey.id);
-                                      setEditData({ departureTime: journey.departureTime, endTime: journey.endTime ?? "", availableSeats: journey.availableSeats });
+                                      setEditData({ departureTime: journey.departureTime, durationHours: journey.endTime ? Math.round((new Date(journey.endTime).getTime() - new Date(journey.departureTime).getTime()) / 3600000) || 2 : 2, availableSeats: journey.availableSeats });
                                     }}
                                     className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
