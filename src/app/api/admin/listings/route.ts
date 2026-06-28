@@ -1,4 +1,5 @@
-import { adminDb, verifyAdmin, forbidden } from "@/lib/adminFirebase";
+import { adminDb, verifyAdmin, forbidden, adminCol,
+} from "@/lib/adminFirebase";
 import { NextRequest } from "next/server";
 
 export async function GET(req: Request) {
@@ -6,8 +7,8 @@ export async function GET(req: Request) {
   const db = adminDb();
 
   const [journeySnap, requestSnap] = await Promise.all([
-    db.collection("journeys").orderBy("departureTime", "desc").limit(200).get(),
-    db.collection("requests").orderBy("departureTime", "desc").limit(200).get(),
+    db.collection(adminCol("journeys")).orderBy("departureTime", "desc").limit(200).get(),
+    db.collection(adminCol("requests")).orderBy("departureTime", "desc").limit(200).get(),
   ]);
 
   const journeys = journeySnap.docs.map((d) => ({ id: d.id, type: "journey", ...d.data() }));

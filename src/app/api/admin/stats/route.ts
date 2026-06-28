@@ -1,6 +1,4 @@
-import { adminDb, verifyAdmin, forbidden } from "@/lib/adminFirebase";
-
-const col = (name: string) => `${process.env.NEXT_PUBLIC_COLLECTION_PREFIX ?? ""}${name}`;
+import { adminDb, verifyAdmin, forbidden, adminCol } from "@/lib/adminFirebase";
 
 export async function GET(req: Request) {
   if (!await verifyAdmin(req)) return forbidden();
@@ -8,10 +6,10 @@ export async function GET(req: Request) {
 
   // Current snapshot counts
   const [journeys, requests, chats, reports] = await Promise.all([
-    db.collection(col("journeys")).where("status", "==", "active").count().get(),
-    db.collection(col("requests")).where("status", "==", "active").count().get(),
-    db.collection(col("chats")).count().get(),
-    db.collection(col("reports")).where("resolved", "!=", true).count().get(),
+    db.collection(adminCol("journeys")).where("status", "==", "active").count().get(),
+    db.collection(adminCol("requests")).where("status", "==", "active").count().get(),
+    db.collection(adminCol("chats")).count().get(),
+    db.collection(adminCol("reports")).where("resolved", "!=", true).count().get(),
   ]);
 
   // Daily counts for last 14 days
@@ -24,13 +22,14 @@ export async function GET(req: Request) {
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
-    const isoDate = start.toISOString().slice(0, 10);
+
+    const isoDate = start.toISOString().slice(0, 10); // YYYY-MM-DD
 
     const [j, r, c, pv] = await Promise.all([
-      db.collection(col("journeys")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
-      db.collection(col("requests")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
-      db.collection(col("chats")).where("updatedAt", ">=", start).where("updatedAt", "<", end).count().get(),
-      db.collection(col("pageViews")).doc(isoDate).get(),
+      db.collection(adminCol("journeys")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
+      db.collection(adminCol("requests")).where("createdAt", ">=", start).where("createdAt", "<", end).count().get(),
+      db.collection(adminCol("chats")).where("updatedAt", ">=", start).where("updatedAt", "<", end).count().get(),
+      db.collection(adminCol("pageViews")).doc(isoDate).get(),
     ]);
 
     dailyCounts.push({
@@ -44,8 +43,8 @@ export async function GET(req: Request) {
 
   // Repeat users: users with 2+ journey/request docs
   const [allJourneys, allRequests] = await Promise.all([
-    db.collection(col("journeys")).select("uid").get(),
-    db.collection(col("requests")).select("uid").get(),
+    db.collection(adminCol("journeys")).select("uid").get(),
+    db.collection(adminCol("requests")).select("uid").get(),
   ]);
 
   const uidCounts = new Map<string, number>();

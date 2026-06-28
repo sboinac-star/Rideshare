@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavHeader from "./NavHeader";
+import SiteFooter from "./SiteFooter";
 import ToastProvider from "./ToastProvider";
 import AuthProvider from "./AuthProvider";
 import PageTracker from "./PageTracker";
@@ -73,11 +74,7 @@ export default function RootLayout({
             <PageTracker />
             <NavHeader />
             <main className="flex-1">{children}</main>
-            <footer className="bg-red-50 border-t border-red-200 px-4 py-4 text-center">
-              <p className="text-red-600 text-sm sm:text-xs font-medium leading-snug max-w-2xl mx-auto">
-                <strong>Disclaimer:</strong> NWA Ride Share is a free community board and is not responsible for fraud, scams, identity theft, personal safety incidents, or any harm arising from interactions between users. Always meet in public places, verify the identity of drivers and passengers, never share sensitive financial information, and use your best judgment. Ride arrangements are solely between the parties involved. Use this service at your own risk.
-              </p>
-            </footer>
+            <SiteFooter />
           </ToastProvider>
         </AuthProvider>
       </body>

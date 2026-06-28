@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
@@ -15,7 +15,7 @@ import { buildChatId } from "@/lib/chat";
 
 const TEST_UIDS = ["test-user-1", "test-user-2"];
 
-type QuickFilter = "all" | "today" | "weekend";
+type QuickFilter = "all" | "today" | "weekend" | "local";
 type HomeTab = "rides" | "requests";
 type SortBy = "soonest" | "seats";
 
@@ -305,6 +305,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set());
   const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
@@ -321,18 +322,18 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   }, [user]);
 
   useEffect(() => {
-    const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, col("announcements")), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       setAnnouncements(snap.docs.map((d) => ({ id: d.id, text: d.data().text as string })));
     });
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "journeys"), where("status", "==", "active"));
+    const q = query(collection(db, col("journeys")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .filter((j) => !isPast(j.departureTime) && !TEST_UIDS.includes(j.uid ?? ""))
+        .filter((j) => !isPast(j.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(j.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
@@ -341,11 +342,11 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "requests"), where("status", "==", "active"));
+    const q = query(collection(db, col("requests")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
-        .filter((r) => !isPast(r.departureTime) && !TEST_UIDS.includes(r.uid ?? ""))
+        .filter((r) => !isPast(r.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(r.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setRequests(data);
       setRequestsLoading(false);
@@ -362,7 +363,9 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       const dateMatch = searchDate ? item.departureTime.startsWith(searchDate) : true;
       const quickMatch =
         quickFilter === "today" ? isToday(item.departureTime) :
-        quickFilter === "weekend" ? isThisWeekend(item.departureTime) : true;
+        quickFilter === "weekend" ? isThisWeekend(item.departureTime) :
+        quickFilter === "local" ? item.from === item.to :
+        true;
       return fromMatch && toMatch && dateMatch && quickMatch;
     });
 
@@ -405,11 +408,28 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     }
   };
 
+  const toggleWatch = async (journey: Journey) => {
+    if (!user) { setShowSignIn(true); return; }
+    const token = await user.getIdToken();
+    const res = await fetch("/api/watch", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ journeyId: journey.id, route: `${journey.from} → ${journey.to}` }),
+    });
+    const data = await res.json() as { watching: boolean };
+    setWatchedIds((prev) => {
+      const next = new Set(prev);
+      data.watching ? next.add(journey.id) : next.delete(journey.id);
+      return next;
+    });
+    toast(data.watching ? "🔔 You'll be notified if this ride changes." : "Watch removed.");
+  };
+
   const handleDeleteJourney = async (journeyId: string) => {
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch (err) {
       console.error("Delete journey failed:", err);
@@ -421,7 +441,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", requestId));
+      await deleteDoc(doc(db, col("requests"), requestId));
       toast("Request deleted.");
     } catch (err) {
       console.error("Delete request failed:", err);
@@ -433,7 +453,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!reportJourney || !reportReason) return;
     setReportSubmitting(true);
     try {
-      await addDoc(collection(db, "reports"), {
+      await addDoc(collection(db, col("reports")), {
         journeyId: reportJourney.id,
         reason: reportReason,
         createdAt: serverTimestamp(),
@@ -451,277 +471,341 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   if (authLoading || !user) return <SignInPage />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {announcements.map((a) => (
-        <div key={a.id} className="bg-blue-700 text-white text-sm text-center px-4 py-2.5 font-medium">
-          📢 {a.text}
-        </div>
-      ))}
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 md:py-12">
-        <section className="text-center mb-4 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Carpooling Made Simple</h1>
-          <p className="text-sm sm:text-base md:text-xl text-gray-600 mb-3 sm:mb-5">Share rides across the USA. Affordable travel made easy.</p>
-          <div className="flex flex-row justify-center gap-2 sm:gap-3">
-            <Link href="/driver" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-5 sm:px-8 rounded-lg transition text-sm sm:text-base">
-              Post a Journey
-            </Link>
-            <Link href="/passenger" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 sm:py-3 px-5 sm:px-8 rounded-lg transition text-sm sm:text-base">
-              Request a Ride
-            </Link>
-          </div>
-        </section>
+    <div className="min-h-screen bg-gray-50">
 
-        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 flex-1 sm:flex-none">
-              <button
-                onClick={() => setActiveTab("rides")}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "rides" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-gray-900"}`}
-              >
-                Rides {!loading && <span className="ml-1 text-xs font-normal">({filteredJourneys.length})</span>}
-              </button>
-              <button
-                onClick={() => setActiveTab("requests")}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition ${activeTab === "requests" ? "bg-white shadow text-purple-700" : "text-gray-600 hover:text-gray-900"}`}
-              >
-                Requests {!requestsLoading && <span className="ml-1 text-xs font-normal">({filteredRequests.length})</span>}
-              </button>
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="soonest">Soonest first</option>
-              <option value="seats">Most seats</option>
-            </select>
+      {/* ── HERO SECTION ── */}
+      <div className="bg-gradient-to-b from-blue-50 to-white border-b border-blue-100">
+
+        {/* Announcement */}
+        {announcements.map((a) => (
+          <div key={a.id} className="bg-blue-600 text-white text-sm text-center px-4 py-2.5 font-medium">
+            📢 {a.text}
+          </div>
+        ))}
+
+        <div className="max-w-4xl mx-auto px-4 pt-7 pb-10 sm:pt-10 sm:pb-12">
+
+          {/* Headline */}
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-2 leading-tight">
+              Find a Ride. Share the Journey.
+            </h1>
+            <p className="text-gray-500 text-sm sm:text-base max-w-lg mx-auto">
+              Free carpooling across NWA and beyond — connect with real people going your way.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-            <div>
-              <label className="block text-gray-700 font-semibold mb-1.5 text-sm sm:text-base">From</label>
-              <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
-            </div>
-            <div>
-              <label className="block text-gray-700 font-semibold mb-1.5 text-sm sm:text-base">To</label>
-              <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-gray-700 font-semibold text-sm sm:text-base">Date</label>
-                {searchDate && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchDate("")}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Clear
-                  </button>
-                )}
+          {/* Search card */}
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 sm:p-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5">From</label>
+                <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
               </div>
-              <input
-                type="date"
-                value={searchDate}
-                onChange={(e) => setSearchDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2 mb-6">
-            {(["all", "today", "weekend"] as QuickFilter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setQuickFilter(f)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition min-h-[40px] ${
-                  quickFilter === f
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {f === "all" ? "All" : f === "today" ? "Today" : "This Weekend"}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === "rides" ? (
-            <div className="space-y-4">
-              {loading ? (
-                <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </>
-              ) : filteredJourneys.length === 0 ? (
-                <div className="text-center py-8 space-y-2">
-                  <p className="text-gray-600 text-lg">
-                    {journeys.length === 0 ? "No journeys posted yet" : "No journeys match your search"}
-                  </p>
-                  {hasFilters && (
-                    <button
-                      onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }}
-                      className="text-blue-600 hover:underline text-sm"
-                    >
-                      Clear filters
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1.5">To</label>
+                <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
+              </div>
+              <div className="col-span-2 md:col-span-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Date</label>
+                  {searchDate && (
+                    <button type="button" onClick={() => setSearchDate("")} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">
+                      Clear
                     </button>
                   )}
-                  <p className="text-gray-500 text-sm">
-                    Offering a ride?{" "}
-                    <Link href="/driver" className="text-blue-600 hover:underline font-medium">Post a journey</Link>
-                  </p>
                 </div>
-              ) : (
-                filteredJourneys.map((journey) => (
-                  <div key={journey.id} className="border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-lg transition">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0">👤</div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-gray-900">{journey.driverName}</p>
-                            {journey.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
-                          </div>
-                          <Link href={`/journey/${journey.id}`} className="font-semibold text-gray-800 hover:text-blue-600 hover:underline">{journey.from} → {journey.to}</Link>
-                          {journey.pickupAddress && <p className="text-xs text-gray-500">From: {journey.pickupAddress}</p>}
-                          {journey.dropoffAddress && <p className="text-xs text-gray-500">To: {journey.dropoffAddress}</p>}
-                          <p className="text-sm text-gray-600">{formatDateTime(journey.departureTime)}</p>
-                          {relativeTime(journey.departureTime) && <p className="text-xs text-blue-600 font-medium">{relativeTime(journey.departureTime)}</p>}
-                        </div>
-                      </div>
-                      <div className="sm:text-right shrink-0">
-                        <p className="text-sm text-gray-500">Available Seats</p>
-                        <p className="font-semibold text-gray-900">{journey.availableSeats} seats</p>
-                        <SeatIcons count={journey.availableSeats} />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {journey.uid && journey.uid !== user?.uid && (
-                        <button
-                          onClick={() => {
-                            if (!user) { setShowSignIn(true); setChatTarget({ listing: journey, type: "journey" }); }
-                            else setChatTarget({ listing: journey, type: "journey" });
-                          }}
-                          className="flex-1 min-w-[100px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
-                        >
-                          💬 Chat
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleShare(journey)}
-                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm"
-                      >
-                        {copiedId === journey.id ? "✓ Copied" : "📤 Share"}
-                      </button>
-                      {user && journey.uid && journey.uid === user.uid ? (
-                        <button
-                          onClick={() => handleDeleteJourney(journey.id)}
-                          className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
-                        >
-                          🗑 Delete
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => { setReportJourney(journey); setReportReason(""); }}
-                          className="px-3 py-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 font-medium rounded-lg transition text-sm"
-                        >
-                          🚩 Report
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
+                <input
+                  type="date"
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {requestsLoading ? (
-                <>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </>
-              ) : filteredRequests.length === 0 ? (
-                <div className="text-center py-8 space-y-2">
-                  <p className="text-gray-600 text-lg">
-                    {requests.length === 0 ? "No ride requests yet" : "No requests match your search"}
-                  </p>
-                  {hasFilters && (
-                    <button
-                      onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }}
-                      className="text-blue-600 hover:underline text-sm"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                  <p className="text-gray-500 text-sm">
-                    Need a ride?{" "}
-                    <Link href="/passenger" className="text-purple-600 hover:underline font-medium">Post a request</Link>
-                  </p>
-                </div>
-              ) : (
-                filteredRequests.map((req) => (
-                  <div key={req.id} className="border border-purple-100 rounded-lg p-4 md:p-6 hover:shadow-lg transition">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-lg shrink-0">🙋</div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-gray-900">{req.passengerName}</p>
-                            {req.roundTrip && <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
-                          </div>
-                          <Link href={`/request/${req.id}`} className="font-semibold text-gray-800 hover:text-purple-600 hover:underline">{req.from} → {req.to}</Link>
-                          {req.pickupAddress && <p className="text-xs text-gray-500">From: {req.pickupAddress}</p>}
-                          {req.dropoffAddress && <p className="text-xs text-gray-500">To: {req.dropoffAddress}</p>}
-                          <p className="text-sm text-gray-600">{formatDateTime(req.departureTime)}</p>
-                          {relativeTime(req.departureTime) && <p className="text-xs text-purple-600 font-medium">{relativeTime(req.departureTime)}</p>}
-                        </div>
-                      </div>
-                      <div className="sm:text-right shrink-0">
-                        <p className="text-sm text-gray-500">Seats Needed</p>
-                        <p className="font-semibold text-gray-900">{req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"}</p>
-                        <div className="flex gap-1 mt-1 sm:justify-end">
-                          {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className={`w-3 h-3 rounded-full ${i < req.seatsNeeded ? "bg-purple-400" : "bg-gray-200"}`} />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {req.uid && req.uid !== user?.uid && (
-                        <button
-                          onClick={() => {
-                            if (!user) { setShowSignIn(true); setChatTarget({ listing: req, type: "request" }); }
-                            else setChatTarget({ listing: req, type: "request" });
-                          }}
-                          className="flex-1 min-w-[100px] bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm"
-                        >
-                          💬 Chat
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleShareRequest(req)}
-                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm"
-                      >
-                        {copiedId === req.id ? "✓ Copied" : "📤 Share"}
-                      </button>
-                      {user && req.uid && req.uid === user.uid && (
-                        <button
-                          onClick={() => handleDeleteRequest(req.id)}
-                          className="px-3 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-lg transition text-sm"
-                        >
-                          🗑 Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
+
+            {/* Quick filter row + post links */}
+            <div className="flex items-center gap-2 pt-2.5 border-t border-gray-100 flex-wrap">
+              {(["all", "today", "weekend", "local"] as QuickFilter[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setQuickFilter(f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                    quickFilter === f
+                      ? f === "local"
+                        ? "bg-green-600 text-white border-green-600 shadow-sm"
+                        : "bg-blue-600 text-white border-blue-600 shadow-sm"
+                      : f === "local"
+                        ? "text-green-700 border-green-200 hover:border-green-400 hover:bg-green-50"
+                        : "text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "today" ? "Today" : f === "weekend" ? "This Weekend" : "📍 Local"}
+                </button>
+              ))}
+              <div className="ml-auto flex gap-3">
+                <Link href="/driver" className="text-xs font-bold text-blue-600 hover:text-blue-800 transition">
+                  + Post Journey
+                </Link>
+                <Link href="/passenger" className="text-xs font-bold text-violet-600 hover:text-violet-800 transition">
+                  + Request Ride
+                </Link>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Sign-in gate for chat */}
+      {/* ── LISTINGS SECTION ── */}
+      <div className="max-w-4xl mx-auto px-4 pt-6 pb-10">
+
+        {/* Tab bar + sort */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("rides")}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all border shadow-sm ${
+                activeTab === "rides"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+              }`}
+            >
+              Rides {!loading && <span className="ml-1 opacity-80">({filteredJourneys.length})</span>}
+            </button>
+            <button
+              onClick={() => setActiveTab("requests")}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all border shadow-sm ${
+                activeTab === "requests"
+                  ? "bg-violet-600 text-white border-violet-600"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600"
+              }`}
+            >
+              Requests {!requestsLoading && <span className="ml-1 opacity-80">({filteredRequests.length})</span>}
+            </button>
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+          >
+            <option value="soonest">Soonest first</option>
+            <option value="seats">Most seats</option>
+          </select>
+        </div>
+
+        {/* Cards */}
+        {activeTab === "rides" ? (
+          <div className="space-y-3">
+            {loading ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : filteredJourneys.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center py-14 px-4">
+                <p className="text-4xl mb-3">🚗</p>
+                <p className="text-gray-800 font-semibold mb-1">
+                  {journeys.length === 0 ? "No journeys posted yet" : "No rides match your search"}
+                </p>
+                <p className="text-gray-400 text-sm mb-4">
+                  Offering a ride?{" "}
+                  <Link href="/driver" className="text-blue-600 hover:underline font-semibold">Post a journey</Link>
+                </p>
+                {hasFilters && (
+                  <button
+                    onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredJourneys.map((journey) => (
+                <div key={journey.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="flex">
+                    {/* Blue left accent */}
+                    <div className="w-1 bg-blue-500 shrink-0" />
+                    <div className="flex-1 p-4 sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0 mt-0.5">👤</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <span className="text-sm font-semibold text-gray-700">{journey.driverName}</span>
+                                {journey.roundTrip && (
+                                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">↔ Round trip</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Link href={`/journey/${journey.id}`} className="text-lg font-extrabold text-gray-900 hover:text-blue-600 transition-colors leading-snug">
+                                  {journey.from === journey.to ? `📍 ${journey.from}` : `${journey.from} → ${journey.to}`}
+                                </Link>
+                                {journey.from === journey.to && (
+                                  <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">LOCAL</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
+                                {journey.pickupAddress && <span className="text-xs text-gray-500">📍 {journey.pickupAddress}</span>}
+                                <span className="text-xs text-gray-500">{formatDateTime(journey.departureTime)}</span>
+                                {relativeTime(journey.departureTime) && (
+                                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{relativeTime(journey.departureTime)}</span>
+                                )}
+                              </div>
+                            </div>
+                            {/* Seat badge */}
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Seats</p>
+                              <p className="text-2xl font-extrabold text-blue-600 leading-tight">{journey.availableSeats}</p>
+                              <div className="flex gap-0.5 mt-1 justify-end">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                  <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < journey.availableSeats ? "bg-blue-500" : "bg-gray-200"}`} />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {journey.uid && journey.uid !== user?.uid && (
+                              <button
+                                onClick={() => {
+                                  if (!user) { setShowSignIn(true); setChatTarget({ listing: journey, type: "journey" }); }
+                                  else setChatTarget({ listing: journey, type: "journey" });
+                                }}
+                                className="flex-1 min-w-[80px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition text-sm shadow-sm"
+                              >
+                                💬 Chat
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleShare(journey)}
+                              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition text-sm"
+                            >
+                              {copiedId === journey.id ? "✓ Copied" : "Share"}
+                            </button>
+                            {user && ((journey.uid && journey.uid === user.uid) || (journey.driverPhone && journey.driverPhone === user.phoneNumber)) ? (
+                              <button onClick={() => handleDeleteJourney(journey.id)} className="px-4 py-2.5 text-red-500 hover:bg-red-50 font-semibold rounded-xl transition text-sm border border-red-100">
+                                Delete
+                              </button>
+                            ) : (
+                              <button onClick={() => { setReportJourney(journey); setReportReason(""); }} className="px-4 py-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 font-semibold rounded-xl transition text-sm">
+                                Report
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {requestsLoading ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : filteredRequests.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center py-14 px-4">
+                <p className="text-4xl mb-3">🙋</p>
+                <p className="text-gray-800 font-semibold mb-1">
+                  {requests.length === 0 ? "No ride requests yet" : "No requests match your search"}
+                </p>
+                <p className="text-gray-400 text-sm mb-4">
+                  Need a ride?{" "}
+                  <Link href="/passenger" className="text-violet-600 hover:underline font-semibold">Post a request</Link>
+                </p>
+                {hasFilters && (
+                  <button onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }} className="text-sm text-blue-600 hover:underline">
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredRequests.map((req) => (
+                <div key={req.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="flex">
+                    {/* Violet left accent */}
+                    <div className="w-1 bg-violet-500 shrink-0" />
+                    <div className="flex-1 p-4 sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center text-lg shrink-0 mt-0.5">🙋</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <span className="text-sm font-semibold text-gray-700">{req.passengerName}</span>
+                                {req.roundTrip && (
+                                  <span className="text-[10px] font-bold bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-violet-100">↔ Round trip</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Link href={`/request/${req.id}`} className="text-lg font-extrabold text-gray-900 hover:text-violet-600 transition-colors leading-snug">
+                                  {req.from === req.to ? `📍 ${req.from}` : `${req.from} → ${req.to}`}
+                                </Link>
+                                {req.from === req.to && (
+                                  <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">LOCAL</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
+                                {req.pickupAddress && <span className="text-xs text-gray-500">📍 {req.pickupAddress}</span>}
+                                <span className="text-xs text-gray-500">{formatDateTime(req.departureTime)}</span>
+                                {relativeTime(req.departureTime) && (
+                                  <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{relativeTime(req.departureTime)}</span>
+                                )}
+                              </div>
+                            </div>
+                            {/* Seat badge */}
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Seats</p>
+                              <p className="text-2xl font-extrabold text-violet-600 leading-tight">{req.seatsNeeded}</p>
+                              <div className="flex gap-0.5 mt-1 justify-end">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                  <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < req.seatsNeeded ? "bg-violet-500" : "bg-gray-200"}`} />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {req.uid && req.uid !== user?.uid && (
+                              <button
+                                onClick={() => {
+                                  if (!user) { setShowSignIn(true); setChatTarget({ listing: req, type: "request" }); }
+                                  else setChatTarget({ listing: req, type: "request" });
+                                }}
+                                className="flex-1 min-w-[80px] bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 px-4 rounded-xl transition text-sm shadow-sm"
+                              >
+                                💬 Chat
+                              </button>
+                            )}
+                            <button onClick={() => handleShareRequest(req)} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition text-sm">
+                              {copiedId === req.id ? "✓ Copied" : "Share"}
+                            </button>
+                            {user && ((req.uid && req.uid === user.uid) || (req.passengerPhone && req.passengerPhone === user.phoneNumber)) && (
+                              <button onClick={() => handleDeleteRequest(req.id)} className="px-4 py-2.5 text-red-500 hover:bg-red-50 font-semibold rounded-xl transition text-sm border border-red-100">
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Sign-in gate */}
       {showSignIn && (
         <SignInModal
           onClose={() => { setShowSignIn(false); setChatTarget(null); }}
@@ -754,15 +838,15 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
 
       {/* Report modal */}
       {reportJourney && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Report Journey</h3>
-            <p className="text-gray-600 text-sm mb-4">{reportJourney.from} → {reportJourney.to}</p>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-extrabold text-gray-900 mb-1">Report Journey</h3>
+            <p className="text-gray-500 text-sm mb-4">{reportJourney.from} → {reportJourney.to}</p>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Reason</label>
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 mb-4 text-sm"
             >
               <option value="">Select a reason</option>
               <option value="Spam">Spam</option>
@@ -775,11 +859,13 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
               <button
                 onClick={handleReport}
                 disabled={!reportReason || reportSubmitting}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-bold py-2 px-4 rounded-lg transition"
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-200 disabled:text-red-400 text-white font-bold py-2.5 rounded-xl transition text-sm"
               >
                 {reportSubmitting ? "Submitting..." : "Submit Report"}
               </button>
-              <button onClick={() => setReportJourney(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+              <button onClick={() => setReportJourney(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition text-sm">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
