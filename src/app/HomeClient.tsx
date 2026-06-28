@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
@@ -305,23 +305,35 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set());
   const [chatTarget, setChatTarget] = useState<{ listing: Journey | RideRequest; type: "journey" | "request" } | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
+  const [blockedUids, setBlockedUids] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+    if (!user) { setBlockedUids(new Set()); return; }
+    user.getIdToken().then((token) =>
+      fetch("/api/block/list", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { uids: string[] }) => setBlockedUids(new Set(d.uids)))
+        .catch(() => {})
+    );
+  }, [user]);
+
+  useEffect(() => {
+    const q = query(collection(db, col("announcements")), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       setAnnouncements(snap.docs.map((d) => ({ id: d.id, text: d.data().text as string })));
     });
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "journeys"), where("status", "==", "active"));
+    const q = query(collection(db, col("journeys")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Journey))
-        .filter((j) => !isPast(j.departureTime) && !TEST_UIDS.includes(j.uid ?? ""))
+        .filter((j) => !isPast(j.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(j.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setJourneys(data);
       setLoading(false);
@@ -330,11 +342,11 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "requests"), where("status", "==", "active"));
+    const q = query(collection(db, col("requests")), where("status", "==", "active"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as RideRequest))
-        .filter((r) => !isPast(r.departureTime) && !TEST_UIDS.includes(r.uid ?? ""))
+        .filter((r) => !isPast(r.departureTime) && (IS_PREVIEW || !TEST_UIDS.includes(r.uid ?? "")))
         .sort((a, b) => (a.departureTime > b.departureTime ? 1 : -1));
       setRequests(data);
       setRequestsLoading(false);
@@ -367,8 +379,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       return a.departureTime > b.departureTime ? 1 : -1;
     });
 
-  const filteredJourneys = sort(applyFilters(journeys));
-  const filteredRequests = sort(applyFilters(requests));
+  const filteredJourneys = sort(applyFilters(journeys)).filter((j) => !blockedUids.has(j.uid ?? ""));
+  const filteredRequests = sort(applyFilters(requests)).filter((r) => !blockedUids.has(r.uid ?? ""));
 
   const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all";
 
@@ -396,11 +408,28 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     }
   };
 
+  const toggleWatch = async (journey: Journey) => {
+    if (!user) { setShowSignIn(true); return; }
+    const token = await user.getIdToken();
+    const res = await fetch("/api/watch", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ journeyId: journey.id, route: `${journey.from} → ${journey.to}` }),
+    });
+    const data = await res.json() as { watching: boolean };
+    setWatchedIds((prev) => {
+      const next = new Set(prev);
+      data.watching ? next.add(journey.id) : next.delete(journey.id);
+      return next;
+    });
+    toast(data.watching ? "🔔 You'll be notified if this ride changes." : "Watch removed.");
+  };
+
   const handleDeleteJourney = async (journeyId: string) => {
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch (err) {
       console.error("Delete journey failed:", err);
@@ -412,7 +441,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!user) { toast("You must be signed in to delete.", "error"); return; }
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", requestId));
+      await deleteDoc(doc(db, col("requests"), requestId));
       toast("Request deleted.");
     } catch (err) {
       console.error("Delete request failed:", err);
@@ -424,7 +453,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
     if (!reportJourney || !reportReason) return;
     setReportSubmitting(true);
     try {
-      await addDoc(collection(db, "reports"), {
+      await addDoc(collection(db, col("reports")), {
         journeyId: reportJourney.id,
         reason: reportReason,
         createdAt: serverTimestamp(),

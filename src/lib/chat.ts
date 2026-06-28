@@ -1,7 +1,7 @@
-import { db } from "./firebase";
+import { db, col } from "./firebase";
 import {
   collection, doc, setDoc, addDoc, serverTimestamp,
-  onSnapshot, query, orderBy, where, getDoc, updateDoc,
+  onSnapshot, query, orderBy, where, getDoc, updateDoc, getDocs, limit,
   type Unsubscribe,
 } from "firebase/firestore";
 import type { Message, Chat } from "./types";
@@ -23,7 +23,7 @@ export async function getOrCreateChat(
   route: string,
   participantNames: Record<string, string>,
 ): Promise<void> {
-  const ref = doc(db, "chats", id);
+  const ref = doc(db, col("chats"), id);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
     await setDoc(ref, {
@@ -44,16 +44,18 @@ export async function sendMessage(
   senderName: string,
   text: string,
 ): Promise<void> {
-  await addDoc(collection(db, "chats", chatId, "messages"), {
+  await addDoc(collection(db, col("chats"), chatId, "messages"), {
     uid,
     senderName,
     text,
     createdAt: serverTimestamp(),
   });
-  await updateDoc(doc(db, "chats", chatId), {
+  // Best-effort: update the chat-list preview. A failure here must not surface
+  // as a send error to the user — the message itself is already written above.
+  updateDoc(doc(db, col("chats"), chatId), {
     lastMessage: text.slice(0, 100),
     updatedAt: serverTimestamp(),
-  });
+  }).catch(() => {});
 }
 
 export function subscribeToMessages(
@@ -61,7 +63,7 @@ export function subscribeToMessages(
   callback: (messages: Message[]) => void,
 ): Unsubscribe {
   const q = query(
-    collection(db, "chats", chatId, "messages"),
+    collection(db, col("chats"), chatId, "messages"),
     orderBy("createdAt", "asc"),
   );
   return onSnapshot(q, (snap) => {
@@ -83,7 +85,7 @@ export function subscribeToUserChats(
   onError?: () => void,
 ): Unsubscribe {
   const q = query(
-    collection(db, "chats"),
+    collection(db, col("chats")),
     where("participants", "array-contains", uid),
     orderBy("updatedAt", "desc"),
   );
@@ -105,4 +107,22 @@ export function subscribeToUserChats(
     },
     () => { onError?.(); },
   );
+}
+
+export async function lookupUserName(uid: string): Promise<string> {
+  const jSnap = await getDocs(
+    query(collection(db, col("journeys")), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
+  );
+  if (!jSnap.empty) {
+    const name = jSnap.docs[0].data().driverName as string | undefined;
+    if (name) return name;
+  }
+  const rSnap = await getDocs(
+    query(collection(db, col("requests")), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(1))
+  );
+  if (!rSnap.empty) {
+    const name = rSnap.docs[0].data().passengerName as string | undefined;
+    if (name) return name;
+  }
+  return "User";
 }

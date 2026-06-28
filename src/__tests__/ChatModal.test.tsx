@@ -8,11 +8,13 @@ vi.mock("@/app/AuthProvider", () => ({ useAuth: () => mockUseAuth() }));
 const mockGetOrCreateChat = vi.fn();
 const mockSendMessage = vi.fn();
 const mockSubscribeToMessages = vi.fn();
+const mockLookupUserName = vi.fn();
 
 vi.mock("@/lib/chat", () => ({
   getOrCreateChat: (...a: unknown[]) => mockGetOrCreateChat(...a),
   sendMessage: (...a: unknown[]) => mockSendMessage(...a),
   subscribeToMessages: (...a: unknown[]) => mockSubscribeToMessages(...a),
+  lookupUserName: (...a: unknown[]) => mockLookupUserName(...a),
 }));
 
 const defaultProps = {
@@ -30,6 +32,7 @@ describe("ChatModal", () => {
     vi.clearAllMocks();
     mockGetOrCreateChat.mockResolvedValue(undefined);
     mockSendMessage.mockResolvedValue(undefined);
+    mockLookupUserName.mockResolvedValue("Priya Sharma");
     mockSubscribeToMessages.mockImplementation((_id: string, cb: (msgs: unknown[]) => void) => {
       cb([]);
       return vi.fn();
@@ -116,7 +119,7 @@ describe("ChatModal", () => {
       expect(mockSendMessage).toHaveBeenCalledWith(
         "journey_j1_u1",
         "u1",
-        "+14795550000",
+        "Priya Sharma",
         "Hello!",
       );
     });

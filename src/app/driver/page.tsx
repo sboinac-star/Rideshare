@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
 import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
-import { Journey } from "@/lib/types";
+import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
+import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
 
 export default function DriverPage() {
   const toast = useToast();
@@ -17,6 +18,9 @@ export default function DriverPage() {
   const [showSignIn, setShowSignIn] = useState(false);
 
   const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [myRequests, setMyRequests] = useState<RideRequest[]>([]);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,6 +38,7 @@ export default function DriverPage() {
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
+    recurring: "none" as "none" | "weekly" | "weekdays",
   });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
@@ -51,17 +56,48 @@ export default function DriverPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setLoading(false); return; }
-    const q = query(collection(db, "journeys"), where("uid", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Journey))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
-      setJourneys(data);
-      setLoading(false);
-    }, () => setLoading(false));
-    return () => unsubscribe();
+    const unsubJ = onSnapshot(
+      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
+      (snapshot) => {
+        const data = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Journey))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a, b) => ((b as any).createdAt?.seconds ?? 0) - ((a as any).createdAt?.seconds ?? 0));
+        setJourneys(data);
+        setLoading(false);
+      }, () => setLoading(false));
+    const unsubR = onSnapshot(
+      query(collection(db, col("requests")), where("uid", "==", user.uid)),
+      (snapshot) => {
+        setMyRequests(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RideRequest)));
+      });
+    return () => { unsubJ(); unsubR(); };
   }, [user]);
+
+  const doPostJourney = async () => {
+    setSubmitting(true);
+    try {
+      const ref = await addDoc(collection(db, col("journeys")), {
+        ...newJourney,
+        driverPhone: user!.phoneNumber ?? "",
+        uid: user!.uid,
+        status: "active",
+        createdAt: serverTimestamp(),
+      });
+      setSuccessId(ref.id);
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
+      setFromCustom(false);
+      setToCustom(false);
+      setNameError("");
+      toast("Journey posted! Passengers can now find you.");
+    } catch (e) {
+      console.error("[post-journey]", e);
+      toast(`Failed to post journey: ${(e as { message?: string })?.message ?? e}`, "error");
+    } finally {
+      setSubmitting(false);
+      setPendingSubmit(false);
+    }
+  };
 
   const handlePostJourney = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +109,6 @@ export default function DriverPage() {
       toast("Departure time must be in the future.", "error");
       return;
     }
-
     const isDuplicate = journeys.some(
       (j) => j.status === "active" && j.from === newJourney.from &&
              j.to === newJourney.to && j.departureTime === newJourney.departureTime
@@ -82,33 +117,19 @@ export default function DriverPage() {
       toast("You already have an active journey with the same route and time.", "error");
       return;
     }
-
-    setSubmitting(true);
-    try {
-      const ref = await addDoc(collection(db, "journeys"), {
-        ...newJourney,
-        driverPhone: user.phoneNumber ?? "",
-        uid: user.uid,
-        status: "active",
-        createdAt: serverTimestamp(),
-      });
-      setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
-      setFromCustom(false);
-      setToCustom(false);
-      setNameError("");
-      toast("Journey posted! Passengers can now find you.");
-    } catch {
-      toast("Failed to post journey. Please try again.", "error");
-    } finally {
-      setSubmitting(false);
+    const pending = getPendingCompletionItems(journeys, myRequests);
+    if (pending.length > 0) {
+      setPendingSubmit(true);
+      setShowCompletionPrompt(true);
+      return;
     }
+    await doPostJourney();
   };
 
   const handleCancelJourney = async (journeyId: string) => {
     if (!confirm("Are you sure you want to cancel this journey?")) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled" });
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
@@ -118,7 +139,7 @@ export default function DriverPage() {
   const handleDeleteJourney = async (journeyId: string) => {
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", journeyId));
+      await deleteDoc(doc(db, col("journeys"), journeyId));
       toast("Journey deleted.");
     } catch {
       toast("Failed to delete. Please try again.", "error");
@@ -140,7 +161,7 @@ export default function DriverPage() {
   const handleEditSave = async (journeyId: string) => {
     if (!editData.departureTime) return;
     try {
-      await updateDoc(doc(db, "journeys", journeyId), {
+      await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
         availableSeats: editData.availableSeats,
       });
@@ -183,8 +204,19 @@ export default function DriverPage() {
     );
   }
 
+  const pendingItems = getPendingCompletionItems(journeys, myRequests);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {showCompletionPrompt && pendingItems.length > 0 && (
+        <CompletionPromptModal
+          items={pendingItems}
+          onDone={() => {
+            setShowCompletionPrompt(false);
+            if (pendingSubmit) doPostJourney();
+          }}
+        />
+      )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Post a Journey</h1>
@@ -361,6 +393,24 @@ export default function DriverPage() {
                   />
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Repeats</label>
+                <select
+                  value={newJourney.recurring}
+                  onChange={(e) => setNewJourney({ ...newJourney, recurring: e.target.value as "none" | "weekly" | "weekdays" })}
+                  className={inputClass}
+                >
+                  <option value="none">One-time ride</option>
+                  <option value="weekly">Every week (same day &amp; time)</option>
+                  <option value="weekdays">Every weekday (Mon–Fri)</option>
+                </select>
+                {newJourney.recurring !== "none" && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    This ride will appear weekly. Cancel anytime from My Rides.
+                  </p>
+                )}
+              </div>
 
               <button
                 type="submit"

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/AuthProvider";
-import { getOrCreateChat, sendMessage, subscribeToMessages } from "@/lib/chat";
+import { getOrCreateChat, sendMessage, subscribeToMessages, lookupUserName } from "@/lib/chat";
 import type { Message } from "@/lib/types";
+import BlockButton from "@/app/BlockButton";
 
 type Props = {
   chatId: string;
@@ -30,34 +31,53 @@ export default function ChatModal({
   const [sending, setSending] = useState(false);
   const [chatReady, setChatReady] = useState(false);
   const [firstSent, setFirstSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const myNameRef = useRef<string>("");
   const [bottomOffset, setBottomOffset] = useState(0);
   const [visH, setVisH] = useState(0);
 
   useEffect(() => {
     if (!user) return;
 
-    const myName = user.phoneNumber ?? "User";
-    const participants: [string, string] = [ownerUid, user.uid];
-
     let cancelled = false;
     let unsubMessages: (() => void) | null = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatReady(false);
 
-    getOrCreateChat(chatId, participants, listingType, listingId, route, {
-      [ownerUid]: ownerName,
-      [user.uid]: myName,
-    }).then(() => {
+    // Safety net: if Firebase init hangs (e.g. no network and cold cache),
+    // unblock the button after 8s so the user can attempt to send and see
+    // a clear error rather than a forever-disabled button.
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) setChatReady(true);
+    }, 8000);
+
+    (async () => {
+      let myName = "";
+      try {
+        myName = await lookupUserName(user.uid);
+      } catch {
+        // proceed with empty name if lookup fails
+      }
+      myNameRef.current = myName;
+      if (cancelled) return;
+      const participants: [string, string] = [ownerUid, user.uid];
+      await getOrCreateChat(chatId, participants, listingType, listingId, route, {
+        [ownerUid]: ownerName,
+        [user.uid]: myName,
+      });
       if (cancelled) return;
       setChatReady(true);
       unsubMessages = subscribeToMessages(chatId, setMessages);
-    }).catch(() => {
+    })().catch(() => {
       if (!cancelled) setChatReady(true);
+    }).finally(() => {
+      clearTimeout(safetyTimer);
     });
 
     return () => {
       cancelled = true;
+      clearTimeout(safetyTimer);
       unsubMessages?.();
     };
   }, [chatId, user, ownerUid, ownerName, route, listingType, listingId]);
@@ -86,9 +106,10 @@ export default function ChatModal({
   const handleSend = async () => {
     if (!user || !text.trim() || !chatReady) return;
     setSending(true);
+    setSendError(null);
     const msgText = text.trim();
     try {
-      await sendMessage(chatId, user.uid, user.phoneNumber ?? "User", msgText);
+      await sendMessage(chatId, user.uid, myNameRef.current, msgText);
       setText("");
       setFirstSent(true);
       // Fire-and-forget push notification to the other participant
@@ -96,9 +117,11 @@ export default function ChatModal({
         fetch("/api/notify", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId, text: msgText, senderName: user.phoneNumber ?? "User" }),
+          body: JSON.stringify({ chatId, text: msgText, senderName: myNameRef.current }),
         })
       ).catch(() => {});
+    } catch {
+      setSendError("Couldn't send — please try again.");
     } finally {
       setSending(false);
     }
@@ -131,6 +154,7 @@ export default function ChatModal({
             <p className="font-semibold text-gray-900 truncate">{otherName}</p>
             <p className="text-xs text-gray-500 truncate">{route}</p>
           </div>
+          <BlockButton blockedUid={ownerUid} blockedName={ownerName} />
         </div>
 
         {/* Messages */}
@@ -167,6 +191,11 @@ export default function ChatModal({
           <div className="mx-3 mb-1 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 text-center shrink-0">
             Message sent! The other person will see it in their <strong>Messages</strong> tab when they open the app.
           </div>
+        )}
+
+        {/* Send error */}
+        {sendError && (
+          <p className="mx-3 mb-1 text-xs text-red-600 text-center shrink-0">{sendError}</p>
         )}
 
         {/* Input */}

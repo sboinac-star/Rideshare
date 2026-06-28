@@ -19,7 +19,7 @@ const {
   mockServerTimestamp: vi.fn(() => "SERVER_TIMESTAMP"),
 }));
 
-vi.mock("@/lib/firebase", () => ({ db: {} }));
+vi.mock("@/lib/firebase", () => ({ db: {}, col: (n: string) => n }));
 
 vi.mock("firebase/firestore", () => ({
   doc: mockDoc,
@@ -227,3 +227,4 @@ describe("subscribeToUserChats", () => {
     expect(chat.updatedAt).toEqual(fakeDate);
   });
 });
+

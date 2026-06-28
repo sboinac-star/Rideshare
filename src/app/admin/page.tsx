@@ -15,7 +15,17 @@ async function adminFetch(user: { getIdToken: () => Promise<string> }, path: str
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Stats = { activeJourneys: number; activeRequests: number; totalChats: number; pendingReports: number };
+type DayCount = { date: string; journeys: number; requests: number; chats: number; pageViews: number };
+type Stats = {
+  activeJourneys: number;
+  activeRequests: number;
+  totalChats: number;
+  pendingReports: number;
+  dailyCounts: DayCount[];
+  repeatUsers: number;
+  oneTimeUsers: number;
+  totalUsers: number;
+};
 type Listing = { id: string; type: "journey" | "request"; uid?: string; driverName?: string; passengerName?: string; driverPhone?: string; passengerPhone?: string; from: string; to: string; departureTime: string; status: string };
 type Report = { id: string; journeyId: string; reason: string; resolved?: boolean; listing?: Listing | null };
 type AdminChat = { id: string; participants: string[]; participantNames: Record<string, string>; route: string; lastMessage: string; updatedAt: string | null; listingType: string };
@@ -30,6 +40,96 @@ function StatCard({ label, value, color }: { label: string; value: number; color
     <div className={`bg-white rounded-xl p-5 shadow-sm border-l-4 ${color}`}>
       <p className="text-sm text-gray-500 font-medium">{label}</p>
       <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+    </div>
+  );
+}
+
+function BarChart({ data, series }: {
+  data: DayCount[];
+  series: { key: keyof DayCount; color: string; label: string }[];
+}) {
+  const W = 600; const H = 160; const PAD = { top: 12, right: 8, bottom: 32, left: 28 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const maxVal = Math.max(1, ...data.flatMap((d) => series.map((s) => d[s.key] as number)));
+  const groupW = innerW / data.length;
+  const barW = Math.max(2, (groupW / series.length) - 2);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+      {/* Y gridlines */}
+      {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
+        const y = PAD.top + innerH * (1 - frac);
+        return (
+          <g key={frac}>
+            <line x1={PAD.left} x2={PAD.left + innerW} y1={y} y2={y} stroke="#e5e7eb" strokeWidth={1} />
+            <text x={PAD.left - 4} y={y + 3} textAnchor="end" fontSize={9} fill="#9ca3af">
+              {Math.round(maxVal * frac)}
+            </text>
+          </g>
+        );
+      })}
+      {/* Bars */}
+      {data.map((d, i) => (
+        <g key={i}>
+          {series.map((s, si) => {
+            const val = d[s.key] as number;
+            const bh = (val / maxVal) * innerH;
+            const x = PAD.left + i * groupW + si * (barW + 2);
+            return (
+              <g key={s.key}>
+                <rect x={x} y={PAD.top + innerH - bh} width={barW} height={bh} fill={s.color} rx={2} opacity={0.85} />
+                {val > 0 && bh > 12 && (
+                  <text x={x + barW / 2} y={PAD.top + innerH - bh - 2} textAnchor="middle" fontSize={8} fill="#374151">{val}</text>
+                )}
+              </g>
+            );
+          })}
+          {/* X label every 2 days on wider screens */}
+          {i % 2 === 0 && (
+            <text x={PAD.left + i * groupW + groupW / 2} y={H - 4} textAnchor="middle" fontSize={9} fill="#9ca3af">
+              {d.date}
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function DonutChart({ segments }: { segments: { value: number; color: string; label: string }[] }) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const R = 40; const cx = 60; const cy = 60;
+  let angle = -Math.PI / 2;
+  const paths = segments.map((seg) => {
+    const sweep = (seg.value / total) * 2 * Math.PI;
+    const x1 = cx + R * Math.cos(angle);
+    const y1 = cy + R * Math.sin(angle);
+    angle += sweep;
+    const x2 = cx + R * Math.cos(angle);
+    const y2 = cy + R * Math.sin(angle);
+    const large = sweep > Math.PI ? 1 : 0;
+    return { ...seg, d: `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} Z` };
+  });
+
+  return (
+    <div className="flex items-center gap-4">
+      <svg viewBox="0 0 120 120" className="w-24 h-24 shrink-0">
+        {paths.map((p) => <path key={p.label} d={p.d} fill={p.color} opacity={0.85} />)}
+        <circle cx={cx} cy={cy} r={22} fill="white" />
+        <text x={cx} y={cy - 5} textAnchor="middle" fontSize={11} fontWeight="bold" fill="#111827">{total}</text>
+        <text x={cx} y={cy + 8} textAnchor="middle" fontSize={8} fill="#6b7280">users</text>
+      </svg>
+      <div className="space-y-1.5">
+        {segments.map((s) => (
+          <div key={s.label} className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: s.color }} />
+            <span className="text-sm text-gray-700">{s.label}</span>
+            <span className="text-sm font-semibold text-gray-900 ml-1">{s.value}</span>
+            <span className="text-xs text-gray-400">({total ? Math.round((s.value / total) * 100) : 0}%)</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -50,13 +150,81 @@ function Dashboard({ user }: { user: NonNullable<ReturnType<typeof useAuth>["use
 
   return (
     <div className="space-y-6">
+      {/* Snapshot numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Active Journeys" value={stats.activeJourneys} color="border-blue-500" />
         <StatCard label="Active Requests" value={stats.activeRequests} color="border-green-500" />
         <StatCard label="Total Chats" value={stats.totalChats} color="border-purple-500" />
         <StatCard label="Pending Reports" value={stats.pendingReports} color="border-red-500" />
       </div>
-      <p className="text-sm text-gray-400">Stats refresh each time you open this tab.</p>
+
+      {/* Growth chart */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-1">New listings per day <span className="font-normal text-gray-400">(last 14 days)</span></p>
+        <div className="flex gap-4 mb-3">
+          {[{ color: "#3b82f6", label: "Journeys" }, { color: "#8b5cf6", label: "Requests" }].map((s) => (
+            <div key={s.label} className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-sm" style={{ background: s.color }} />
+              {s.label}
+            </div>
+          ))}
+        </div>
+        <BarChart
+          data={stats.dailyCounts}
+          series={[
+            { key: "journeys", color: "#3b82f6", label: "Journeys" },
+            { key: "requests", color: "#8b5cf6", label: "Requests" },
+          ]}
+        />
+      </div>
+
+      {/* Chat activity chart */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-1">Chat activity per day <span className="font-normal text-gray-400">(last 14 days)</span></p>
+        <div className="flex gap-4 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-sm bg-green-500" />
+            Chats active
+          </div>
+        </div>
+        <BarChart
+          data={stats.dailyCounts}
+          series={[{ key: "chats", color: "#22c55e", label: "Chats" }]}
+        />
+      </div>
+
+      {/* Page views chart */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-1">
+          Page views per day <span className="font-normal text-gray-400">(last 14 days)</span>
+        </p>
+        <div className="flex gap-4 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-sm bg-orange-400" />
+            Visits
+          </div>
+          <span className="text-xs text-gray-400 ml-auto">
+            Total: {stats.dailyCounts.reduce((s, d) => s + d.pageViews, 0).toLocaleString()} hits
+          </span>
+        </div>
+        <BarChart
+          data={stats.dailyCounts}
+          series={[{ key: "pageViews", color: "#fb923c", label: "Page Views" }]}
+        />
+      </div>
+
+      {/* Repeat vs one-time users */}
+      <div className="bg-white rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-4">User retention</p>
+        <DonutChart
+          segments={[
+            { value: stats.repeatUsers, color: "#3b82f6", label: "Repeat users (2+ rides)" },
+            { value: stats.oneTimeUsers, color: "#e5e7eb", label: "One-time users" },
+          ]}
+        />
+      </div>
+
+      <p className="text-xs text-gray-400">Stats refresh each time you open this tab.</p>
     </div>
   );
 }

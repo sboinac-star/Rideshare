@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { db, col } from "@/lib/firebase";
 import {
   collection, query, where, onSnapshot,
   updateDoc, deleteDoc, doc,
@@ -42,7 +42,7 @@ export default function MyRidesPage() {
     if (!user) { setLoadingJ(false); setLoadingR(false); return; }
 
     const unsubJ = onSnapshot(
-      query(collection(db, "journeys"), where("uid", "==", user.uid)),
+      query(collection(db, col("journeys")), where("uid", "==", user.uid)),
       (snap) => {
         setJourneys(
           snap.docs
@@ -56,7 +56,7 @@ export default function MyRidesPage() {
     );
 
     const unsubR = onSnapshot(
-      query(collection(db, "requests"), where("uid", "==", user.uid)),
+      query(collection(db, col("requests")), where("uid", "==", user.uid)),
       (snap) => {
         setRequests(
           snap.docs
@@ -84,7 +84,7 @@ export default function MyRidesPage() {
   const saveJourney = async (id: string) => {
     if (!journeyEdit.departureTime) return;
     try {
-      await updateDoc(doc(db, "journeys", id), {
+      await updateDoc(doc(db, col("journeys"), id), {
         departureTime: journeyEdit.departureTime,
         returnTime: journeyEdit.returnTime || null,
         availableSeats: journeyEdit.availableSeats,
@@ -96,11 +96,30 @@ export default function MyRidesPage() {
     }
   };
 
+  const completeJourney = async (id: string) => {
+    if (!confirm("Mark this journey as completed?")) return;
+    try {
+      await updateDoc(doc(db, col("journeys"), id), { status: "completed" });
+      toast("Journey marked as completed.");
+    } catch {
+      toast("Failed to update. Please try again.", "error");
+    }
+  };
+
   const cancelJourney = async (id: string) => {
     if (!confirm("Cancel this journey?")) return;
     try {
-      await updateDoc(doc(db, "journeys", id), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), id), { status: "cancelled" });
       toast("Journey cancelled.");
+      const j = journeys.find((x) => x.id === id);
+      if (j && user) {
+        const token = await user.getIdToken();
+        fetch("/api/watch/notify", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ journeyId: id, route: `${j.from} → ${j.to}`, message: "This ride was cancelled." }),
+        }).catch(() => {});
+      }
     } catch {
       toast("Failed to cancel.", "error");
     }
@@ -109,7 +128,7 @@ export default function MyRidesPage() {
   const deleteJourney = async (id: string) => {
     if (!confirm("Permanently delete this journey? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "journeys", id));
+      await deleteDoc(doc(db, col("journeys"), id));
       toast("Journey deleted.");
     } catch {
       toast("Failed to delete.", "error");
@@ -128,7 +147,7 @@ export default function MyRidesPage() {
   const saveRequest = async (id: string) => {
     if (!requestEdit.departureTime) return;
     try {
-      await updateDoc(doc(db, "requests", id), {
+      await updateDoc(doc(db, col("requests"), id), {
         departureTime: requestEdit.departureTime,
         returnTime: requestEdit.returnTime || null,
         seatsNeeded: requestEdit.seatsNeeded,
@@ -140,10 +159,20 @@ export default function MyRidesPage() {
     }
   };
 
+  const completeRequest = async (id: string) => {
+    if (!confirm("Mark this request as completed?")) return;
+    try {
+      await updateDoc(doc(db, col("requests"), id), { status: "completed" });
+      toast("Request marked as completed.");
+    } catch {
+      toast("Failed to update. Please try again.", "error");
+    }
+  };
+
   const cancelRequest = async (id: string) => {
     if (!confirm("Cancel this request?")) return;
     try {
-      await updateDoc(doc(db, "requests", id), { status: "cancelled" });
+      await updateDoc(doc(db, col("requests"), id), { status: "cancelled" });
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel.", "error");
@@ -153,7 +182,7 @@ export default function MyRidesPage() {
   const deleteRequest = async (id: string) => {
     if (!confirm("Permanently delete this request? This cannot be undone.")) return;
     try {
-      await deleteDoc(doc(db, "requests", id));
+      await deleteDoc(doc(db, col("requests"), id));
       toast("Request deleted.");
     } catch {
       toast("Failed to delete.", "error");
@@ -235,9 +264,11 @@ export default function MyRidesPage() {
                 <div key={j.id} className="bg-white rounded-lg shadow p-5">
                   {editingJourneyId === j.id ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-semibold text-gray-900">{j.from} → {j.to}</span>
                         {j.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
+                        {j.recurring === "weekly" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekly</span>}
+                        {j.recurring === "weekdays" && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">↻ Weekdays</span>}
                       </div>
 
                       <div className="grid sm:grid-cols-2 gap-3">
@@ -300,7 +331,9 @@ export default function MyRidesPage() {
                           <p className="font-semibold text-gray-900 text-lg">{j.from} → {j.to}</p>
                           {j.roundTrip && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            j.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            j.status === "active" ? "bg-green-100 text-green-800"
+                            : j.status === "completed" ? "bg-blue-100 text-blue-800"
+                            : "bg-red-100 text-red-800"
                           }`}>
                             {j.status.charAt(0).toUpperCase() + j.status.slice(1)}
                           </span>
@@ -319,22 +352,34 @@ export default function MyRidesPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-                        {j.status === "active" && (
-                          <>
-                            <button
-                              onClick={() => startEditJourney(j)}
-                              className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-lg transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => cancelJourney(j.id)}
-                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
+                        {j.status === "active" && (() => {
+                          const isPast = new Date(j.departureTime) < new Date();
+                          return (
+                            <>
+                              {isPast ? (
+                                <button
+                                  onClick={() => completeJourney(j.id)}
+                                  className="text-sm bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg transition"
+                                >
+                                  Mark Completed
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => startEditJourney(j)}
+                                  className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-lg transition"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              <button
+                                onClick={() => cancelJourney(j.id)}
+                                className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
+                              >
+                                {isPast ? "Did Not Happen" : "Cancel"}
+                              </button>
+                            </>
+                          );
+                        })()}
                         <button
                           onClick={() => deleteJourney(j.id)}
                           className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
@@ -425,7 +470,9 @@ export default function MyRidesPage() {
                           <p className="font-semibold text-gray-900 text-lg">{r.from} → {r.to}</p>
                           {r.roundTrip && <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">↔ Round trip</span>}
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            r.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            r.status === "active" ? "bg-green-100 text-green-800"
+                            : r.status === "completed" ? "bg-blue-100 text-blue-800"
+                            : "bg-red-100 text-red-800"
                           }`}>
                             {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                           </span>
@@ -444,22 +491,34 @@ export default function MyRidesPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-                        {r.status === "active" && (
-                          <>
-                            <button
-                              onClick={() => startEditRequest(r)}
-                              className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 px-4 rounded-lg transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => cancelRequest(r.id)}
-                              className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
+                        {r.status === "active" && (() => {
+                          const isPast = new Date(r.departureTime) < new Date();
+                          return (
+                            <>
+                              {isPast ? (
+                                <button
+                                  onClick={() => completeRequest(r.id)}
+                                  className="text-sm bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg transition"
+                                >
+                                  Mark Completed
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => startEditRequest(r)}
+                                  className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 px-4 rounded-lg transition"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              <button
+                                onClick={() => cancelRequest(r.id)}
+                                className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
+                              >
+                                {isPast ? "Did Not Happen" : "Cancel"}
+                              </button>
+                            </>
+                          );
+                        })()}
                         <button
                           onClick={() => deleteRequest(r.id)}
                           className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
