@@ -250,6 +250,32 @@ service cloud.firestore {
 
     match /pageViews/{docId} { allow read, write: if false; }
 
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /userProfiles/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /rideWatches/{watchId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /blocks/{blockId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.blockerUid;
+      allow create: if isAuthenticated() && request.resource.data.blockerUid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /weeklyStats/{docId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
