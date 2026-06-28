@@ -8,6 +8,7 @@ import {
   updateDoc, deleteDoc, doc,
 } from "firebase/firestore";
 import { formatDateTime, minDepartureTime } from "@/lib/utils";
+import DateTimePicker from "@/app/DateTimePicker";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -274,12 +275,11 @@ export default function MyRidesPage() {
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Departure Date & Time</label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={journeyEdit.departureTime}
-                            min={minDepartureTime()}
-                            onChange={(e) => setJourneyEdit({ ...journeyEdit, departureTime: e.target.value })}
-                            className={inputClass}
+                            onChange={(v) => setJourneyEdit({ ...journeyEdit, departureTime: v })}
+                            minDate={minDepartureTime().substring(0, 10)}
+                            inputClass={inputClass}
                           />
                         </div>
                         <div>
@@ -299,12 +299,11 @@ export default function MyRidesPage() {
                       {j.roundTrip && (
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Return Date & Time</label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={journeyEdit.returnTime}
-                            min={journeyEdit.departureTime || minDepartureTime()}
-                            onChange={(e) => setJourneyEdit({ ...journeyEdit, returnTime: e.target.value })}
-                            className={inputClass}
+                            onChange={(v) => setJourneyEdit({ ...journeyEdit, returnTime: v })}
+                            minDate={journeyEdit.departureTime.substring(0, 10) || minDepartureTime().substring(0, 10)}
+                            inputClass={inputClass}
                           />
                         </div>
                       )}
@@ -413,12 +412,11 @@ export default function MyRidesPage() {
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Travel Date & Time</label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={requestEdit.departureTime}
-                            min={minDepartureTime()}
-                            onChange={(e) => setRequestEdit({ ...requestEdit, departureTime: e.target.value })}
-                            className={inputClass}
+                            onChange={(v) => setRequestEdit({ ...requestEdit, departureTime: v })}
+                            minDate={minDepartureTime().substring(0, 10)}
+                            inputClass={inputClass}
                           />
                         </div>
                         <div>
@@ -438,12 +436,11 @@ export default function MyRidesPage() {
                       {r.roundTrip && (
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Return Date & Time</label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={requestEdit.returnTime}
-                            min={requestEdit.departureTime || minDepartureTime()}
-                            onChange={(e) => setRequestEdit({ ...requestEdit, returnTime: e.target.value })}
-                            className={inputClass}
+                            onChange={(v) => setRequestEdit({ ...requestEdit, returnTime: v })}
+                            minDate={requestEdit.departureTime.substring(0, 10) || minDepartureTime().substring(0, 10)}
+                            inputClass={inputClass}
                           />
                         </div>
                       )}
