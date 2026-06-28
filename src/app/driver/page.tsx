@@ -574,7 +574,7 @@ export default function DriverPage() {
                               <DateTimePicker
                                 label="Available From"
                                 value={editData.departureTime}
-                                onChange={(v) => setEditData({ ...editData, departureTime: v, endTime: "" })}
+                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
                                 inputClass={inputClass}
                               />
                             </div>
