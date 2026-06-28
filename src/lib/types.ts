@@ -8,10 +8,11 @@ export interface Journey {
   dropoffAddress?: string;
   departureTime: string;
   availableSeats: number;
-  driverPhone: string;
+  driverPhone?: string;
   status: string;
   roundTrip?: boolean;
   returnTime?: string;
+  recurring?: "none" | "weekly" | "weekdays";
 }
 
 export interface RideRequest {
@@ -24,7 +25,7 @@ export interface RideRequest {
   dropoffAddress?: string;
   departureTime: string;
   seatsNeeded: number;
-  passengerPhone: string;
+  passengerPhone?: string;
   status: string;
   roundTrip?: boolean;
   returnTime?: string;
@@ -36,6 +37,13 @@ export interface Message {
   senderName: string;
   text: string;
   createdAt: Date | null;
+}
+
+export interface RideWatch {
+  id: string;
+  uid: string;
+  journeyId: string;
+  route: string;
 }
 
 export interface Chat {

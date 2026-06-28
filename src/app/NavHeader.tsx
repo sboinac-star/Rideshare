@@ -26,14 +26,12 @@ export default function NavHeader() {
   const pathname = usePathname();
   const { user, authLoading, signOut } = useAuth();
 
-  // Subscribe to user's chats for unread badge
   useEffect(() => {
     if (!user) { setChats([]); return; }
     const unsub = subscribeToUserChats(user.uid, setChats, () => {});
     return unsub;
   }, [user]);
 
-  // When user visits /messages, mark all as read
   useEffect(() => {
     if (pathname === "/messages" && user) {
       localStorage.setItem(LAST_READ_KEY(user.uid), Date.now().toString());
@@ -56,49 +54,62 @@ export default function NavHeader() {
     { href: "/passenger", label: "Request Ride" },
     { href: "/my-rides", label: "My Rides" },
     { href: "/messages", label: "Messages", badge: unreadCount },
+    { href: "/resources", label: "Resources" },
     { href: "/about", label: "About" },
     ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-blue-600 text-white shadow-lg">
-        <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold tracking-tight" onClick={() => setOpen(false)}>
+      <header className="sticky top-0 z-50 bg-blue-600 shadow-md">
+        <nav className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center gap-4">
+          <Link
+            href="/"
+            className="text-xl font-bold text-white tracking-tight shrink-0"
+            onClick={() => setOpen(false)}
+          >
             NWA Ride Share
           </Link>
 
           {/* Desktop links */}
-          <div className="hidden sm:flex items-center gap-6 text-sm font-medium">
+          <div className="hidden sm:flex items-center gap-0.5 text-sm font-medium flex-1 justify-center">
             {navLinks.map(({ href, label, badge }) => (
               <Link
                 key={href}
                 href={href}
-                className={`relative ${pathname === href ? "text-white underline underline-offset-4" : "hover:text-blue-100 transition"}`}
+                className={`relative px-3 py-2 rounded-lg transition-colors ${
+                  pathname === href
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-blue-100 hover:bg-blue-500 hover:text-white"
+                }`}
               >
                 {label}
                 {badge ? (
-                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null}
               </Link>
             ))}
+          </div>
+
+          {/* Desktop auth */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
             {!authLoading && (
               user ? (
-                <div className="flex items-center gap-3 border-l border-blue-500 pl-4">
-                  <span className="text-blue-100 text-xs">{maskedPhone(user.phoneNumber)}</span>
+                <>
+                  <span className="text-blue-300 text-xs">{maskedPhone(user.phoneNumber)}</span>
                   <button
                     onClick={() => signOut()}
-                    className="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-lg transition"
+                    className="text-sm text-blue-100 hover:text-white bg-blue-500 hover:bg-blue-400 px-3 py-1.5 rounded-lg transition font-medium"
                   >
                     Sign out
                   </button>
-                </div>
+                </>
               ) : (
                 <button
                   onClick={() => setShowSignIn(true)}
-                  className="text-xs bg-white text-blue-700 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition border-l border-blue-500 ml-1 pl-4"
+                  className="bg-white hover:bg-blue-50 text-blue-900 text-sm font-bold px-4 py-2 rounded-lg transition shadow-sm"
                 >
                   Sign in
                 </button>
@@ -106,18 +117,18 @@ export default function NavHeader() {
             )}
           </div>
 
-          {/* Hamburger button */}
+          {/* Hamburger */}
           <button
-            className="sm:hidden p-2 rounded-md hover:bg-blue-700 transition"
+            className="sm:hidden p-2 rounded-lg text-blue-100 hover:bg-blue-800 transition"
             aria-label="Toggle menu"
             onClick={() => setOpen((prev) => !prev)}
           >
             {open ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
@@ -126,14 +137,16 @@ export default function NavHeader() {
 
         {/* Mobile menu */}
         {open && (
-          <div className="sm:hidden border-t border-blue-500 bg-blue-600 px-4 pb-4 flex flex-col gap-1">
+          <div className="sm:hidden border-t border-blue-500 bg-blue-600 px-4 pb-4 flex flex-col gap-0.5">
             {navLinks.map(({ href, label, badge }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`relative py-3 text-sm font-medium rounded px-3 ${
-                  pathname === href ? "bg-blue-700 text-white" : "hover:bg-blue-700 transition"
+                className={`relative py-3 px-3 text-sm font-medium rounded-lg transition-colors ${
+                  pathname === href
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-blue-100 hover:bg-blue-500 hover:text-white"
                 }`}
               >
                 {label}
@@ -146,16 +159,19 @@ export default function NavHeader() {
             ))}
             {!authLoading && (
               user ? (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-500">
-                  <span className="text-blue-100 text-xs">{maskedPhone(user.phoneNumber)}</span>
-                  <button onClick={() => { signOut(); setOpen(false); }} className="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-2 rounded-lg transition">
+                <div className="flex items-center justify-between mt-2 pt-3 border-t border-blue-800">
+                  <span className="text-blue-200 text-xs">{maskedPhone(user.phoneNumber)}</span>
+                  <button
+                    onClick={() => { signOut(); setOpen(false); }}
+                    className="text-sm text-blue-100 bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded-lg transition font-medium"
+                  >
                     Sign out
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => { setShowSignIn(true); setOpen(false); }}
-                  className="mt-2 w-full text-sm bg-white text-blue-700 font-bold py-2 rounded-lg"
+                  className="mt-2 w-full bg-white text-blue-900 text-sm font-bold py-3 rounded-lg transition"
                 >
                   Sign in
                 </button>

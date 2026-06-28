@@ -6,9 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Only applies to phone-auth users — custom token (preview/test) users are never blocked
     function isBlocked() {
       return isAuthenticated()
-        && request.auth.token.phone_number != null
+        && request.auth.token.firebase.sign_in_provider == 'phone'
+        && request.auth.token.phone_number is string
         && exists(/databases/$(database)/documents/blockedPhones/$(request.auth.token.phone_number));
     }
 
@@ -18,12 +20,11 @@ service cloud.firestore {
 
     function isValidJourney() {
       let d = request.resource.data;
-      return d.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'driverPhone', 'uid'])
+      return d.keys().hasAll(['driverName', 'from', 'to', 'departureTime', 'availableSeats', 'uid'])
         && d.driverName is string && d.driverName.size() > 0
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
-        && d.driverPhone is string
-        && d.availableSeats is int && d.availableSeats > 0 && d.availableSeats <= 8
+        && (d.availableSeats is int || d.availableSeats is float) && d.availableSeats > 0 && d.availableSeats <= 8
         && d.uid == request.auth.uid;
     }
 
@@ -33,33 +34,28 @@ service cloud.firestore {
         && resource.data.status == 'active';
     }
 
+    function isCompleteUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
+        && resource.data.status == 'active';
+    }
+
     function isValidEdit() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return changed.hasOnly(['availableSeats', 'departureTime', 'returnTime'])
-        && request.resource.data.availableSeats is int
+        && (request.resource.data.availableSeats is int || request.resource.data.availableSeats is float)
         && request.resource.data.availableSeats > 0
         && request.resource.data.availableSeats <= 8
         && resource.data.status == 'active';
     }
 
-    match /journeys/{journeyId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
-      allow update: if isOwner() && (isCancelUpdate() || isValidEdit());
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.uid ||
-        (resource.data.driverPhone != null && request.auth.token.phone_number == resource.data.driverPhone)
-      );
-    }
-
     function isValidRequest() {
       let d = request.resource.data;
-      return d.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'passengerPhone', 'uid'])
+      return d.keys().hasAll(['passengerName', 'from', 'to', 'departureTime', 'seatsNeeded', 'uid'])
         && d.passengerName is string && d.passengerName.size() > 0
         && d.from is string && d.from.size() > 0
         && d.to is string && d.to.size() > 0
-        && d.passengerPhone is string
-        && d.seatsNeeded is int && d.seatsNeeded > 0 && d.seatsNeeded <= 8
+        && (d.seatsNeeded is int || d.seatsNeeded is float) && d.seatsNeeded > 0 && d.seatsNeeded <= 8
         && d.uid == request.auth.uid;
     }
 
@@ -69,23 +65,19 @@ service cloud.firestore {
         && resource.data.status == 'active';
     }
 
-    function isValidRequestEdit() {
-      let changed = request.resource.data.diff(resource.data).affectedKeys();
-      return changed.hasOnly(['seatsNeeded', 'departureTime', 'returnTime'])
-        && request.resource.data.seatsNeeded is int
-        && request.resource.data.seatsNeeded > 0
-        && request.resource.data.seatsNeeded <= 8
+    function isCompleteRequestUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'completed'
         && resource.data.status == 'active';
     }
 
-    match /requests/{requestId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
-      allow update: if isOwner() && (isCancelRequestUpdate() || isValidRequestEdit());
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.uid ||
-        (resource.data.passengerPhone != null && request.auth.token.phone_number == resource.data.passengerPhone)
-      );
+    function isValidRequestEdit() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['seatsNeeded', 'departureTime', 'returnTime'])
+        && (request.resource.data.seatsNeeded is int || request.resource.data.seatsNeeded is float)
+        && request.resource.data.seatsNeeded > 0
+        && request.resource.data.seatsNeeded <= 8
+        && resource.data.status == 'active';
     }
 
     function isParticipant(chatData) {
@@ -108,12 +100,27 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt']);
     }
 
+    // ── Production collections (no prefix) ──────────────────────────────────
+
+    match /journeys/{journeyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
+      allow update: if isOwner() && (isCancelUpdate() || isCompleteUpdate() || isValidEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    match /requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
+      allow update: if isOwner() && (isCancelRequestUpdate() || isCompleteRequestUpdate() || isValidRequestEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
     match /chats/{chatId} {
       allow read: if resource == null ? isAuthenticated() : isParticipant(resource.data);
       allow create: if isAuthenticated() && isValidNewChat();
       allow update: if isParticipant(resource.data) && isChatMetadataUpdate();
       allow delete: if false;
-
       match /messages/{messageId} {
         allow read: if isParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data);
         allow create: if isAuthenticated()
@@ -136,18 +143,112 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    match /blockedPhones/{phone} {
-      allow read, write: if false;
-    }
-
-    match /announcements/{id} {
-      allow read: if true;
-      allow write: if false;
-    }
-
     match /fcmTokens/{uid} {
       allow read, write: if isAuthenticated() && request.auth.uid == uid;
     }
+
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /userProfiles/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /rideWatches/{watchId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /blocks/{blockId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.blockerUid;
+      allow create: if isAuthenticated() && request.resource.data.blockerUid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /blockedPhones/{phone} { allow read, write: if false; }
+    match /announcements/{id} { allow read: if true; allow write: if false; }
+    match /weeklyStats/{docId} { allow read, write: if false; }
+    match /pageViews/{docId} { allow read, write: if false; }
+
+    // ── Staging collections (staging_ prefix) ───────────────────────────────
+
+    match /staging_journeys/{journeyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidJourney() && !isBlocked();
+      allow update: if isOwner() && (isCancelUpdate() || isCompleteUpdate() || isValidEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    match /staging_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRequest() && !isBlocked();
+      allow update: if isOwner() && (isCancelRequestUpdate() || isCompleteRequestUpdate() || isValidRequestEdit());
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    match /staging_chats/{chatId} {
+      allow read: if resource == null ? isAuthenticated() : isParticipant(resource.data);
+      allow create: if isAuthenticated() && isValidNewChat();
+      allow update: if isParticipant(resource.data) && isChatMetadataUpdate();
+      allow delete: if false;
+      match /messages/{messageId} {
+        allow read: if isParticipant(get(/databases/$(database)/documents/staging_chats/$(chatId)).data);
+        allow create: if isAuthenticated()
+          && isParticipant(get(/databases/$(database)/documents/staging_chats/$(chatId)).data)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasAll(['uid', 'senderName', 'text', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+        allow update, delete: if false;
+      }
+    }
+
+    match /staging_reports/{reportId} {
+      allow read: if false;
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['journeyId', 'reason'])
+        && request.resource.data.journeyId is string
+        && request.resource.data.reason is string;
+      allow update, delete: if false;
+    }
+
+    match /staging_fcmTokens/{uid} {
+      allow read, write: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    match /staging_ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /staging_userProfiles/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /staging_rideWatches/{watchId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /staging_blocks/{blockId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == resource.data.blockerUid;
+      allow create: if isAuthenticated() && request.resource.data.blockerUid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /staging_blockedPhones/{phone} { allow read, write: if false; }
+    match /staging_announcements/{id} { allow read: if true; allow write: if false; }
+    match /staging_weeklyStats/{docId} { allow read, write: if false; }
+    match /staging_pageViews/{docId} { allow read, write: if false; }
+
+    match /pageViews/{docId} { allow read, write: if false; }
 
     match /{document=**} {
       allow read, write: if false;
