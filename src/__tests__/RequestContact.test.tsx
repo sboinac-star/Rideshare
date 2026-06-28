@@ -92,4 +92,12 @@ describe("RequestContact", () => {
     fireEvent.click(screen.getByText("Close"));
     expect(screen.queryByTestId("chat-modal")).not.toBeInTheDocument();
   });
+
+  it("keeps SignInModal open after onSuccess when user is still null", () => {
+    mockUseAuth.mockReturnValue({ user: null, authLoading: false });
+    render(<RequestContact {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /chat with passenger/i }));
+    fireEvent.click(screen.getByText("Success"));
+    expect(screen.getByTestId("sign-in-modal")).toBeInTheDocument();
+  });
 });

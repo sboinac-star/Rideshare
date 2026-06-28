@@ -112,4 +112,14 @@ describe("JourneyContact", () => {
     fireEvent.click(screen.getByText("Close"));
     expect(screen.queryByTestId("chat-modal")).not.toBeInTheDocument();
   });
+
+  it("shows blocked message when user has blocked the driver", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ blocked: true }),
+    }));
+    mockUseAuth.mockReturnValue({ user: mockUser("other-uid"), authLoading: false });
+    render(<JourneyContact {...props} />);
+    await screen.findByText(/you have blocked this driver/i);
+    expect(screen.queryByRole("button", { name: /chat with driver/i })).not.toBeInTheDocument();
+  });
 });

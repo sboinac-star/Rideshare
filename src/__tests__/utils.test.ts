@@ -4,7 +4,9 @@ import {
   formatDateTime,
   isPast,
   isToday,
+  isThisWeekend,
   relativeTime,
+  minDepartureTime,
   shareText,
   shareRequestText,
   whatsappLink,
@@ -77,6 +79,57 @@ describe("isToday", () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     expect(isToday(tomorrow.toISOString())).toBe(false);
+  });
+});
+
+// ─── isThisWeekend ──────────────────────────────────────────────────────────
+
+describe("isThisWeekend", () => {
+  it("returns true for an upcoming Saturday", () => {
+    const sat = new Date();
+    sat.setDate(sat.getDate() + ((6 - sat.getDay() + 7) % 7 || 7));
+    sat.setHours(10, 0, 0, 0);
+    expect(isThisWeekend(sat.toISOString())).toBe(true);
+  });
+
+  it("returns true for an upcoming Sunday", () => {
+    const sun = new Date();
+    sun.setDate(sun.getDate() + ((0 - sun.getDay() + 7) % 7 || 7));
+    sun.setHours(10, 0, 0, 0);
+    expect(isThisWeekend(sun.toISOString())).toBe(true);
+  });
+
+  it("returns false for a past date even if it was a weekend", () => {
+    expect(isThisWeekend("2020-01-04T10:00:00")).toBe(false);
+  });
+
+  it("returns false for a weekday in the future", () => {
+    const weekday = new Date();
+    weekday.setDate(weekday.getDate() + 3);
+    // force to a non-weekend day
+    while (weekday.getDay() === 0 || weekday.getDay() === 6) {
+      weekday.setDate(weekday.getDate() + 1);
+    }
+    weekday.setHours(10, 0, 0, 0);
+    expect(isThisWeekend(weekday.toISOString())).toBe(false);
+  });
+});
+
+// ─── minDepartureTime ────────────────────────────────────────────────────────
+
+describe("minDepartureTime", () => {
+  it("returns a datetime string in YYYY-MM-DDTHH:mm format", () => {
+    const result = minDepartureTime();
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it("returns current time (within 1 minute)", () => {
+    const before = new Date();
+    const result = minDepartureTime();
+    const after = new Date();
+    const parsed = new Date(result);
+    expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime() - 60_000);
+    expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime() + 60_000);
   });
 });
 
