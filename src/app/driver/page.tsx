@@ -448,30 +448,28 @@ export default function DriverPage() {
                 </>
               )}
 
-              <div className="grid md:grid-cols-2 gap-4 items-end">
-                <div>
-                  <DateTimePicker
-                    value={newJourney.departureTime}
-                    onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
-                    minDate={minTime.substring(0, 10)}
-                    minTime={minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                    bufferHours={newJourney.bufferHours}
-                    onBufferChange={(h) => setNewJourney({ ...newJourney, bufferHours: h })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Available Seats</label>
-                  <select
-                    value={newJourney.availableSeats}
-                    onChange={(e) => setNewJourney({ ...newJourney, availableSeats: Number(e.target.value) })}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
-                  </select>
-                </div>
-              </div>
+              <DateTimePicker
+                value={newJourney.departureTime}
+                onChange={(v) => setNewJourney({ ...newJourney, departureTime: v })}
+                minDate={minTime.substring(0, 10)}
+                minTime={minTime.substring(11, 16)}
+                inputClass={inputClass}
+                required
+                bufferHours={newJourney.bufferHours}
+                onBufferChange={(h) => setNewJourney({ ...newJourney, bufferHours: h })}
+                append={
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Available Seats</label>
+                    <select
+                      value={newJourney.availableSeats}
+                      onChange={(e) => setNewJourney({ ...newJourney, availableSeats: Number(e.target.value) })}
+                      className={inputClass}
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
+                    </select>
+                  </div>
+                }
+              />
 
               {/* Round trip only for long-distance — local rides don't need a scheduled return */}
               {tripType === "longdistance" && (

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 // Replaces <input type="datetime-local"> with separate date + time inputs.
 // Value format stays the same: "YYYY-MM-DDTHH:mm" (datetime-local compatible).
 // Pass bufferHours + onBufferChange to show a third "±" column inline.
@@ -14,6 +16,7 @@ type Props = {
   inputClass?: string;
   bufferHours?: number;
   onBufferChange?: (hours: number) => void;
+  append?: ReactNode; // extra column rendered inside the same grid row
 };
 
 const BUFFER_OPTIONS = [
@@ -30,17 +33,20 @@ function combine(date: string, time: string) { return date && time ? `${date}T${
 
 export default function DateTimePicker({
   value, onChange, minDate, minTime, label, required, inputClass = "",
-  bufferHours, onBufferChange,
+  bufferHours, onBufferChange, append,
 }: Props) {
   const date = datePart(value);
   const time = timePart(value);
   const effectiveMinTime = date && minDate && date === minDate ? minTime : undefined;
   const showBuffer = onBufferChange !== undefined;
+  const gridCols = showBuffer
+    ? (append ? "grid-cols-4" : "grid-cols-3")
+    : (append ? "grid-cols-3" : "grid-cols-2");
 
   return (
     <div>
       {label && <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</label>}
-      <div className={`grid gap-2 ${showBuffer ? "grid-cols-3" : "grid-cols-2"}`}>
+      <div className={`grid gap-2 ${gridCols}`}>
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date</label>
           <input
@@ -77,6 +83,7 @@ export default function DateTimePicker({
             </select>
           </div>
         )}
+        {append}
       </div>
     </div>
   );

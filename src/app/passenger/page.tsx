@@ -447,30 +447,28 @@ export default function PassengerPage() {
                 </>
               )}
 
-              <div className="grid md:grid-cols-2 gap-4 items-end">
-                <div>
-                  <DateTimePicker
-                    value={newRequest.departureTime}
-                    onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
-                    minDate={minTime.substring(0, 10)}
-                    minTime={minTime.substring(11, 16)}
-                    inputClass={inputClass}
-                    required
-                    bufferHours={newRequest.bufferHours}
-                    onBufferChange={(h) => setNewRequest({ ...newRequest, bufferHours: h })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Seats Needed</label>
-                  <select
-                    value={newRequest.seatsNeeded}
-                    onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
-                  </select>
-                </div>
-              </div>
+              <DateTimePicker
+                value={newRequest.departureTime}
+                onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
+                minDate={minTime.substring(0, 10)}
+                minTime={minTime.substring(11, 16)}
+                inputClass={inputClass}
+                required
+                bufferHours={newRequest.bufferHours}
+                onBufferChange={(h) => setNewRequest({ ...newRequest, bufferHours: h })}
+                append={
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Seats Needed</label>
+                    <select
+                      value={newRequest.seatsNeeded}
+                      onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
+                      className={inputClass}
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
+                    </select>
+                  </div>
+                }
+              />
 
               {tripType === "longdistance" && (
                 <>
