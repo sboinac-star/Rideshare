@@ -42,8 +42,6 @@ export default function DriverPage() {
     roundTrip: false,
     returnTime: "",
     returnBufferHours: 1,
-    returnRecurring: "none" as "none" | "weekly" | "weekdays",
-    recurring: "none" as "none" | "weekly" | "weekdays",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -94,7 +92,6 @@ export default function DriverPage() {
         returnTime: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnTime : null,
         returnBufferHours: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnBufferHours : null,
         returnEndTime: tripType === "longdistance" && newJourney.roundTrip ? addHours(newJourney.returnTime, newJourney.returnBufferHours) : null,
-        returnRecurring: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnRecurring : null,
         endTime: addHours(newJourney.departureTime, newJourney.bufferHours),
         driverPhone: user!.phoneNumber ?? "",
         uid: user!.uid,
@@ -102,7 +99,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1, returnRecurring: "none", recurring: "none" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1 });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -489,54 +486,22 @@ export default function DriverPage() {
                     <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
                   </label>
                   {newJourney.roundTrip && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
-                        <DateTimePicker
-                          value={newJourney.returnTime}
-                          onChange={(v) => setNewJourney({ ...newJourney, returnTime: v })}
-                          minDate={newJourney.departureTime.substring(0, 10) || minTime.substring(0, 10)}
-                          minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
-                          inputClass={inputClass}
-                          required
-                          bufferHours={newJourney.returnBufferHours}
-                          onBufferChange={(h) => setNewJourney({ ...newJourney, returnBufferHours: h })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Return Repeats</label>
-                        <select
-                          value={newJourney.returnRecurring}
-                          onChange={(e) => setNewJourney({ ...newJourney, returnRecurring: e.target.value as "none" | "weekly" | "weekdays" })}
-                          className={inputClass}
-                        >
-                          <option value="none">One-time return</option>
-                          <option value="weekly">Every week (same day &amp; time)</option>
-                          <option value="weekdays">Every weekday (Mon–Fri)</option>
-                        </select>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
+                      <DateTimePicker
+                        value={newJourney.returnTime}
+                        onChange={(v) => setNewJourney({ ...newJourney, returnTime: v })}
+                        minDate={newJourney.departureTime.substring(0, 10) || minTime.substring(0, 10)}
+                        minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
+                        inputClass={inputClass}
+                        required
+                        bufferHours={newJourney.returnBufferHours}
+                        onBufferChange={(h) => setNewJourney({ ...newJourney, returnBufferHours: h })}
+                      />
                     </div>
                   )}
                 </>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Repeats</label>
-                <select
-                  value={newJourney.recurring}
-                  onChange={(e) => setNewJourney({ ...newJourney, recurring: e.target.value as "none" | "weekly" | "weekdays" })}
-                  className={inputClass}
-                >
-                  <option value="none">One-time ride</option>
-                  <option value="weekly">Every week (same day &amp; time)</option>
-                  <option value="weekdays">Every weekday (Mon–Fri)</option>
-                </select>
-                {newJourney.recurring !== "none" && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    A new copy will be auto-posted after each ride. Cancel anytime from My Rides.
-                  </p>
-                )}
-              </div>
 
               <button
                 type="submit"

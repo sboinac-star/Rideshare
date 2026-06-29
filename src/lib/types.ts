@@ -14,7 +14,6 @@ export interface Journey {
   status: string;
   roundTrip?: boolean;
   returnTime?: string;
-  returnRecurring?: "none" | "weekly" | "weekdays";
   recurring?: "none" | "weekly" | "weekdays";
 }
 
