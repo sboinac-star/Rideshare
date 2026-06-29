@@ -104,6 +104,26 @@ export function shareRequestText(
   return lines.filter(Boolean).join("\n");
 }
 
+export function addHours(dt: string, hours: number): string {
+  const d = new Date(dt);
+  d.setMinutes(d.getMinutes() + hours * 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function formatTimeWindow(centerTime: string, bufferHours: number): string {
+  if (!centerTime) return centerTime;
+  const start = new Date(centerTime);
+  start.setMinutes(start.getMinutes() - bufferHours * 60);
+  const end = new Date(centerTime);
+  end.setMinutes(end.getMinutes() + bufferHours * 60);
+  const dateStr = new Date(centerTime).toLocaleString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+  });
+  const fmt = (d: Date) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${dateStr}, ${fmt(start)} – ${fmt(end)}`;
+}
+
 export function minDepartureTime(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
