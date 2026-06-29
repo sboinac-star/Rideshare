@@ -284,7 +284,7 @@ function Listings({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user
   const [requests, setRequests] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "journey" | "request">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "cancelled">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "cancelled">("all");
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -325,7 +325,7 @@ function Listings({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user
           </button>
         ))}
         <div className="w-px bg-gray-200 mx-1 self-stretch" />
-        {(["all", "active", "cancelled"] as const).map((f) => (
+        {(["all", "active", "completed", "cancelled"] as const).map((f) => (
           <button key={f} onClick={() => setStatusFilter(f)} className={`px-3 py-1 rounded-full text-sm font-medium transition ${statusFilter === f ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
             {f === "all" ? "All status" : f}
           </button>
@@ -345,7 +345,7 @@ function Listings({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-gray-900">{l.from} → {l.to}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{l.status}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.status === "active" ? "bg-green-100 text-green-700" : l.status === "completed" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>{l.status}</span>
                   </div>
                   <p className="text-sm text-gray-600">{name} · {phone}</p>
                   <p className="text-xs text-gray-400">{formatDateTime(l.departureTime)}</p>
