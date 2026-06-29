@@ -9,10 +9,6 @@
     {
       "path": "/api/cron/auto-complete",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/recurring",
-      "schedule": "0 3 * * *"
     }
   ],
   "git": {
