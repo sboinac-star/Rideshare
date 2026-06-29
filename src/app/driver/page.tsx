@@ -41,6 +41,7 @@ export default function DriverPage() {
     availableSeats: 1,
     roundTrip: false,
     returnTime: "",
+    returnBufferHours: 1,
     recurring: "none" as "none" | "weekly" | "weekdays",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
@@ -90,6 +91,8 @@ export default function DriverPage() {
         to: finalTo,
         roundTrip: tripType === "longdistance" ? newJourney.roundTrip : false,
         returnTime: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnTime : null,
+        returnBufferHours: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnBufferHours : null,
+        returnEndTime: tripType === "longdistance" && newJourney.roundTrip ? addHours(newJourney.returnTime, newJourney.returnBufferHours) : null,
         endTime: addHours(newJourney.departureTime, newJourney.bufferHours),
         driverPhone: user!.phoneNumber ?? "",
         uid: user!.uid,
@@ -97,7 +100,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", recurring: "none" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1, recurring: "none" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -493,6 +496,8 @@ export default function DriverPage() {
                         minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
                         inputClass={inputClass}
                         required
+                        bufferHours={newJourney.returnBufferHours}
+                        onBufferChange={(h) => setNewJourney({ ...newJourney, returnBufferHours: h })}
                       />
                     </div>
                   )}

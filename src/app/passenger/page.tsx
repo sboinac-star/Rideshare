@@ -41,6 +41,7 @@ export default function PassengerPage() {
     seatsNeeded: 1,
     roundTrip: false,
     returnTime: "",
+    returnBufferHours: 1,
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -89,13 +90,15 @@ export default function PassengerPage() {
         to: finalTo,
         roundTrip: tripType === "longdistance" ? newRequest.roundTrip : false,
         returnTime: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnTime : null,
+        returnBufferHours: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnBufferHours : null,
+        returnEndTime: tripType === "longdistance" && newRequest.roundTrip ? addHours(newRequest.returnTime, newRequest.returnBufferHours) : null,
         endTime: addHours(newRequest.departureTime, newRequest.bufferHours),
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, seatsNeeded: 1, roundTrip: false, returnTime: "" });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, seatsNeeded: 1, roundTrip: false, returnTime: "", returnBufferHours: 1 });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -490,6 +493,8 @@ export default function PassengerPage() {
                         minTime={newRequest.departureTime.substring(11, 16) || minTime.substring(11, 16)}
                         inputClass={inputClass}
                         required
+                        bufferHours={newRequest.returnBufferHours}
+                        onBufferChange={(h) => setNewRequest({ ...newRequest, returnBufferHours: h })}
                       />
                     </div>
                   )}
