@@ -27,33 +27,33 @@ test.describe("Duration picker on Post Journey (driver)", () => {
 
     const dateInput = page.locator('input[type="date"]').first();
     const timeInput = page.locator('input[type="time"]').first();
-    const forSelect = page.locator('select').filter({ hasText: "+1h" });
+    const forSelect = page.locator('select').filter({ hasText: "±1h" });
 
     await expect(dateInput).toBeVisible();
     await expect(timeInput).toBeVisible();
     await expect(forSelect).toBeVisible();
   });
 
-  test("For dropdown has +1h through +8h options", async ({ page }) => {
+  test("Buffer dropdown has ±30m through ±4h options", async ({ page }) => {
     const hasForm = await waitForForm(page);
     if (!hasForm) { test.skip(); return; }
 
-    const forSelect = page.locator('select').filter({ hasText: "+1h" });
-    await expect(forSelect).toBeVisible();
+    const bufferSelect = page.locator('select').filter({ hasText: "±1h" });
+    await expect(bufferSelect).toBeVisible();
 
-    const options = await forSelect.locator("option").allTextContents();
-    expect(options).toContain("+1h");
-    expect(options).toContain("+2h");
-    expect(options).toContain("+4h");
-    expect(options).toContain("+8h");
+    const options = await bufferSelect.locator("option").allTextContents();
+    expect(options).toContain("±30m");
+    expect(options).toContain("±1h");
+    expect(options).toContain("±2h");
+    expect(options).toContain("±4h");
   });
 
-  test("For dropdown defaults to +2h", async ({ page }) => {
+  test("Buffer dropdown defaults to ±1h", async ({ page }) => {
     const hasForm = await waitForForm(page);
     if (!hasForm) { test.skip(); return; }
 
-    const forSelect = page.locator('select').filter({ hasText: "+1h" });
-    await expect(forSelect).toHaveValue("2");
+    const forSelect = page.locator('select').filter({ hasText: "±1h" });
+    await expect(forSelect).toHaveValue("1");
   });
 
   test("For dropdown is in the same visual row as Date and Time", async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe("Duration picker on Post Journey (driver)", () => {
     if (!hasForm) { test.skip(); return; }
 
     const dateInput = page.locator('input[type="date"]').first();
-    const forSelect = page.locator('select').filter({ hasText: "+1h" });
+    const forSelect = page.locator('select').filter({ hasText: "±1h" });
 
     const dateBox = await dateInput.boundingBox();
     const selectBox = await forSelect.boundingBox();
@@ -91,7 +91,7 @@ test.describe("Duration picker on Request a Ride (passenger)", () => {
 
     const dateInput = page.locator('input[type="date"]').first();
     const timeInput = page.locator('input[type="time"]').first();
-    const forSelect = page.locator('select').filter({ hasText: "+1h" });
+    const forSelect = page.locator('select').filter({ hasText: "±1h" });
 
     await expect(dateInput).toBeVisible();
     await expect(timeInput).toBeVisible();

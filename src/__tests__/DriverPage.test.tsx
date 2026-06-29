@@ -39,6 +39,8 @@ vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.Re
 vi.mock("@/lib/utils", () => ({
   formatDateTime: (s: string) => s,
   formatTimeRange: (s: string) => s,
+  formatTimeWindow: (s: string) => s,
+  addHours: (s: string, _h: number) => s,
   minDepartureTime: () => "2026-01-01T00:00",
   shareText: vi.fn(() => "share text"),
 }));

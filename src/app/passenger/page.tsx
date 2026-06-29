@@ -7,7 +7,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot
 import { locations } from "@/lib/constants";
 import LocationInput from "@/app/LocationInput";
 import DateTimePicker from "@/app/DateTimePicker";
-import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
+import { formatDateTime, formatTimeWindow, addHours, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest, Journey } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -26,7 +26,7 @@ export default function PassengerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", bufferHours: 1, seatsNeeded: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -37,6 +37,7 @@ export default function PassengerPage() {
     pickupAddress: "",
     dropoffAddress: "",
     departureTime: "",
+    bufferHours: 1,
     seatsNeeded: 1,
     roundTrip: false,
     returnTime: "",
@@ -88,12 +89,13 @@ export default function PassengerPage() {
         to: finalTo,
         roundTrip: tripType === "longdistance" ? newRequest.roundTrip : false,
         returnTime: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnTime : null,
+        endTime: addHours(newRequest.departureTime, newRequest.bufferHours),
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "" });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, seatsNeeded: 1, roundTrip: false, returnTime: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -185,6 +187,8 @@ export default function PassengerPage() {
     try {
       await updateDoc(doc(db, col("requests"), requestId), {
         departureTime: editData.departureTime,
+        bufferHours: editData.bufferHours,
+        endTime: addHours(editData.departureTime, editData.bufferHours),
         seatsNeeded: editData.seatsNeeded,
       });
       setEditingId(null);
@@ -449,6 +453,8 @@ export default function PassengerPage() {
                     minTime={minTime.substring(11, 16)}
                     inputClass={inputClass}
                     required
+                    bufferHours={newRequest.bufferHours}
+                    onBufferChange={(h) => setNewRequest({ ...newRequest, bufferHours: h })}
                   />
                 </div>
                 <div>
@@ -530,6 +536,8 @@ export default function PassengerPage() {
                                 value={editData.departureTime}
                                 onChange={(v) => setEditData({ ...editData, departureTime: v })}
                                 inputClass={inputClass}
+                                bufferHours={editData.bufferHours}
+                                onBufferChange={(h) => setEditData({ ...editData, bufferHours: h })}
                               />
                             </div>
                             <div>
@@ -564,7 +572,7 @@ export default function PassengerPage() {
                             <p className="font-semibold text-lg text-gray-900">{req.from} → {req.to}</p>
                             {req.pickupAddress && <p className="text-gray-500 text-xs">From: {req.pickupAddress}</p>}
                             {req.dropoffAddress && <p className="text-gray-500 text-xs">To: {req.dropoffAddress}</p>}
-                            <p className="text-gray-600 text-sm">{formatDateTime(req.departureTime)}</p>
+                            <p className="text-gray-600 text-sm">{req.bufferHours ? formatTimeWindow(req.departureTime, req.bufferHours) : formatDateTime(req.departureTime)}</p>
                             <p className="text-gray-600 text-sm">{req.passengerName} · {req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"} needed</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
@@ -585,7 +593,7 @@ export default function PassengerPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(req.id);
-                                      setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
+                                      setEditData({ departureTime: req.departureTime, bufferHours: req.bufferHours ?? 1, seatsNeeded: req.seatsNeeded });
                                     }}
                                     className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
