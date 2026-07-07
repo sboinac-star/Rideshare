@@ -176,6 +176,7 @@ describe("PassengerPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /post request/i }));
     await fillAndSubmitForm();
     await waitFor(() => expect(screen.getByTestId("completion-modal")).toBeInTheDocument());
+    vi.mocked(getPendingCompletionItems).mockReturnValue([]);
   });
 
   it("renders existing requests", async () => {
@@ -201,6 +202,31 @@ describe("PassengerPage", () => {
     render(<PassengerPage />);
     await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /delete/i })));
     await waitFor(() => expect(mockDeleteDoc).toHaveBeenCalled());
+  });
+
+  it("includes bufferHours and endTime in posted request doc", async () => {
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post request/i }));
+    await fillAndSubmitForm();
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+    const docData = mockAddDoc.mock.calls[0][1];
+    expect(docData).toHaveProperty("bufferHours");
+    expect(docData).toHaveProperty("endTime");
+    expect(typeof docData.bufferHours).toBe("number");
+  });
+
+  it("renders buffer select (±) in the departure DateTimePicker", async () => {
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post request/i }));
+    const selects = screen.getAllByRole("combobox");
+    const bufferSelect = selects.find((s) =>
+      Array.from(s.querySelectorAll("option")).some((o) => o.textContent?.includes("±"))
+    );
+    expect(bufferSelect).toBeDefined();
   });
 
   it("prevents duplicate request", async () => {

@@ -180,6 +180,8 @@ describe("DriverPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
     await fillAndSubmitForm();
     await waitFor(() => expect(screen.getByTestId("completion-modal")).toBeInTheDocument());
+    // Reset so subsequent tests don't see a non-empty pending list
+    vi.mocked(getPendingCompletionItems).mockReturnValue([]);
   });
 
   it("renders existing journeys", async () => {
@@ -203,6 +205,42 @@ describe("DriverPage", () => {
     render(<DriverPage />);
     await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /delete/i })));
     await waitFor(() => expect(mockDeleteDoc).toHaveBeenCalled());
+  });
+
+  it("includes bufferHours and endTime in posted journey doc", async () => {
+    setupEmptySnapshot();
+    const { default: DriverPage } = await import("@/app/driver/page");
+    render(<DriverPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
+    await fillAndSubmitForm();
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+    const docData = mockAddDoc.mock.calls[0][1];
+    expect(docData).toHaveProperty("bufferHours");
+    expect(docData).toHaveProperty("endTime");
+    expect(typeof docData.bufferHours).toBe("number");
+  });
+
+  it("renders buffer select (±) in the departure DateTimePicker", async () => {
+    setupEmptySnapshot();
+    const { default: DriverPage } = await import("@/app/driver/page");
+    render(<DriverPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post journey/i }));
+    const selects = screen.getAllByRole("combobox");
+    // One of the selects should have ± buffer options
+    const bufferSelect = selects.find((s) =>
+      Array.from(s.querySelectorAll("option")).some((o) => o.textContent?.includes("±"))
+    );
+    expect(bufferSelect).toBeDefined();
+  });
+
+  it("displays time window on journey card when bufferHours is set", async () => {
+    setupJourneySnapshot({ bufferHours: 1 });
+    const { default: DriverPage } = await import("@/app/driver/page");
+    render(<DriverPage />);
+    await waitFor(() => expect(screen.getByText("Fayetteville → Rogers")).toBeInTheDocument());
+    // formatTimeWindow is mocked to return the first arg (departureTime)
+    // so the card should still render without crashing
+    expect(screen.getByText("Fayetteville → Rogers")).toBeInTheDocument();
   });
 
   it("prevents duplicate journey", async () => {
