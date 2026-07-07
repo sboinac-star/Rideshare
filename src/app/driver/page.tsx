@@ -7,7 +7,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot
 import { locations } from "@/lib/constants";
 import LocationInput from "@/app/LocationInput";
 import DateTimePicker from "@/app/DateTimePicker";
-import { formatDateTime, minDepartureTime, shareText } from "@/lib/utils";
+import { formatDateTime, formatTimeWindow, addHours, minDepartureTime, shareText } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -26,7 +26,7 @@ export default function DriverPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", availableSeats: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", bufferHours: 1, availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -38,8 +38,10 @@ export default function DriverPage() {
     dropoffAddress: "",
     departureTime: "",
     availableSeats: 1,
+    bufferHours: 1,
     roundTrip: false,
     returnTime: "",
+    returnBufferHours: 1,
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -86,15 +88,18 @@ export default function DriverPage() {
         ...newJourney,
         from: finalFrom,
         to: finalTo,
+        endTime: addHours(newJourney.departureTime, newJourney.bufferHours),
         roundTrip: tripType === "longdistance" ? newJourney.roundTrip : false,
         returnTime: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnTime : null,
+        returnBufferHours: tripType === "longdistance" && newJourney.roundTrip ? newJourney.returnBufferHours : null,
+        returnEndTime: tripType === "longdistance" && newJourney.roundTrip ? addHours(newJourney.returnTime, newJourney.returnBufferHours) : null,
         driverPhone: user!.phoneNumber ?? "",
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", availableSeats: 1, roundTrip: false, returnTime: "" });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1 });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -190,6 +195,8 @@ export default function DriverPage() {
       await updateDoc(doc(db, col("journeys"), journeyId), {
         departureTime: editData.departureTime,
         availableSeats: editData.availableSeats,
+        bufferHours: editData.bufferHours,
+        endTime: addHours(editData.departureTime, editData.bufferHours),
       });
       setEditingId(null);
       toast("Journey updated.");
@@ -451,6 +458,8 @@ export default function DriverPage() {
                 minTime={minTime.substring(11, 16)}
                 inputClass={inputClass}
                 required
+                bufferHours={newJourney.bufferHours}
+                onBufferChange={(h) => setNewJourney({ ...newJourney, bufferHours: h })}
                 append={
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Available Seats</label>
@@ -487,6 +496,8 @@ export default function DriverPage() {
                         minTime={newJourney.departureTime.substring(11, 16) || minTime.substring(11, 16)}
                         inputClass={inputClass}
                         required
+                        bufferHours={newJourney.returnBufferHours}
+                        onBufferChange={(h) => setNewJourney({ ...newJourney, returnBufferHours: h })}
                       />
                     </div>
                   )}
@@ -533,6 +544,8 @@ export default function DriverPage() {
                                 value={editData.departureTime}
                                 onChange={(v) => setEditData({ ...editData, departureTime: v })}
                                 inputClass={inputClass}
+                                bufferHours={editData.bufferHours}
+                                onBufferChange={(h) => setEditData({ ...editData, bufferHours: h })}
                               />
                             </div>
                             <div>
@@ -567,7 +580,7 @@ export default function DriverPage() {
                             <p className="font-semibold text-lg text-gray-900">{journey.from} → {journey.to}</p>
                             {journey.pickupAddress && <p className="text-gray-500 text-xs">From: {journey.pickupAddress}</p>}
                             {journey.dropoffAddress && <p className="text-gray-500 text-xs">To: {journey.dropoffAddress}</p>}
-                            <p className="text-gray-600 text-sm">{formatDateTime(journey.departureTime)}</p>
+                            <p className="text-gray-600 text-sm">{journey.bufferHours ? formatTimeWindow(journey.departureTime, journey.bufferHours) : formatDateTime(journey.departureTime)}</p>
                             <p className="text-gray-600 text-sm">{journey.driverName} · {journey.availableSeats} seats available</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
@@ -588,7 +601,7 @@ export default function DriverPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(journey.id);
-                                      setEditData({ departureTime: journey.departureTime, availableSeats: journey.availableSeats });
+                                      setEditData({ departureTime: journey.departureTime, availableSeats: journey.availableSeats, bufferHours: journey.bufferHours ?? 1 });
                                     }}
                                     className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
