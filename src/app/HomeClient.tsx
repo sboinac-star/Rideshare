@@ -5,7 +5,7 @@ import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
+import { formatDateTime, formatTimeWindow, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -650,7 +650,9 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                               </div>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
                                 {journey.pickupAddress && <span className="text-xs text-gray-500">📍 {journey.pickupAddress}</span>}
-                                <span className="text-xs text-gray-500">{formatDateTime(journey.departureTime)}</span>
+                                <span className="text-xs text-gray-500">
+                                  {journey.bufferHours ? formatTimeWindow(journey.departureTime, journey.bufferHours) : formatDateTime(journey.departureTime)}
+                                </span>
                                 {relativeTime(journey.departureTime) && (
                                   <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{relativeTime(journey.departureTime)}</span>
                                 )}
@@ -756,7 +758,9 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                               </div>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
                                 {req.pickupAddress && <span className="text-xs text-gray-500">📍 {req.pickupAddress}</span>}
-                                <span className="text-xs text-gray-500">{formatDateTime(req.departureTime)}</span>
+                                <span className="text-xs text-gray-500">
+                                  {req.bufferHours ? formatTimeWindow(req.departureTime, req.bufferHours) : formatDateTime(req.departureTime)}
+                                </span>
                                 {relativeTime(req.departureTime) && (
                                   <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{relativeTime(req.departureTime)}</span>
                                 )}

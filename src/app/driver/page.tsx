@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
@@ -43,6 +43,7 @@ export default function DriverPage() {
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
+  const resolvedRouteRef = useRef({ from: "", to: "" });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
   const [nameError, setNameError] = useState("");
@@ -78,8 +79,7 @@ export default function DriverPage() {
   }, [user]);
 
   const doPostJourney = async () => {
-    const finalFrom = tripType === "local" ? localCity : newJourney.from;
-    const finalTo = tripType === "local" ? localCity : newJourney.to;
+    const { from: finalFrom, to: finalTo } = resolvedRouteRef.current;
     setSubmitting(true);
     try {
       const ref = await addDoc(collection(db, col("journeys")), {
@@ -128,8 +128,11 @@ export default function DriverPage() {
       return;
     }
 
-    const finalFrom = tripType === "local" ? localCity : newJourney.from;
-    const finalTo = tripType === "local" ? localCity : newJourney.to;
+    resolvedRouteRef.current = {
+      from: tripType === "local" ? localCity : newJourney.from,
+      to: tripType === "local" ? localCity : newJourney.to,
+    };
+    const { from: finalFrom, to: finalTo } = resolvedRouteRef.current;
 
     const isDuplicate = journeys.some(
       (j) => j.status === "active" && j.from === finalFrom &&

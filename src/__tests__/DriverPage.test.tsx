@@ -38,7 +38,6 @@ vi.mock("@/app/CompletionPromptModal", () => ({
 vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 vi.mock("@/lib/utils", () => ({
   formatDateTime: (s: string) => s,
-  formatTimeRange: (s: string) => s,
   formatTimeWindow: (s: string) => s,
   addHours: (s: string, _h: number) => s,
   minDepartureTime: () => "2026-01-01T00:00",
