@@ -13,6 +13,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
+import CancelModal from "@/app/CancelModal";
 
 export default function PassengerPage() {
   const toast = useToast();
@@ -29,6 +30,7 @@ export default function PassengerPage() {
   const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1, bufferHours: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
 
   const [newRequest, setNewRequest] = useState({
     passengerName: "",
@@ -157,13 +159,14 @@ export default function PassengerPage() {
     await doPostRequest();
   };
 
-  const handleCancelRequest = async (requestId: string) => {
-    if (!confirm("Are you sure you want to cancel this request?")) return;
+  const handleCancelRequest = async (requestId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("requests"), requestId), { status: "cancelled" });
+      await updateDoc(doc(db, col("requests"), requestId), { status: "cancelled", cancelReason: reason });
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -241,6 +244,13 @@ export default function PassengerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {cancelTarget && (
+        <CancelModal
+          listingType="request"
+          onConfirm={(reason) => handleCancelRequest(cancelTarget, reason)}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
       {showCompletionPrompt && pendingItems.length > 0 && (
         <CompletionPromptModal
           items={pendingItems}
@@ -607,7 +617,7 @@ export default function PassengerPage() {
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleCancelRequest(req.id)}
+                                    onClick={() => setCancelTarget(req.id)}
                                     className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Cancel

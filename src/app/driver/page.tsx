@@ -13,6 +13,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
+import CancelModal from "@/app/CancelModal";
 
 export default function DriverPage() {
   const toast = useToast();
@@ -29,6 +30,7 @@ export default function DriverPage() {
   const [editData, setEditData] = useState({ departureTime: "", bufferHours: 1, availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
 
   const [newJourney, setNewJourney] = useState({
     driverName: "",
@@ -157,13 +159,14 @@ export default function DriverPage() {
     await doPostJourney();
   };
 
-  const handleCancelJourney = async (journeyId: string) => {
-    if (!confirm("Are you sure you want to cancel this journey?")) return;
+  const handleCancelJourney = async (journeyId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled", cancelReason: reason });
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -241,6 +244,13 @@ export default function DriverPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {cancelTarget && (
+        <CancelModal
+          listingType="journey"
+          onConfirm={(reason) => handleCancelJourney(cancelTarget, reason)}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
       {showCompletionPrompt && pendingItems.length > 0 && (
         <CompletionPromptModal
           items={pendingItems}
@@ -608,7 +618,7 @@ export default function DriverPage() {
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleCancelJourney(journey.id)}
+                                    onClick={() => setCancelTarget(journey.id)}
                                     className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Cancel

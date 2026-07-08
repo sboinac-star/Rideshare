@@ -195,8 +195,14 @@ describe("DriverPage", () => {
     setupJourneySnapshot();
     const { default: DriverPage } = await import("@/app/driver/page");
     render(<DriverPage />);
-    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /cancel/i })));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "cancelled" }));
+    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /^cancel$/i })));
+    // CancelModal appears — select a reason then confirm
+    const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel journey" }).closest("div")!.parentElement!);
+    fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel journey/i }));
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
+      { col: "journeys", id: "j1" }, { status: "cancelled", cancelReason: "Plans changed" }
+    ));
   });
 
   it("deletes a journey", async () => {

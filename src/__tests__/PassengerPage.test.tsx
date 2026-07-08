@@ -190,9 +190,13 @@ describe("PassengerPage", () => {
     setupRequestSnapshot();
     const { default: PassengerPage } = await import("@/app/passenger/page");
     render(<PassengerPage />);
-    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /cancel/i })));
+    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /^cancel$/i })));
+    // CancelModal appears — select a reason then confirm
+    const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel request" }).closest("div")!.parentElement!);
+    fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel request/i }));
     await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-      { col: "requests", id: "r1" }, { status: "cancelled" }
+      { col: "requests", id: "r1" }, { status: "cancelled", cancelReason: "Plans changed" }
     ));
   });
 
