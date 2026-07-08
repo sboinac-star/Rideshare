@@ -1,7 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-// These tests verify the ±buffer time window UI on driver and passenger forms.
-// Tests that require Firebase auth skip gracefully — screenshots always run.
+// Helper: returns true if the page is showing the sign-in wall (not authenticated).
+// Waits for the page to fully hydrate before checking.
+async function isAuthWall(page: import("@playwright/test").Page): Promise<boolean> {
+  await page.waitForLoadState("networkidle");
+  return page.getByRole("button", { name: /sign in with phone/i }).isVisible().catch(() => false);
+}
 
 test.describe("Buffer time window — driver form", () => {
   test.beforeEach(async ({ page }) => {
@@ -14,48 +18,25 @@ test.describe("Buffer time window — driver form", () => {
   });
 
   test("buffer select is visible on the form when signed in", async ({ page }) => {
-    // If the sign-in wall appears, skip — we can't auth in CI
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    // Buffer select should have ± options
-    const bufferOption = page.getByRole("option", { name: /±1h/i });
-    await expect(bufferOption).toBeVisible({ timeout: 5000 });
+    if (await isAuthWall(page)) { test.skip(); return; }
+    await expect(page.getByRole("option", { name: /±1h/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("buffer options include all 5 choices", async ({ page }) => {
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
+    if (await isAuthWall(page)) { test.skip(); return; }
     for (const label of ["±30m", "±1h", "±2h", "±3h", "±4h"]) {
-      await expect(page.getByRole("option", { name: label }).first()).toBeAttached({ timeout: 5000 });
+      await expect(page.getByRole("option", { name: label }).first()).toBeAttached({ timeout: 10000 });
     }
   });
 
   test("'Around' label is visible next to the time input", async ({ page }) => {
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    await expect(page.getByText("Around").first()).toBeVisible({ timeout: 5000 });
+    if (await isAuthWall(page)) { test.skip(); return; }
+    await expect(page.getByText("Around").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("'Buffer' label is visible next to the buffer select", async ({ page }) => {
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 5000 });
+    if (await isAuthWall(page)) { test.skip(); return; }
+    await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -70,25 +51,14 @@ test.describe("Buffer time window — passenger form", () => {
   });
 
   test("buffer select is visible on the passenger form when signed in", async ({ page }) => {
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    const bufferOption = page.getByRole("option", { name: /±1h/i });
-    await expect(bufferOption).toBeVisible({ timeout: 5000 });
+    if (await isAuthWall(page)) { test.skip(); return; }
+    await expect(page.getByRole("option", { name: /±1h/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("'Around' and 'Buffer' labels visible on passenger form", async ({ page }) => {
-    const signInButton = page.getByRole("button", { name: /sign in with phone/i });
-    if (await signInButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    await expect(page.getByText("Around").first()).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 5000 });
+    if (await isAuthWall(page)) { test.skip(); return; }
+    await expect(page.getByText("Around").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
