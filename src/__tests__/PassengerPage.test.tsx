@@ -38,6 +38,8 @@ vi.mock("@/app/CompletionPromptModal", () => ({
 vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 vi.mock("@/lib/utils", () => ({
   formatDateTime: (s: string) => s,
+  formatTimeWindow: (s: string) => s,
+  addHours: (s: string, _h: number) => s,
   minDepartureTime: () => "2026-01-01T00:00",
   shareRequestText: vi.fn(() => "share request text"),
 }));
@@ -95,8 +97,10 @@ async function fillAndSubmitForm(departureTime = future) {
   const toSelect = screen.getAllByRole("combobox")[1];
   fireEvent.change(toSelect, { target: { value: "Fayetteville" } });
 
-  const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-  fireEvent.change(timeInput, { target: { value: departureTime } });
+  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+  const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+  fireEvent.change(dateInput, { target: { value: departureTime.substring(0, 10) } });
+  fireEvent.change(timeInput, { target: { value: departureTime.substring(11, 16) } });
 
   fireEvent.submit(document.querySelector("form")!);
 }
@@ -172,6 +176,7 @@ describe("PassengerPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /post request/i }));
     await fillAndSubmitForm();
     await waitFor(() => expect(screen.getByTestId("completion-modal")).toBeInTheDocument());
+    vi.mocked(getPendingCompletionItems).mockReturnValue([]);
   });
 
   it("renders existing requests", async () => {
@@ -199,6 +204,31 @@ describe("PassengerPage", () => {
     await waitFor(() => expect(mockDeleteDoc).toHaveBeenCalled());
   });
 
+  it("includes bufferHours and endTime in posted request doc", async () => {
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post request/i }));
+    await fillAndSubmitForm();
+    await waitFor(() => expect(mockAddDoc).toHaveBeenCalled());
+    const docData = mockAddDoc.mock.calls[0][1];
+    expect(docData).toHaveProperty("bufferHours");
+    expect(docData).toHaveProperty("endTime");
+    expect(typeof docData.bufferHours).toBe("number");
+  });
+
+  it("renders buffer select (±) in the departure DateTimePicker", async () => {
+    setupEmptySnapshot();
+    const { default: PassengerPage } = await import("@/app/passenger/page");
+    render(<PassengerPage />);
+    await waitFor(() => screen.getByRole("button", { name: /post request/i }));
+    const selects = screen.getAllByRole("combobox");
+    const bufferSelect = selects.find((s) =>
+      Array.from(s.querySelectorAll("option")).some((o) => o.textContent?.includes("±"))
+    );
+    expect(bufferSelect).toBeDefined();
+  });
+
   it("prevents duplicate request", async () => {
     // Snapshot with Bentonville → Fayetteville to match what we fill in the form
     setupRequestSnapshot({ from: "Bentonville", to: "Fayetteville", departureTime: future });
@@ -212,8 +242,10 @@ describe("PassengerPage", () => {
     fireEvent.change(fromSelect, { target: { value: "Bentonville" } });
     const toSelect = screen.getAllByRole("combobox")[1];
     fireEvent.change(toSelect, { target: { value: "Fayetteville" } });
-    const timeInput = document.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-    fireEvent.change(timeInput, { target: { value: future } });
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: future.substring(0, 10) } });
+    fireEvent.change(timeInput, { target: { value: future.substring(11, 16) } });
     fireEvent.submit(document.querySelector("form")!);
 
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith(

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { locations } from "@/lib/constants";
-import { formatDateTime, minDepartureTime, shareRequestText } from "@/lib/utils";
+import LocationInput from "@/app/LocationInput";
+import DateTimePicker from "@/app/DateTimePicker";
+import { formatDateTime, formatTimeWindow, addHours, minDepartureTime, shareRequestText } from "@/lib/utils";
 import { RideRequest, Journey } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
@@ -24,7 +26,7 @@ export default function PassengerPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1 });
+  const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1, bufferHours: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -38,7 +40,12 @@ export default function PassengerPage() {
     seatsNeeded: 1,
     roundTrip: false,
     returnTime: "",
+    bufferHours: 1,
+    returnBufferHours: 1,
   });
+  const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
+  const [localCity, setLocalCity] = useState("");
+  const resolvedRouteRef = useRef({ from: "", to: "" });
   const [fromCustom, setFromCustom] = useState(false);
   const [toCustom, setToCustom] = useState(false);
   const [nameError, setNameError] = useState("");
@@ -74,16 +81,25 @@ export default function PassengerPage() {
   }, [user]);
 
   const doPostRequest = async () => {
+    const { from: finalFrom, to: finalTo } = resolvedRouteRef.current;
     setSubmitting(true);
     try {
       const ref = await addDoc(collection(db, col("requests")), {
         ...newRequest,
+        from: finalFrom,
+        to: finalTo,
+        roundTrip: tripType === "longdistance" ? newRequest.roundTrip : false,
+        returnTime: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnTime : null,
+        bufferHours: newRequest.bufferHours,
+        endTime: addHours(newRequest.departureTime, newRequest.bufferHours),
+        returnBufferHours: tripType === "longdistance" && newRequest.roundTrip ? newRequest.returnBufferHours : null,
+        returnEndTime: tripType === "longdistance" && newRequest.roundTrip ? addHours(newRequest.returnTime, newRequest.returnBufferHours) : null,
         uid: user!.uid,
         status: "active",
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "" });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "", bufferHours: 1, returnBufferHours: 1 });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -102,19 +118,36 @@ export default function PassengerPage() {
     if (!user) { setShowSignIn(true); return; }
     const err = validateName(newRequest.passengerName);
     setNameError(err);
-    if (err || !newRequest.from || !newRequest.to || !newRequest.departureTime) return;
+    if (err || !newRequest.departureTime) return;
+
+    if (tripType === "local") {
+      if (!localCity) { toast("Please select a city for the local ride.", "error"); return; }
+      if (!newRequest.pickupAddress.trim()) { toast("Pickup location is required for local rides.", "error"); return; }
+      if (!newRequest.dropoffAddress.trim()) { toast("Dropoff location is required for local rides.", "error"); return; }
+    } else {
+      if (!newRequest.from || !newRequest.to) return;
+    }
+
     if (new Date(newRequest.departureTime) <= new Date()) {
       toast("Travel time must be in the future.", "error");
       return;
     }
+
+    resolvedRouteRef.current = {
+      from: tripType === "local" ? localCity : newRequest.from,
+      to: tripType === "local" ? localCity : newRequest.to,
+    };
+    const { from: finalFrom, to: finalTo } = resolvedRouteRef.current;
+
     const isDuplicate = requests.some(
-      (r) => r.status === "active" && r.from === newRequest.from &&
-             r.to === newRequest.to && r.departureTime === newRequest.departureTime
+      (r) => r.status === "active" && r.from === finalFrom &&
+             r.to === finalTo && r.departureTime === newRequest.departureTime
     );
     if (isDuplicate) {
       toast("You already have an active request with the same route and time.", "error");
       return;
     }
+
     const pending = getPendingCompletionItems(myJourneys, requests);
     if (pending.length > 0) {
       setPendingSubmit(true);
@@ -162,6 +195,8 @@ export default function PassengerPage() {
       await updateDoc(doc(db, col("requests"), requestId), {
         departureTime: editData.departureTime,
         seatsNeeded: editData.seatsNeeded,
+        bufferHours: editData.bufferHours,
+        endTime: addHours(editData.departureTime, editData.bufferHours),
       });
       setEditingId(null);
       toast("Request updated.");
@@ -243,6 +278,38 @@ export default function PassengerPage() {
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-5 sm:p-8 mb-10">
             <form onSubmit={handlePostRequest} className="space-y-4">
+
+              {/* Trip Type Toggle */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTripType("longdistance")}
+                  className={`flex flex-col items-center gap-1 py-3 px-4 rounded-xl border-2 transition text-sm font-semibold ${
+                    tripType === "longdistance"
+                      ? "border-purple-600 bg-purple-50 text-purple-700"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-xl">🗺️</span>
+                  Long Distance
+                  <span className="text-xs font-normal text-gray-400">Different cities</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTripType("local")}
+                  className={`flex flex-col items-center gap-1 py-3 px-4 rounded-xl border-2 transition text-sm font-semibold ${
+                    tripType === "local"
+                      ? "border-green-600 bg-green-50 text-green-700"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span className="text-xl">📍</span>
+                  Local Ride
+                  <span className="text-xs font-normal text-gray-400">Within same city</span>
+                </button>
+              </div>
+
+              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
                 <input
@@ -260,136 +327,180 @@ export default function PassengerPage() {
                 {nameError && <p className="text-red-500 text-xs mt-1">{nameError}</p>}
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                  <select
-                    value={fromCustom ? "Other" : newRequest.from}
-                    onChange={(e) => {
-                      if (e.target.value === "Other") { setFromCustom(true); setNewRequest({ ...newRequest, from: "" }); }
-                      else { setFromCustom(false); setNewRequest({ ...newRequest, from: e.target.value }); }
-                    }}
-                    className={inputClass}
-                    required={!fromCustom}
-                  >
-                    <option value="">Select departure location</option>
-                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                    <option value="Other">Other (enter manually)</option>
-                  </select>
-                  {fromCustom && (
+              {tripType === "local" ? (
+                /* ── LOCAL RIDE FIELDS ── */
+                <>
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-800">
+                    🏙️ Local ride — looking for a ride within the same city. Specific pickup and dropoff help drivers find you easily.
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                     <input
                       type="text"
-                      value={newRequest.from}
-                      onChange={(e) => setNewRequest({ ...newRequest, from: e.target.value })}
-                      placeholder="Enter departure city"
-                      className={`mt-2 ${inputClass}`}
+                      value={localCity}
+                      onChange={(e) => setLocalCity(e.target.value)}
+                      placeholder="e.g. Bentonville, Fayetteville, Rogers…"
+                      className={inputClass}
                       required
-                      autoFocus
                     />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                  <select
-                    value={toCustom ? "Other" : newRequest.to}
-                    onChange={(e) => {
-                      if (e.target.value === "Other") { setToCustom(true); setNewRequest({ ...newRequest, to: "" }); }
-                      else { setToCustom(false); setNewRequest({ ...newRequest, to: e.target.value }); }
-                    }}
-                    className={inputClass}
-                    required={!toCustom}
-                  >
-                    <option value="">Select destination</option>
-                    {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
-                    <option value="Other">Other (enter manually)</option>
-                  </select>
-                  {toCustom && (
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location <span className="text-red-500">*</span></label>
+                    <LocationInput
+                      value={newRequest.pickupAddress}
+                      onChange={(v) => setNewRequest({ ...newRequest, pickupAddress: v })}
+                      placeholder="Start typing an address or landmark…"
+                      cityHint={localCity}
+                      inputClass={inputClass}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Location <span className="text-red-500">*</span></label>
+                    <LocationInput
+                      value={newRequest.dropoffAddress}
+                      onChange={(v) => setNewRequest({ ...newRequest, dropoffAddress: v })}
+                      placeholder="Start typing an address or landmark…"
+                      cityHint={localCity}
+                      inputClass={inputClass}
+                      required
+                    />
+                  </div>
+                </>
+              ) : (
+                /* ── LONG DISTANCE FIELDS ── */
+                <>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                      <select
+                        value={fromCustom ? "Other" : newRequest.from}
+                        onChange={(e) => {
+                          if (e.target.value === "Other") { setFromCustom(true); setNewRequest({ ...newRequest, from: "" }); }
+                          else { setFromCustom(false); setNewRequest({ ...newRequest, from: e.target.value }); }
+                        }}
+                        className={inputClass}
+                        required={!fromCustom}
+                      >
+                        <option value="">Select departure city</option>
+                        {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                        <option value="Other">Other (enter manually)</option>
+                      </select>
+                      {fromCustom && (
+                        <input
+                          type="text"
+                          value={newRequest.from}
+                          onChange={(e) => setNewRequest({ ...newRequest, from: e.target.value })}
+                          placeholder="Enter departure city"
+                          className={`mt-2 ${inputClass}`}
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                      <select
+                        value={toCustom ? "Other" : newRequest.to}
+                        onChange={(e) => {
+                          if (e.target.value === "Other") { setToCustom(true); setNewRequest({ ...newRequest, to: "" }); }
+                          else { setToCustom(false); setNewRequest({ ...newRequest, to: e.target.value }); }
+                        }}
+                        className={inputClass}
+                        required={!toCustom}
+                      >
+                        <option value="">Select destination</option>
+                        {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                        <option value="Other">Other (enter manually)</option>
+                      </select>
+                      {toCustom && (
+                        <input
+                          type="text"
+                          value={newRequest.to}
+                          onChange={(e) => setNewRequest({ ...newRequest, to: e.target.value })}
+                          placeholder="Enter destination city"
+                          className={`mt-2 ${inputClass}`}
+                          required
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={newRequest.pickupAddress}
+                        onChange={(e) => setNewRequest({ ...newRequest, pickupAddress: e.target.value })}
+                        placeholder="e.g. 123 Main St, near Walmart"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={newRequest.dropoffAddress}
+                        onChange={(e) => setNewRequest({ ...newRequest, dropoffAddress: e.target.value })}
+                        placeholder="e.g. XNA Airport, Terminal A"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <DateTimePicker
+                value={newRequest.departureTime}
+                onChange={(v) => setNewRequest({ ...newRequest, departureTime: v })}
+                minDate={minTime.substring(0, 10)}
+                minTime={minTime.substring(11, 16)}
+                inputClass={inputClass}
+                required
+                bufferHours={newRequest.bufferHours}
+                onBufferChange={(h) => setNewRequest({ ...newRequest, bufferHours: h })}
+                append={
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Seats Needed</label>
+                    <select
+                      value={newRequest.seatsNeeded}
+                      onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
+                      className={inputClass}
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
+                    </select>
+                  </div>
+                }
+              />
+
+              {tripType === "longdistance" && (
+                <>
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
                     <input
-                      type="text"
-                      value={newRequest.to}
-                      onChange={(e) => setNewRequest({ ...newRequest, to: e.target.value })}
-                      placeholder="Enter destination city"
-                      className={`mt-2 ${inputClass}`}
-                      required
-                      autoFocus
+                      type="checkbox"
+                      checked={newRequest.roundTrip}
+                      onChange={(e) => setNewRequest({ ...newRequest, roundTrip: e.target.checked, returnTime: "" })}
+                      className="w-4 h-4 accent-purple-600"
                     />
+                    <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
+                  </label>
+                  {newRequest.roundTrip && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
+                      <DateTimePicker
+                        value={newRequest.returnTime}
+                        onChange={(v) => setNewRequest({ ...newRequest, returnTime: v })}
+                        minDate={newRequest.departureTime.substring(0, 10) || minTime.substring(0, 10)}
+                        minTime={newRequest.departureTime.substring(11, 16) || minTime.substring(11, 16)}
+                        inputClass={inputClass}
+                        required
+                        bufferHours={newRequest.returnBufferHours}
+                        onBufferChange={(h) => setNewRequest({ ...newRequest, returnBufferHours: h })}
+                      />
+                    </div>
                   )}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Address <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input
-                    type="text"
-                    value={newRequest.pickupAddress}
-                    onChange={(e) => setNewRequest({ ...newRequest, pickupAddress: e.target.value })}
-                    placeholder="e.g. 123 Main St, near Walmart"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dropoff Address <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input
-                    type="text"
-                    value={newRequest.dropoffAddress}
-                    onChange={(e) => setNewRequest({ ...newRequest, dropoffAddress: e.target.value })}
-                    placeholder="e.g. XNA Airport, Terminal A"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Travel Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={newRequest.departureTime}
-                    min={minTime}
-                    onChange={(e) => setNewRequest({ ...newRequest, departureTime: e.target.value })}
-                    className={inputClass}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Seats Needed</label>
-                  <select
-                    value={newRequest.seatsNeeded}
-                    onChange={(e) => setNewRequest({ ...newRequest, seatsNeeded: Number(e.target.value) })}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {n === 1 ? "seat" : "seats"}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={newRequest.roundTrip}
-                  onChange={(e) => setNewRequest({
-                    ...newRequest,
-                    roundTrip: e.target.checked,
-                    returnTime: "",
-                  })}
-                  className="w-4 h-4 accent-purple-600"
-                />
-                <span className="text-sm text-gray-700">Round trip — I also need a return ride</span>
-              </label>
-
-              {newRequest.roundTrip && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Return Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={newRequest.returnTime}
-                    min={newRequest.departureTime || minTime}
-                    onChange={(e) => setNewRequest({ ...newRequest, returnTime: e.target.value })}
-                    className={inputClass}
-                    required
-                  />
-                </div>
+                </>
               )}
 
               <button
@@ -428,11 +539,12 @@ export default function PassengerPage() {
                           <div className="grid sm:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Travel Date & Time</label>
-                              <input
-                                type="datetime-local"
+                              <DateTimePicker
                                 value={editData.departureTime}
-                                onChange={(e) => setEditData({ ...editData, departureTime: e.target.value })}
-                                className={inputClass}
+                                onChange={(v) => setEditData({ ...editData, departureTime: v })}
+                                inputClass={inputClass}
+                                bufferHours={editData.bufferHours}
+                                onBufferChange={(h) => setEditData({ ...editData, bufferHours: h })}
                               />
                             </div>
                             <div>
@@ -467,7 +579,7 @@ export default function PassengerPage() {
                             <p className="font-semibold text-lg text-gray-900">{req.from} → {req.to}</p>
                             {req.pickupAddress && <p className="text-gray-500 text-xs">From: {req.pickupAddress}</p>}
                             {req.dropoffAddress && <p className="text-gray-500 text-xs">To: {req.dropoffAddress}</p>}
-                            <p className="text-gray-600 text-sm">{formatDateTime(req.departureTime)}</p>
+                            <p className="text-gray-600 text-sm">{req.bufferHours ? formatTimeWindow(req.departureTime, req.bufferHours) : formatDateTime(req.departureTime)}</p>
                             <p className="text-gray-600 text-sm">{req.passengerName} · {req.seatsNeeded} {req.seatsNeeded === 1 ? "seat" : "seats"} needed</p>
                           </div>
                           <div className="flex flex-col items-end gap-2">
@@ -488,7 +600,7 @@ export default function PassengerPage() {
                                   <button
                                     onClick={() => {
                                       setEditingId(req.id);
-                                      setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded });
+                                      setEditData({ departureTime: req.departureTime, seatsNeeded: req.seatsNeeded, bufferHours: req.bufferHours ?? 1 });
                                     }}
                                     className="text-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >

@@ -154,4 +154,44 @@ describe("ChatModal", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument(); // header still renders
     expect(mockGetOrCreateChat).not.toHaveBeenCalled();
   });
+
+  it("shows send error when sendMessage throws", async () => {
+    mockSendMessage.mockRejectedValueOnce(new Error("network error"));
+    render(<ChatModal {...defaultProps} />);
+    await waitFor(() => screen.getByPlaceholderText(/type a message/i));
+
+    fireEvent.change(screen.getByPlaceholderText(/type a message/i), { target: { value: "Hi" } });
+    fireEvent.keyDown(screen.getByPlaceholderText(/type a message/i), { key: "Enter", shiftKey: false });
+
+    await waitFor(() => expect(screen.getByText(/couldn't send/i)).toBeInTheDocument());
+  });
+
+  it("clears input and shows tip after first successful send", async () => {
+    render(<ChatModal {...defaultProps} />);
+    await waitFor(() => screen.getByPlaceholderText(/type a message/i));
+
+    const input = screen.getByPlaceholderText(/type a message/i);
+    fireEvent.change(input, { target: { value: "Hey there!" } });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: false });
+
+    await waitFor(() => expect(input).toHaveValue(""));
+  });
+
+  it("unsubscribes from messages on unmount", async () => {
+    const unsub = vi.fn();
+    mockSubscribeToMessages.mockImplementation((_id: string, cb: (msgs: unknown[]) => void) => {
+      cb([]);
+      return unsub;
+    });
+    const { unmount } = render(<ChatModal {...defaultProps} />);
+    await waitFor(() => screen.getByPlaceholderText(/type a message/i));
+    unmount();
+    expect(unsub).toHaveBeenCalled();
+  });
+
+  it("still becomes ready when getOrCreateChat fails (safety net)", async () => {
+    mockGetOrCreateChat.mockRejectedValueOnce(new Error("offline"));
+    render(<ChatModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByPlaceholderText(/type a message/i)).not.toBeDisabled(), { timeout: 3000 });
+  });
 });

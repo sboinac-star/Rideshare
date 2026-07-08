@@ -8,6 +8,8 @@ import {
   shareText,
   shareRequestText,
   whatsappLink,
+  addHours,
+  formatTimeWindow,
 } from "@/lib/utils";
 
 // ─── formatPhone ────────────────────────────────────────────────────────────
@@ -186,6 +188,58 @@ describe("shareRequestText", () => {
 
   it("uses plural 'seats' for more than 1", () => {
     expect(shareRequestText({ ...req, seatsNeeded: 3 })).toContain("3 seats needed");
+  });
+});
+
+// ─── addHours ────────────────────────────────────────────────────────────────
+
+describe("addHours", () => {
+  it("adds whole hours", () => {
+    expect(addHours("2026-06-30T09:00", 2)).toBe("2026-06-30T11:00");
+  });
+
+  it("adds fractional hours (30 minutes)", () => {
+    expect(addHours("2026-06-30T09:00", 0.5)).toBe("2026-06-30T09:30");
+  });
+
+  it("rolls over to the next day", () => {
+    expect(addHours("2026-06-30T23:00", 2)).toBe("2026-07-01T01:00");
+  });
+
+  it("handles 4-hour buffer", () => {
+    expect(addHours("2026-06-30T08:00", 4)).toBe("2026-06-30T12:00");
+  });
+});
+
+// ─── formatTimeWindow ─────────────────────────────────────────────────────────
+
+describe("formatTimeWindow", () => {
+  it("returns the input unchanged for falsy centerTime", () => {
+    expect(formatTimeWindow("", 1)).toBe("");
+  });
+
+  it("shows start and end times around the center", () => {
+    const result = formatTimeWindow("2026-06-30T09:00", 1);
+    // center 9am ± 1h → 8:00 AM – 10:00 AM
+    expect(result).toMatch(/8:00 AM/i);
+    expect(result).toMatch(/10:00 AM/i);
+  });
+
+  it("includes the day and date in the output", () => {
+    const result = formatTimeWindow("2026-06-30T09:00", 1);
+    expect(result).toMatch(/Tue|Jun|30/);
+  });
+
+  it("handles ±30 minute buffer", () => {
+    const result = formatTimeWindow("2026-06-30T09:00", 0.5);
+    expect(result).toMatch(/8:30 AM/i);
+    expect(result).toMatch(/9:30 AM/i);
+  });
+
+  it("handles ±2 hour buffer", () => {
+    const result = formatTimeWindow("2026-06-30T10:00", 2);
+    expect(result).toMatch(/8:00 AM/i);
+    expect(result).toMatch(/12:00 PM/i);
   });
 });
 
