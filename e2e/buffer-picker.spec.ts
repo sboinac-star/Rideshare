@@ -1,48 +1,38 @@
 import { test, expect } from "@playwright/test";
 
-// Helper: returns true if the page is showing the sign-in wall (not authenticated).
-// Waits for either the auth wall OR the post form to appear (authLoading can take up to 5s).
-async function isAuthWall(page: import("@playwright/test").Page): Promise<boolean> {
-  await page.waitForLoadState("networkidle");
-  const signIn = page.getByRole("button", { name: /sign in with phone/i });
-  const postForm = page.getByRole("button", { name: /post (journey|request)/i });
-  // Race: whichever appears first tells us the auth state
-  await Promise.race([
-    signIn.waitFor({ state: "visible", timeout: 10000 }).catch(() => {}),
-    postForm.waitFor({ state: "visible", timeout: 10000 }).catch(() => {}),
-  ]);
-  return signIn.isVisible().catch(() => false);
-}
+// Tests that require a signed-in user are skipped when running against staging.
+// To run them: sign in manually, export cookies, and pass them via storageState.
+const REQUIRES_AUTH = process.env.PLAYWRIGHT_AUTHED === "1";
 
 test.describe("Buffer time window — driver form", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/driver");
+    await page.waitForLoadState("networkidle");
   });
 
   test("screenshot: driver page renders", async ({ page }) => {
-    await page.waitForLoadState("networkidle");
     await page.screenshot({ path: "test-results/driver-page.png", fullPage: true });
   });
 
   test("buffer select is visible on the form when signed in", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     await expect(page.getByRole("option", { name: /±1h/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("buffer options include all 5 choices", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     for (const label of ["±30m", "±1h", "±2h", "±3h", "±4h"]) {
       await expect(page.getByRole("option", { name: label }).first()).toBeAttached({ timeout: 10000 });
     }
   });
 
   test("'Around' label is visible next to the time input", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     await expect(page.getByText("Around").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("'Buffer' label is visible next to the buffer select", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 10000 });
   });
 });
@@ -50,20 +40,20 @@ test.describe("Buffer time window — driver form", () => {
 test.describe("Buffer time window — passenger form", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/passenger");
+    await page.waitForLoadState("networkidle");
   });
 
   test("screenshot: passenger page renders", async ({ page }) => {
-    await page.waitForLoadState("networkidle");
     await page.screenshot({ path: "test-results/passenger-page.png", fullPage: true });
   });
 
   test("buffer select is visible on the passenger form when signed in", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     await expect(page.getByRole("option", { name: /±1h/i })).toBeVisible({ timeout: 10000 });
   });
 
   test("'Around' and 'Buffer' labels visible on passenger form", async ({ page }) => {
-    if (await isAuthWall(page)) { test.skip(); return; }
+    test.skip(!REQUIRES_AUTH, "Requires PLAYWRIGHT_AUTHED=1 — needs signed-in session");
     await expect(page.getByText("Around").first()).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Buffer").first()).toBeVisible({ timeout: 10000 });
   });
