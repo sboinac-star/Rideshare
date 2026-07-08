@@ -40,25 +40,42 @@ export function getPendingCompletionItems(
   return pending;
 }
 
+const CANCEL_REASONS = [
+  "Driver unavailable",
+  "Passenger unavailable",
+  "Plans changed",
+  "Found another ride",
+  "Weather or emergency",
+  "Other",
+];
+
 export default function CompletionPromptModal({ items, onDone }: Props) {
   const toast = useToast();
   const [statuses, setStatuses] = useState<Record<string, "completed" | "cancelled" | "">>(() =>
     Object.fromEntries(items.map((i) => [i.id, ""]))
   );
+  const [cancelReasons, setCancelReasons] = useState<Record<string, string>>({});
+  const [cancelOther, setCancelOther] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const allAnswered = items.every((i) => statuses[i.id] !== "");
+  const allAnswered = items.every((i) => {
+    if (statuses[i.id] !== "cancelled") return statuses[i.id] !== "";
+    return !!cancelReasons[i.id];
+  });
 
   const handleSave = async () => {
     if (!allAnswered) return;
     setSaving(true);
     try {
       await Promise.all(
-        items.map((item) =>
-          updateDoc(doc(db, item.type === "journey" ? "journeys" : "requests", item.id), {
-            status: statuses[item.id],
-          })
-        )
+        items.map((item) => {
+          const fields: Record<string, string> = { status: statuses[item.id] };
+          if (statuses[item.id] === "cancelled") {
+            const r = cancelReasons[item.id];
+            fields.cancelReason = r === "Other" ? (cancelOther[item.id]?.trim() || "Other") : r;
+          }
+          return updateDoc(doc(db, item.type === "journey" ? "journeys" : "requests", item.id), fields);
+        })
       );
       toast("Thanks for updating your ride status!");
       onDone();
@@ -113,6 +130,30 @@ export default function CompletionPromptModal({ items, onDone }: Props) {
                   Did not happen
                 </button>
               </div>
+              {statuses[item.id] === "cancelled" && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <select
+                    value={cancelReasons[item.id] ?? ""}
+                    onChange={(e) => setCancelReasons((r) => ({ ...r, [item.id]: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a reason…</option>
+                    {CANCEL_REASONS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  {cancelReasons[item.id] === "Other" && (
+                    <input
+                      type="text"
+                      value={cancelOther[item.id] ?? ""}
+                      onChange={(e) => setCancelOther((o) => ({ ...o, [item.id]: e.target.value }))}
+                      placeholder="Please describe…"
+                      maxLength={200}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
