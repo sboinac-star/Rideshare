@@ -13,6 +13,7 @@ import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
+import CancelModal from "@/app/CancelModal";
 
 type Tab = "journeys" | "requests";
 
@@ -33,6 +34,7 @@ export default function MyRidesPage() {
   const [loadingJ, setLoadingJ] = useState(true);
   const [loadingR, setLoadingR] = useState(true);
 
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; type: "journey" | "request" } | null>(null);
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [journeyEdit, setJourneyEdit] = useState<JourneyEdit>({ departureTime: "", returnTime: "", availableSeats: 1 });
 
@@ -107,10 +109,9 @@ export default function MyRidesPage() {
     }
   };
 
-  const cancelJourney = async (id: string) => {
-    if (!confirm("Cancel this journey?")) return;
+  const cancelJourney = async (id: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("journeys"), id), { status: "cancelled" });
+      await updateDoc(doc(db, col("journeys"), id), { status: "cancelled", cancelReason: reason });
       toast("Journey cancelled.");
       const j = journeys.find((x) => x.id === id);
       if (j && user) {
@@ -123,6 +124,8 @@ export default function MyRidesPage() {
       }
     } catch {
       toast("Failed to cancel.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -170,13 +173,14 @@ export default function MyRidesPage() {
     }
   };
 
-  const cancelRequest = async (id: string) => {
-    if (!confirm("Cancel this request?")) return;
+  const cancelRequest = async (id: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("requests"), id), { status: "cancelled" });
+      await updateDoc(doc(db, col("requests"), id), { status: "cancelled", cancelReason: reason });
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -221,6 +225,17 @@ export default function MyRidesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
+      {cancelTarget && (
+        <CancelModal
+          listingType={cancelTarget.type}
+          onConfirm={(reason) =>
+            cancelTarget.type === "journey"
+              ? cancelJourney(cancelTarget.id, reason)
+              : cancelRequest(cancelTarget.id, reason)
+          }
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Rides</h1>
@@ -371,7 +386,7 @@ export default function MyRidesPage() {
                                 </button>
                               )}
                               <button
-                                onClick={() => cancelJourney(j.id)}
+                                onClick={() => setCancelTarget({ id: j.id, type: "journey" })}
                                 className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
                               >
                                 {isPast ? "Did Not Happen" : "Cancel"}
@@ -508,7 +523,7 @@ export default function MyRidesPage() {
                                 </button>
                               )}
                               <button
-                                onClick={() => cancelRequest(r.id)}
+                                onClick={() => setCancelTarget({ id: r.id, type: "request" })}
                                 className="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-4 rounded-lg transition"
                               >
                                 {isPast ? "Did Not Happen" : "Cancel"}

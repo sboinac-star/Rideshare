@@ -121,7 +121,11 @@ describe("MyRidesPage", () => {
     const { default: MyRidesPage } = await import("@/app/my-rides/page");
     render(<MyRidesPage />);
     await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /^cancel$/i })));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "cancelled" }));
+    // CancelModal appears — select reason then confirm
+    const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel journey" }).closest("div")!.parentElement!);
+    fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel journey/i }));
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "cancelled", cancelReason: "Plans changed" }));
   });
 
   it("calls deleteDoc when deleting a journey", async () => {
@@ -148,6 +152,9 @@ describe("MyRidesPage", () => {
     const { default: MyRidesPage } = await import("@/app/my-rides/page");
     render(<MyRidesPage />);
     await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /^cancel$/i })));
+    const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel journey" }).closest("div")!.parentElement!);
+    fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel journey/i }));
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith("Failed to cancel.", "error"));
   });
 });
