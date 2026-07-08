@@ -11,9 +11,10 @@ export default defineConfig({
   use: {
     baseURL,
     headless: true,
-    launchOptions: {
-      executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-    },
+    // executablePath only needed in cloud CI where Chromium is pre-installed at a fixed path
+    ...(process.env.PLAYWRIGHT_BROWSERS_PATH
+      ? { launchOptions: { executablePath: `${process.env.PLAYWRIGHT_BROWSERS_PATH}/chromium-1194/chrome-linux/chrome` } }
+      : {}),
   },
   projects: [
     {
