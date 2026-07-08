@@ -13,6 +13,7 @@ import SignInModal from "@/app/SignInModal";
 import ChatModal from "@/features/chat/ChatModal";
 import FeedbackButton from "@/app/FeedbackButton";
 import { buildChatId } from "@/lib/chat";
+import StarRating from "@/app/StarRating";
 
 const TEST_UIDS = ["test-user-1", "test-user-2"];
 
@@ -636,6 +637,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <span className="text-sm font-semibold text-gray-700">{journey.driverName}</span>
+                                {journey.uid && <StarRating uid={journey.uid} />}
                                 {journey.roundTrip && (
                                   <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">↔ Round trip</span>
                                 )}
@@ -744,6 +746,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <span className="text-sm font-semibold text-gray-700">{req.passengerName}</span>
+                                {req.uid && <StarRating uid={req.uid} />}
                                 {req.roundTrip && (
                                   <span className="text-[10px] font-bold bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-violet-100">↔ Round trip</span>
                                 )}
