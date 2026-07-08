@@ -5,7 +5,7 @@ import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import {
   collection, query, where, onSnapshot,
-  updateDoc, deleteDoc, doc, getDocs, limit,
+  updateDoc, deleteDoc, doc,
 } from "firebase/firestore";
 import { formatDateTime, minDepartureTime } from "@/lib/utils";
 import DateTimePicker from "@/app/DateTimePicker";
@@ -14,7 +14,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import CancelModal from "@/app/CancelModal";
-import RatingModal from "@/app/RatingModal";
+import RateSomeoneModal from "@/app/RateSomeoneModal";
 
 type Tab = "journeys" | "requests";
 
@@ -36,7 +36,7 @@ export default function MyRidesPage() {
   const [loadingR, setLoadingR] = useState(true);
 
   const [cancelTarget, setCancelTarget] = useState<{ id: string; type: "journey" | "request" } | null>(null);
-  const [rateTarget, setRateTarget] = useState<{ uid: string; name: string; listingId: string } | null>(null);
+  const [rateListingId, setRateListingId] = useState<string | null>(null);
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [journeyEdit, setJourneyEdit] = useState<JourneyEdit>({ departureTime: "", returnTime: "", availableSeats: 1 });
 
@@ -106,23 +106,7 @@ export default function MyRidesPage() {
     try {
       await updateDoc(doc(db, col("journeys"), id), { status: "completed" });
       toast("Journey marked as completed.");
-      // Find someone to rate from chats for this listing
-      if (user) {
-        const snap = await getDocs(query(
-          collection(db, col("chats")),
-          where("listingId", "==", id),
-          where("participants", "array-contains", user.uid),
-          limit(1),
-        ));
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          const otherUid = (data.participants as string[]).find((p: string) => p !== user.uid);
-          if (otherUid) {
-            const otherName = (data.participantNames as Record<string, string>)?.[otherUid] ?? "Passenger";
-            setRateTarget({ uid: otherUid, name: otherName, listingId: id });
-          }
-        }
-      }
+      setRateListingId(id);
     } catch {
       toast("Failed to update. Please try again.", "error");
     }
@@ -187,23 +171,7 @@ export default function MyRidesPage() {
     try {
       await updateDoc(doc(db, col("requests"), id), { status: "completed" });
       toast("Request marked as completed.");
-      // Find the driver to rate from chats for this listing
-      if (user) {
-        const snap = await getDocs(query(
-          collection(db, col("chats")),
-          where("listingId", "==", id),
-          where("participants", "array-contains", user.uid),
-          limit(1),
-        ));
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          const otherUid = (data.participants as string[]).find((p: string) => p !== user.uid);
-          if (otherUid) {
-            const otherName = (data.participantNames as Record<string, string>)?.[otherUid] ?? "Driver";
-            setRateTarget({ uid: otherUid, name: otherName, listingId: id });
-          }
-        }
-      }
+      setRateListingId(id);
     } catch {
       toast("Failed to update. Please try again.", "error");
     }
@@ -261,12 +229,10 @@ export default function MyRidesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
-      {rateTarget && (
-        <RatingModal
-          ratedUid={rateTarget.uid}
-          ratedName={rateTarget.name}
-          journeyId={rateTarget.listingId}
-          onClose={() => setRateTarget(null)}
+      {rateListingId && (
+        <RateSomeoneModal
+          listingId={rateListingId}
+          onClose={() => setRateListingId(null)}
         />
       )}
       {cancelTarget && (
@@ -438,6 +404,14 @@ export default function MyRidesPage() {
                             </>
                           );
                         })()}
+                        {j.status === "completed" && (
+                          <button
+                            onClick={() => setRateListingId(j.id)}
+                            className="text-sm border border-yellow-300 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 font-bold py-2.5 px-4 rounded-lg transition"
+                          >
+                            ⭐ Rate
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteJourney(j.id)}
                           className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
@@ -575,6 +549,14 @@ export default function MyRidesPage() {
                             </>
                           );
                         })()}
+                        {r.status === "completed" && (
+                          <button
+                            onClick={() => setRateListingId(r.id)}
+                            className="text-sm border border-yellow-300 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 font-bold py-2.5 px-4 rounded-lg transition"
+                          >
+                            ⭐ Rate
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteRequest(r.id)}
                           className="text-sm border border-red-300 text-red-600 hover:bg-red-50 font-bold py-2.5 px-4 rounded-lg transition"
