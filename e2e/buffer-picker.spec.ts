@@ -1,10 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 // Helper: returns true if the page is showing the sign-in wall (not authenticated).
-// Waits for the page to fully hydrate before checking.
+// Waits for either the auth wall OR the post form to appear (authLoading can take up to 5s).
 async function isAuthWall(page: import("@playwright/test").Page): Promise<boolean> {
   await page.waitForLoadState("networkidle");
-  return page.getByRole("button", { name: /sign in with phone/i }).isVisible().catch(() => false);
+  const signIn = page.getByRole("button", { name: /sign in with phone/i });
+  const postForm = page.getByRole("button", { name: /post (journey|request)/i });
+  // Race: whichever appears first tells us the auth state
+  await Promise.race([
+    signIn.waitFor({ state: "visible", timeout: 10000 }).catch(() => {}),
+    postForm.waitFor({ state: "visible", timeout: 10000 }).catch(() => {}),
+  ]);
+  return signIn.isVisible().catch(() => false);
 }
 
 test.describe("Buffer time window — driver form", () => {
