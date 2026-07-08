@@ -33,6 +33,8 @@ vi.mock("firebase/firestore", () => ({
   orderBy: mockOrderBy,
   where: mockWhere,
   serverTimestamp: mockServerTimestamp,
+  getDocs: mockGetDocs,
+  limit: mockLimit,
 }));
 
 import {
@@ -42,6 +44,11 @@ import {
   subscribeToMessages,
   subscribeToUserChats,
 } from "@/lib/chat";
+
+const { mockGetDocs, mockLimit } = vi.hoisted(() => ({
+  mockGetDocs: vi.fn(),
+  mockLimit: vi.fn(),
+}));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -196,6 +203,16 @@ describe("subscribeToUserChats", () => {
     expect(result).toBe(unsub);
   });
 
+  it("calls onError callback when snapshot fails", () => {
+    const onError = vi.fn();
+    mockOnSnapshot.mockImplementationOnce((_q: unknown, _cb: unknown, errCb: () => void) => {
+      errCb();
+      return vi.fn();
+    });
+    subscribeToUserChats("u1", vi.fn(), onError);
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
   it("maps snapshot docs to Chat objects", () => {
     const fakeDate = new Date("2026-01-01");
     const callback = vi.fn();
@@ -225,6 +242,53 @@ describe("subscribeToUserChats", () => {
     expect(chat.participants).toEqual(["u1", "u2"]);
     expect(chat.lastMessage).toBe("Hi");
     expect(chat.updatedAt).toEqual(fakeDate);
+  });
+});
+
+// ─── sendMessage error handling ───────────────────────────────────────────────
+
+describe("sendMessage — error handling", () => {
+  it("throws when addDoc fails", async () => {
+    mockAddDoc.mockRejectedValueOnce(new Error("firestore unavailable"));
+    await expect(sendMessage("chatId", "u1", "Alice", "Hello")).rejects.toThrow("firestore unavailable");
+  });
+
+  it("still resolves when updateDoc (lastMessage preview) fails", async () => {
+    mockAddDoc.mockResolvedValueOnce({ id: "msg1" });
+    mockUpdateDoc.mockRejectedValueOnce(new Error("permission denied"));
+    // Should not throw — updateDoc failure is caught internally
+    await expect(sendMessage("chatId", "u1", "Alice", "Hi")).resolves.toBeUndefined();
+  });
+
+  it("does not call updateDoc before addDoc resolves", async () => {
+    let resolveAdd!: () => void;
+    mockAddDoc.mockReturnValueOnce(new Promise<{ id: string }>((res) => { resolveAdd = () => res({ id: "m1" }); }));
+    mockUpdateDoc.mockResolvedValueOnce(undefined);
+
+    const sending = sendMessage("chatId", "u1", "Alice", "Delayed");
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+    resolveAdd();
+    await sending;
+    expect(mockUpdateDoc).toHaveBeenCalledOnce();
+  });
+});
+
+// ─── ChatModal — sendMessage error path ──────────────────────────────────────
+
+describe("getOrCreateChat — error handling", () => {
+  it("throws when setDoc fails", async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => false });
+    mockSetDoc.mockRejectedValueOnce(new Error("quota exceeded"));
+    await expect(
+      getOrCreateChat("chatId", ["u1", "u2"], "journey", "j1", "A → B", {})
+    ).rejects.toThrow("quota exceeded");
+  });
+
+  it("does not throw when chat already exists and getDoc succeeds", async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => true });
+    await expect(
+      getOrCreateChat("chatId", ["u1", "u2"], "journey", "j1", "A → B", {})
+    ).resolves.toBeUndefined();
   });
 });
 
