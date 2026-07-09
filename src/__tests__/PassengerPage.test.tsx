@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
-const mockUser = { uid: "user-456", phoneNumber: "+15005550002" };
+const mockUser = { uid: "user-456", phoneNumber: "+15005550002", getIdToken: vi.fn().mockResolvedValue("mock-token") };
 const mockToast = vi.hoisted(() => vi.fn());
 const mockAddDoc = vi.hoisted(() => vi.fn().mockResolvedValue({ id: "new-request-id" }));
 const mockUpdateDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
@@ -187,6 +187,8 @@ describe("PassengerPage", () => {
   });
 
   it("cancels a request", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: true }) });
+    vi.stubGlobal("fetch", mockFetch);
     setupRequestSnapshot();
     const { default: PassengerPage } = await import("@/app/passenger/page");
     render(<PassengerPage />);
@@ -195,8 +197,9 @@ describe("PassengerPage", () => {
     const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel request" }).closest("div")!.parentElement!);
     fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
     fireEvent.click(screen.getByRole("button", { name: /cancel request/i }));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith(
-      { col: "requests", id: "r1" }, { status: "cancelled", cancelReason: "Plans changed" }
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(
+      "/api/cancel",
+      expect.objectContaining({ method: "POST" })
     ));
   });
 

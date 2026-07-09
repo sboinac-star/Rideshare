@@ -114,11 +114,16 @@ export default function MyRidesPage() {
 
   const cancelJourney = async (id: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("journeys"), id), { status: "cancelled", cancelReason: reason });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: id, listingType: "journey", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Journey cancelled.");
       const j = journeys.find((x) => x.id === id);
-      if (j && user) {
-        const token = await user.getIdToken();
+      if (j) {
         fetch("/api/watch/notify", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
@@ -179,7 +184,13 @@ export default function MyRidesPage() {
 
   const cancelRequest = async (id: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("requests"), id), { status: "cancelled", cancelReason: reason });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: id, listingType: "request", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel.", "error");

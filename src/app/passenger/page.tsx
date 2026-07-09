@@ -161,7 +161,13 @@ export default function PassengerPage() {
 
   const handleCancelRequest = async (requestId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("requests"), requestId), { status: "cancelled", cancelReason: reason });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: requestId, listingType: "request", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");

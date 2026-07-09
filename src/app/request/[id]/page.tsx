@@ -7,6 +7,7 @@ import RequestContact from "@/features/chat/RequestContact";
 import DeleteListingButton from "@/features/listings/DeleteListingButton";
 import StarRating from "@/app/StarRating";
 import RateButton from "@/app/RateButton";
+import ReportButton from "@/app/ReportButton";
 
 async function fetchRequest(id: string): Promise<RideRequest | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -158,6 +159,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                   journeyId={req.id}
                 />
               )}
+              <div className="flex justify-end pt-2">
+                <ReportButton listingId={req.id} listingType="request" />
+              </div>
             </>
           ) : (
             <div className="border-t border-gray-100 pt-5">

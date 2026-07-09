@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
-const mockUser = { uid: "user-123", phoneNumber: "+15005550001" };
+const mockUser = { uid: "user-123", phoneNumber: "+15005550001", getIdToken: vi.fn().mockResolvedValue("mock-token") };
 const mockToast = vi.hoisted(() => vi.fn());
 const mockUpdateDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockDeleteDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
@@ -116,7 +116,9 @@ describe("MyRidesPage", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /^edit$/i })).toBeInTheDocument());
   });
 
-  it("calls updateDoc with cancelled status when cancelling future journey", async () => {
+  it("calls /api/cancel when cancelling future journey", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: true }) });
+    vi.stubGlobal("fetch", mockFetch);
     setupSnapshots({ departureTime: future });
     const { default: MyRidesPage } = await import("@/app/my-rides/page");
     render(<MyRidesPage />);
@@ -125,7 +127,10 @@ describe("MyRidesPage", () => {
     const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel journey" }).closest("div")!.parentElement!);
     fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
     fireEvent.click(screen.getByRole("button", { name: /cancel journey/i }));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "cancelled", cancelReason: "Plans changed" }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(
+      "/api/cancel",
+      expect.objectContaining({ method: "POST" })
+    ));
   });
 
   it("calls deleteDoc when deleting a journey", async () => {
@@ -147,7 +152,7 @@ describe("MyRidesPage", () => {
   });
 
   it("shows error toast when cancel fails", async () => {
-    mockUpdateDoc.mockRejectedValueOnce(new Error("fail"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
     setupSnapshots({ departureTime: future });
     const { default: MyRidesPage } = await import("@/app/my-rides/page");
     render(<MyRidesPage />);

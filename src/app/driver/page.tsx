@@ -161,7 +161,13 @@ export default function DriverPage() {
 
   const handleCancelJourney = async (journeyId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled", cancelReason: reason });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: journeyId, listingType: "journey", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
