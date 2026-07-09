@@ -98,7 +98,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl shrink-0">🙋</div>
             <div>
-              <p className="font-bold text-gray-900 text-lg">{req.passengerName}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-gray-900 text-lg">{req.passengerName}</p>
+                {req.uid && <span className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full border border-green-200">✓ Verified</span>}
+              </div>
               <p className="text-gray-500 text-sm">Passenger</p>
               {req.uid && <StarRating uid={req.uid} />}
             </div>

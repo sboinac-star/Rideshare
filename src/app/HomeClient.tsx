@@ -637,6 +637,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <span className="text-sm font-semibold text-gray-700">{journey.driverName}</span>
+                                {journey.uid && <span className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full border border-green-200">✓ Verified</span>}
                                 {journey.uid && <StarRating uid={journey.uid} />}
                                 {journey.roundTrip && (
                                   <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">↔ Round trip</span>
@@ -746,6 +747,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <span className="text-sm font-semibold text-gray-700">{req.passengerName}</span>
+                                {req.uid && <span className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full border border-green-200">✓ Verified</span>}
                                 {req.uid && <StarRating uid={req.uid} />}
                                 {req.roundTrip && (
                                   <span className="text-[10px] font-bold bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-violet-100">↔ Round trip</span>
