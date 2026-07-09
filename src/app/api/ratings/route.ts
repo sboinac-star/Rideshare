@@ -62,7 +62,7 @@ export async function GET(req: Request) {
   const snap = await db.collection(adminCol("userProfiles")).doc(uid).get();
   if (!snap.exists) return Response.json({ rating: null, count: 0 });
 
-  const { ratingSum, ratingCount, cancelCount, completedCount } = snap.data() as { ratingSum: number; ratingCount: number; cancelCount?: number; completedCount?: number };
+  const { ratingSum, ratingCount, cancelCount, completedCount, socialUrl } = snap.data() as { ratingSum: number; ratingCount: number; cancelCount?: number; completedCount?: number; socialUrl?: string };
   const rating = ratingCount > 0 ? Math.round((ratingSum / ratingCount) * 10) / 10 : null;
-  return Response.json({ rating, count: ratingCount, cancelCount: cancelCount ?? 0, completedCount: completedCount ?? 0 });
+  return Response.json({ rating, count: ratingCount, cancelCount: cancelCount ?? 0, completedCount: completedCount ?? 0, socialUrl: socialUrl ?? "" });
 }
