@@ -104,7 +104,13 @@ export default function MyRidesPage() {
   const completeJourney = async (id: string) => {
     if (!confirm("Mark this journey as completed?")) return;
     try {
-      await updateDoc(doc(db, col("journeys"), id), { status: "completed" });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: id, listingType: "journey" }),
+      });
+      if (!res.ok) throw new Error();
       toast("Journey marked as completed.");
       setRateListingId(id);
     } catch {
@@ -174,7 +180,13 @@ export default function MyRidesPage() {
   const completeRequest = async (id: string) => {
     if (!confirm("Mark this request as completed?")) return;
     try {
-      await updateDoc(doc(db, col("requests"), id), { status: "completed" });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: id, listingType: "request" }),
+      });
+      if (!res.ok) throw new Error();
       toast("Request marked as completed.");
       setRateListingId(id);
     } catch {

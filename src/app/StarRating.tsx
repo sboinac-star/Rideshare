@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 type Props = { uid: string };
 
 export default function StarRating({ uid }: Props) {
-  const [data, setData] = useState<{ rating: number | null; count: number; cancelCount: number } | null>(null);
+  const [data, setData] = useState<{ rating: number | null; count: number; cancelCount: number; completedCount: number } | null>(null);
 
   useEffect(() => {
     fetch(`/api/ratings?uid=${uid}`)
@@ -18,8 +18,9 @@ export default function StarRating({ uid }: Props) {
 
   const isLowRating = data.rating !== null && data.count >= 3 && data.rating < 3;
   const highCancels = (data.cancelCount ?? 0) >= 3;
+  const completedCount = data.completedCount ?? 0;
 
-  if (data.rating === null && !highCancels) return null;
+  if (data.rating === null && !highCancels && completedCount === 0) return null;
 
   return (
     <span className="inline-flex items-center gap-1.5 flex-wrap">
@@ -35,6 +36,11 @@ export default function StarRating({ uid }: Props) {
             <span className="text-gray-400">({data.count})</span>
           </span>
         )
+      )}
+      {completedCount > 0 && (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-full border border-gray-200" title="Completed rides">
+          🚗 {completedCount} ride{completedCount !== 1 ? "s" : ""}
+        </span>
       )}
       {highCancels && (
         <span className="inline-flex items-center gap-1 text-xs font-semibold bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded-full border border-orange-200" title="This user has cancelled multiple rides">
