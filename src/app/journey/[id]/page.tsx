@@ -99,10 +99,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl shrink-0">👤</div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-bold text-gray-900 text-lg">{journey.driverName}</p>
-                {journey.uid && <span className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full border border-green-200">✓ Verified</span>}
-              </div>
+              <p className="font-bold text-gray-900 text-lg">{journey.driverName}</p>
               <p className="text-gray-500 text-sm">Driver</p>
               {journey.uid && <StarRating uid={journey.uid} />}
             </div>
