@@ -53,7 +53,6 @@ export default function NavHeader() {
     { href: "/driver", label: "Post Journey" },
     { href: "/passenger", label: "Request Ride" },
     { href: "/my-rides", label: "My Rides" },
-    ...(user ? [{ href: "/profile", label: "My Profile" }] : []),
     { href: "/messages", label: "Messages", badge: unreadCount },
     { href: "/resources", label: "Resources" },
     { href: "/about", label: "About" },

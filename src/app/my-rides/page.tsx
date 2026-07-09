@@ -16,7 +16,7 @@ import SignInModal from "@/app/SignInModal";
 import CancelModal from "@/app/CancelModal";
 import RateSomeoneModal from "@/app/RateSomeoneModal";
 
-type Tab = "journeys" | "requests";
+type Tab = "journeys" | "requests" | "profile";
 
 type JourneyEdit = { departureTime: string; returnTime: string; availableSeats: number };
 type RequestEdit = { departureTime: string; returnTime: string; seatsNeeded: number };
@@ -37,6 +37,13 @@ export default function MyRidesPage() {
 
   const [cancelTarget, setCancelTarget] = useState<{ id: string; type: "journey" | "request" } | null>(null);
   const [rateListingId, setRateListingId] = useState<string | null>(null);
+
+  // Profile tab state
+  const [socialUrl, setSocialUrl] = useState("");
+  const [profileStats, setProfileStats] = useState({ completedCount: 0, cancelCount: 0 });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [journeyEdit, setJourneyEdit] = useState<JourneyEdit>({ departureTime: "", returnTime: "", availableSeats: 1 });
 
@@ -221,6 +228,39 @@ export default function MyRidesPage() {
     }
   };
 
+  const loadProfile = async () => {
+    if (!user || profileLoaded) return;
+    setProfileLoading(true);
+    try {
+      const token = await user.getIdToken();
+      const data = await fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json());
+      setSocialUrl(data.socialUrl ?? "");
+      setProfileStats({ completedCount: data.completedCount ?? 0, cancelCount: data.cancelCount ?? 0 });
+      setProfileLoaded(true);
+    } catch { /* ignore */ }
+    finally { setProfileLoading(false); }
+  };
+
+  const saveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ socialUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error ?? "Failed to save.", "error"); return; }
+      toast("Profile saved.");
+    } catch {
+      toast("Failed to save.", "error");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -271,7 +311,7 @@ export default function MyRidesPage() {
       )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Rides</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Account</h1>
           <span className="text-sm text-gray-500">
             {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
           </span>
@@ -294,6 +334,14 @@ export default function MyRidesPage() {
             }`}
           >
             My Requests {!loadingR && <span className="ml-1 text-xs font-normal">({requests.length})</span>}
+          </button>
+          <button
+            onClick={() => { setTab("profile"); loadProfile(); }}
+            className={`px-5 py-2 rounded-md text-sm font-semibold transition ${
+              tab === "profile" ? "bg-white shadow text-gray-900" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            My Profile
           </button>
         </div>
 
@@ -593,6 +641,72 @@ export default function MyRidesPage() {
               ))
             )}
           </div>
+        )}
+
+        {/* Profile tab */}
+        {tab === "profile" && (
+          profileLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-5">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                  <p className="text-3xl font-bold text-gray-900">{profileStats.completedCount}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Rides completed</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                  <p className={`text-3xl font-bold ${profileStats.cancelCount >= 3 ? "text-orange-500" : "text-gray-900"}`}>{profileStats.cancelCount}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Cancellations</p>
+                </div>
+              </div>
+
+              {/* Social link */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h2 className="text-sm font-semibold text-gray-900 mb-1">
+                  Social profile link <span className="text-gray-400 font-normal">(optional)</span>
+                </h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Add a public Facebook, LinkedIn, Instagram, or X profile so riders can verify who you are. This will show as a link on your listings.
+                </p>
+                <input
+                  type="url"
+                  value={socialUrl}
+                  onChange={(e) => setSocialUrl(e.target.value)}
+                  placeholder="https://facebook.com/yourname"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                />
+                {socialUrl && (
+                  <a href={socialUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mb-3">
+                    Preview link →
+                  </a>
+                )}
+                <div className="flex gap-3">
+                  {socialUrl && (
+                    <button
+                      onClick={() => setSocialUrl("")}
+                      className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg transition"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <button
+                    onClick={saveProfile}
+                    disabled={savingProfile}
+                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold rounded-lg transition text-sm"
+                  >
+                    {savingProfile ? "Saving…" : "Save Profile"}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 text-center">
+                Your phone number is never shown publicly. Only your name, ride history, and optional social link are visible to others.
+              </p>
+            </div>
+          )
         )}
 
         <div className="mt-10 text-center">
