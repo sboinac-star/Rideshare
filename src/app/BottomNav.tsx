@@ -49,7 +49,7 @@ const TABS = [
   {
     href: "/passenger",
     label: "Ride",
-    color: "#d97706",
+    color: "#9333ea",
     bg: "#fffbeb",
     Icon: () => (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
@@ -65,7 +65,7 @@ const TABS = [
   {
     href: "/my-rides",
     label: "My Trips",
-    color: "#7c3aed",
+    color: "#ea580c",
     bg: "#f5f3ff",
     Icon: () => (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">

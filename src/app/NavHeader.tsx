@@ -60,13 +60,16 @@ export default function NavHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-blue-600 shadow-md">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 shadow-md">
         <nav className="max-w-7xl mx-auto px-4 h-14 flex justify-between items-center gap-4">
           <Link
             href="/"
-            className="text-lg font-bold text-white tracking-tight shrink-0"
+            className="flex items-center gap-2 shrink-0"
           >
-            NWA Ride Share
+            <span className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center text-base shadow-inner">🚗</span>
+            <span className="text-lg font-extrabold text-white tracking-tight">
+              NWA <span className="font-light">Rides</span>
+            </span>
           </Link>
 
           {/* Desktop links */}

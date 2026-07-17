@@ -72,7 +72,13 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-lg mx-auto px-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Messages</h1>
+        <div className="flex items-center gap-3 mb-6">
+          <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-xl shadow-lg shadow-pink-200">💬</span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Messages</h1>
+            <p className="text-xs text-pink-600 font-semibold">Chat with drivers & riders</p>
+          </div>
+        </div>
 
         {loading ? (
           <div className="space-y-3">
@@ -106,7 +112,7 @@ export default function MessagesPage() {
                   onClick={() => setOpenChat(chat)}
                   className="w-full bg-white rounded-xl p-4 hover:shadow-md transition text-left flex gap-3 items-start"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center text-lg shrink-0">
                     {chat.listingType === "journey" ? "🚗" : "🙋"}
                   </div>
                   <div className="flex-1 min-w-0">
