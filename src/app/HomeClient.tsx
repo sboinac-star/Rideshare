@@ -14,6 +14,7 @@ import ChatModal from "@/features/chat/ChatModal";
 import FeedbackButton from "@/app/FeedbackButton";
 import { buildChatId } from "@/lib/chat";
 import StarRating from "@/app/StarRating";
+import OnboardingModal from "@/app/OnboardingModal";
 
 const TEST_UIDS = ["test-user-1", "test-user-2"];
 
@@ -314,6 +315,21 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [announcements, setAnnouncements] = useState<{ id: string; text: string }[]>([]);
   const [blockedUids, setBlockedUids] = useState<Set<string>>(new Set());
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setDisplayName(null); setOnboardingChecked(false); return; }
+    user.getIdToken().then((token) =>
+      fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { displayName?: string }) => {
+          setDisplayName(d.displayName ?? "");
+          setOnboardingChecked(true);
+        })
+        .catch(() => setOnboardingChecked(true))
+    );
+  }, [user]);
 
   useEffect(() => {
     if (!user) { setBlockedUids(new Set()); return; }
@@ -473,6 +489,11 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   };
 
   if (authLoading || !user) return <SignInPage />;
+
+  // Show onboarding if profile check is done and name is missing
+  if (onboardingChecked && displayName === "") {
+    return <OnboardingModal onComplete={(name) => setDisplayName(name)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

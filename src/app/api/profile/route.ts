@@ -19,6 +19,7 @@ export async function GET(req: Request) {
   const snap = await db.collection(adminCol("userProfiles")).doc(uid).get();
   const data = snap.data() ?? {};
   return Response.json({
+    displayName: data.displayName ?? "",
     socialUrl: data.socialUrl ?? "",
     completedCount: data.completedCount ?? 0,
     cancelCount: data.cancelCount ?? 0,
@@ -29,17 +30,18 @@ export async function POST(req: Request) {
   const uid = await verifyUser(req);
   if (!uid) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { socialUrl } = await req.json() as { socialUrl: string };
+  const { socialUrl, displayName } = await req.json() as { socialUrl?: string; displayName?: string };
 
   if (socialUrl && !isValidSocialUrl(socialUrl)) {
     return Response.json({ error: "Only Facebook, LinkedIn, Instagram, or X/Twitter URLs are allowed." }, { status: 400 });
   }
 
   const db = adminDb();
-  await db.collection(adminCol("userProfiles")).doc(uid).set(
-    { socialUrl: socialUrl.trim() },
-    { merge: true }
-  );
+  const update: Record<string, string> = {};
+  if (socialUrl !== undefined) update.socialUrl = socialUrl.trim();
+  if (displayName !== undefined) update.displayName = displayName.trim();
+
+  await db.collection(adminCol("userProfiles")).doc(uid).set(update, { merge: true });
 
   return Response.json({ ok: true });
 }

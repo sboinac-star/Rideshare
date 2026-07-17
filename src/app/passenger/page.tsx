@@ -55,6 +55,18 @@ export default function PassengerPage() {
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    user.getIdToken().then((token) =>
+      fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { displayName?: string }) => {
+          if (d.displayName) setNewRequest((r) => r.passengerName ? r : { ...r, passengerName: d.displayName! });
+        })
+        .catch(() => {})
+    );
+  }, [user]);
+
   const validateName = (value: string) => {
     if (!value) return "Name is required";
     if (!/^[a-zA-Z\s]+$/.test(value)) return "Name can only contain letters and spaces";
