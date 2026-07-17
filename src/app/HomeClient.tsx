@@ -320,10 +320,17 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
 
   useEffect(() => {
     if (!user) { setDisplayName(null); setOnboardingChecked(false); return; }
+    // If user already completed onboarding this session (localStorage flag), skip re-fetch
+    if (localStorage.getItem(`nwa_onboarded_${user.uid}`) === "1") {
+      setDisplayName("_done_");
+      setOnboardingChecked(true);
+      return;
+    }
     user.getIdToken().then((token) =>
       fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.json())
         .then((d: { displayName?: string }) => {
+          if (d.displayName) localStorage.setItem(`nwa_onboarded_${user.uid}`, "1");
           setDisplayName(d.displayName ?? "");
           setOnboardingChecked(true);
         })
@@ -492,7 +499,14 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
 
   // Show onboarding if profile check is done and name is missing
   if (onboardingChecked && displayName === "") {
-    return <OnboardingModal onComplete={(name) => setDisplayName(name)} />;
+    return (
+      <OnboardingModal
+        onComplete={(name) => {
+          if (user) localStorage.setItem(`nwa_onboarded_${user.uid}`, "1");
+          setDisplayName(name);
+        }}
+      />
+    );
   }
 
   return (
