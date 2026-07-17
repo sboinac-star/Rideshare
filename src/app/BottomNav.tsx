@@ -132,7 +132,7 @@ export default function BottomNav() {
           border: "1px solid rgba(0,0,0,0.07)",
         }}
       >
-        {TABS.map(({ href, label, color, bg, Icon, IconOutline }) => {
+        {TABS.map(({ href, label, color, Icon, IconOutline }) => {
           const active = pathname === href;
           const showBadge = href === "/messages" && unreadCount > 0;
 
@@ -154,17 +154,18 @@ export default function BottomNav() {
                 }}
               />
 
-              {/* Icon pill */}
+              {/* Icon pill — solid color when active, white icon on top */}
               <div
                 className="relative flex items-center justify-center transition-all duration-200"
                 style={{
-                  width: 44,
+                  width: 48,
                   height: 34,
-                  borderRadius: 10,
-                  background: active ? bg : "transparent",
+                  borderRadius: 11,
+                  background: active ? color : "transparent",
+                  boxShadow: active ? `0 4px 12px ${color}66` : "none",
                 }}
               >
-                <span style={{ color: active ? color : "#9ca3af", display: "flex" }}>
+                <span style={{ color: active ? "#ffffff" : "#94a3b8", display: "flex" }}>
                   {active ? <Icon /> : <IconOutline />}
                 </span>
 
