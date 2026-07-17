@@ -9,61 +9,93 @@ import type { Chat } from "@/lib/types";
 
 const LAST_READ_KEY = (uid: string) => `nwa_lastReadMessages_${uid}`;
 
-// Each tab has its own identity color
-const TAB_COLORS = {
-  "/":          { from: "#3b82f6", to: "#6366f1", shadow: "rgba(99,102,241,0.45)" },
-  "/driver":    { from: "#10b981", to: "#059669", shadow: "rgba(16,185,129,0.45)" },
-  "/passenger": { from: "#f59e0b", to: "#f97316", shadow: "rgba(249,115,22,0.45)" },
-  "/my-rides":  { from: "#8b5cf6", to: "#6d28d9", shadow: "rgba(139,92,246,0.45)" },
-  "/messages":  { from: "#ec4899", to: "#db2777", shadow: "rgba(236,72,153,0.45)" },
-} as Record<string, { from: string; to: string; shadow: string }>;
-
-function BrowseIcon() {
-  return (
-    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.35-4.35" />
-    </svg>
-  );
-}
-
-function DriveIcon() {
-  return (
-    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l2-3h8l2 3h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2" />
-      <circle cx="7.5" cy="17" r="2" />
-      <circle cx="16.5" cy="17" r="2" />
-    </svg>
-  );
-}
-
-function RideIcon() {
-  return (
-    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function TripsIcon() {
-  return (
-    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="2" width="14" height="20" rx="2" />
-      <path d="M9 7h6M9 11h6M9 15h4" />
-    </svg>
-  );
-}
-
-function ChatIcon() {
-  return (
-    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
+const TABS = [
+  {
+    href: "/",
+    label: "Browse",
+    color: "#2563eb",
+    bg: "#eff6ff",
+    Icon: () => (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" clipRule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z"/>
+      </svg>
+    ),
+    IconOutline: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+        <circle cx="10.5" cy="10.5" r="6.75"/><path strokeLinecap="round" d="m21 21-4.69-4.69"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/driver",
+    label: "Drive",
+    color: "#059669",
+    bg: "#ecfdf5",
+    Icon: () => (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875H3.75a3.375 3.375 0 0 0 6.75 0h2.625a1.875 1.875 0 0 0 1.875-1.875V15Z"/>
+        <path d="M8.25 19.5a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Z"/>
+        <path d="M15 6.75a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 1 .75.75v11.25a.75.75 0 0 1-.75.75H15a.75.75 0 0 0 0 1.5h1.5a2.25 2.25 0 0 0 2.25-2.25V9a2.25 2.25 0 0 0-2.25-2.25H15Z"/>
+        <path d="M19.5 19.5a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Z"/>
+      </svg>
+    ),
+    IconOutline: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l2-3h8l2 3h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"/>
+        <circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/passenger",
+    label: "Ride",
+    color: "#d97706",
+    bg: "#fffbeb",
+    Icon: () => (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" clipRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"/>
+      </svg>
+    ),
+    IconOutline: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+        <circle cx="12" cy="7" r="4"/><path strokeLinecap="round" d="M5.5 21a8.38 8.38 0 0 1 13 0"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/my-rides",
+    label: "My Trips",
+    color: "#7c3aed",
+    bg: "#f5f3ff",
+    Icon: () => (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" clipRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0 1 18 9.375v9.375a3 3 0 0 0 3-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 0 0-.673-.05A3 3 0 0 0 15 1.5h-1.5a3 3 0 0 0-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6ZM13.5 3A1.5 1.5 0 0 0 12 4.5h4.5A1.5 1.5 0 0 0 15 3h-1.5Z"/>
+        <path fillRule="evenodd" clipRule="evenodd" d="M3 9.375C3 8.339 3.84 7.5 4.875 7.5h9.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625V9.375Zm9.586 4.594a.75.75 0 0 0-1.172-.938l-2.476 3.096-.908-.907a.75.75 0 0 0-1.06 1.06l1.5 1.5a.75.75 0 0 0 1.116-.062l3-3.75Z"/>
+      </svg>
+    ),
+    IconOutline: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>
+      </svg>
+    ),
+  },
+  {
+    href: "/messages",
+    label: "Chat",
+    color: "#db2777",
+    bg: "#fdf2f8",
+    Icon: () => (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" clipRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.155L8.5 21.5a.75.75 0 0 1-1.333-.473v-3.977a49.5 49.5 0 0 1-2.319-.298c-1.978-.292-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97Z"/>
+      </svg>
+    ),
+    IconOutline: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+    ),
+  },
+];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -87,90 +119,75 @@ export default function BottomNav() {
     return chats.filter((c) => c.lastMessage && c.updatedAt && c.updatedAt.getTime() > lastRead).length;
   })();
 
-  const links = [
-    { href: "/",          label: "Browse",   Icon: BrowseIcon  },
-    { href: "/driver",    label: "Drive",    Icon: DriveIcon   },
-    { href: "/passenger", label: "Ride",     Icon: RideIcon    },
-    { href: "/my-rides",  label: "My Trips", Icon: TripsIcon   },
-    { href: "/messages",  label: "Chat",     Icon: ChatIcon, badge: unreadCount },
-  ];
-
   return (
     <nav
       className="sm:hidden fixed bottom-0 inset-x-0 z-40"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {/* Frosted glass bar */}
       <div
-        className="mx-3 mb-2 rounded-2xl flex h-[62px] px-1 items-center"
+        className="mx-3 mb-2 rounded-2xl flex h-[64px] items-center px-2"
         style={{
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)",
-          border: "1px solid rgba(255,255,255,0.7)",
+          background: "rgba(255,255,255,0.97)",
+          boxShadow: "0 -1px 0 rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.16), 0 2px 12px rgba(0,0,0,0.08)",
+          border: "1px solid rgba(0,0,0,0.07)",
         }}
       >
-        {links.map(({ href, label, Icon, badge }) => {
+        {TABS.map(({ href, label, color, bg, Icon, IconOutline }) => {
           const active = pathname === href;
-          const color = TAB_COLORS[href] ?? TAB_COLORS["/"];
+          const showBadge = href === "/messages" && unreadCount > 0;
 
           return (
             <Link
               key={href}
               href={href}
-              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 relative"
               style={{ WebkitTapHighlightColor: "transparent" }}
             >
-              {/* Icon container */}
+              {/* Active dot indicator at top */}
               <div
-                className="relative flex items-center justify-center transition-all duration-300"
+                className="absolute top-0 rounded-full transition-all duration-300"
                 style={{
-                  width: active ? 48 : 40,
-                  height: active ? 36 : 32,
-                  borderRadius: active ? 12 : 10,
-                  background: active
-                    ? `linear-gradient(135deg, ${color.from}, ${color.to})`
-                    : "transparent",
-                  boxShadow: active
-                    ? `0 4px 14px ${color.shadow}`
-                    : "none",
-                  transform: active ? "translateY(-4px)" : "translateY(0)",
+                  width: active ? 20 : 0,
+                  height: 3,
+                  background: active ? color : "transparent",
+                  top: -2,
+                }}
+              />
+
+              {/* Icon pill */}
+              <div
+                className="relative flex items-center justify-center transition-all duration-200"
+                style={{
+                  width: 44,
+                  height: 34,
+                  borderRadius: 10,
+                  background: active ? bg : "transparent",
                 }}
               >
-                <span
-                  style={{
-                    color: active ? "#fff" : "#9ca3af",
-                    display: "flex",
-                    transition: "color 0.2s",
-                  }}
-                >
-                  <Icon />
+                <span style={{ color: active ? color : "#9ca3af", display: "flex" }}>
+                  {active ? <Icon /> : <IconOutline />}
                 </span>
 
-                {/* Unread badge */}
-                {badge ? (
+                {showBadge && (
                   <span
-                    className="absolute -top-1 -right-1 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
+                    className="absolute -top-1 -right-1 text-white text-[9px] font-black rounded-full flex items-center justify-center"
                     style={{
                       background: "#ef4444",
                       minWidth: 16,
                       height: 16,
-                      boxShadow: "0 2px 6px rgba(239,68,68,0.6)",
+                      padding: "0 3px",
+                      boxShadow: "0 2px 6px rgba(239,68,68,0.5)",
                     }}
                   >
-                    {badge > 9 ? "9+" : badge}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
-                ) : null}
+                )}
               </div>
 
               {/* Label */}
               <span
-                className="text-[10px] font-bold leading-none tracking-wide transition-all duration-200"
-                style={{
-                  color: active ? color.from : "#9ca3af",
-                  transform: active ? "translateY(-2px)" : "translateY(0)",
-                }}
+                className="text-[10px] font-bold leading-none transition-all duration-200"
+                style={{ color: active ? color : "#9ca3af" }}
               >
                 {label}
               </span>
