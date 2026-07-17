@@ -115,7 +115,7 @@ export default function PassengerPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "", bufferHours: 1, returnBufferHours: 1 });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "", bufferHours: 1, returnBufferHours: 1, category: "", eventName: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
