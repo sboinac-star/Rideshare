@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavHeader from "./NavHeader";
+import BottomNav from "./BottomNav";
 import SiteFooter from "./SiteFooter";
 import ToastProvider from "./ToastProvider";
 import AuthProvider from "./AuthProvider";
@@ -73,8 +74,9 @@ export default function RootLayout({
           <ToastProvider>
             <PageTracker />
             <NavHeader />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-16 sm:pb-0">{children}</main>
             <SiteFooter />
+            <BottomNav />
           </ToastProvider>
         </AuthProvider>
       </body>
