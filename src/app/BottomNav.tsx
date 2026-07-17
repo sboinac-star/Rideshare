@@ -4,10 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useEffect, useState } from "react";
-import { subscribeToUserChats } from "@/lib/chat";
+import { subscribeToUserChats, markChatRead, countUnreadChats } from "@/lib/chat";
 import type { Chat } from "@/lib/types";
-
-const LAST_READ_KEY = (uid: string) => `nwa_lastReadMessages_${uid}`;
 
 const TABS = [
   {
@@ -107,17 +105,19 @@ export default function BottomNav() {
     return subscribeToUserChats(user.uid, setChats, () => {});
   }, [user]);
 
-  useEffect(() => {
-    if (pathname === "/messages" && user) {
-      localStorage.setItem(LAST_READ_KEY(user.uid), Date.now().toString());
-    }
-  }, [pathname, user]);
+  const [readVersion, setReadVersion] = useState(0);
 
-  const unreadCount = (() => {
-    if (!user || chats.length === 0) return 0;
-    const lastRead = Number(localStorage.getItem(LAST_READ_KEY(user.uid)) ?? 0);
-    return chats.filter((c) => c.lastMessage && c.updatedAt && c.updatedAt.getTime() > lastRead).length;
-  })();
+  // Seeing the Messages list marks everything read — re-runs as chats update live
+  useEffect(() => {
+    if (pathname === "/messages" && user && chats.length > 0) {
+      chats.forEach((c) => markChatRead(user.uid, c.id));
+      setReadVersion((v) => v + 1);
+    }
+  }, [pathname, user, chats]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const unreadCount = user ? countUnreadChats(user.uid, chats) : 0;
+  void readVersion;
 
   return (
     <nav

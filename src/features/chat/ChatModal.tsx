@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/AuthProvider";
-import { getOrCreateChat, sendMessage, subscribeToMessages, lookupUserName } from "@/lib/chat";
+import { getOrCreateChat, sendMessage, subscribeToMessages, lookupUserName, markChatRead } from "@/lib/chat";
 import type { Message } from "@/lib/types";
 import BlockButton from "@/app/BlockButton";
 
@@ -84,7 +84,9 @@ export default function ChatModal({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Viewing the conversation marks it read — keeps nav badge accurate
+    if (user) markChatRead(user.uid, chatId);
+  }, [messages, user, chatId]);
 
   // Push modal above soft keyboard on mobile
   useEffect(() => {

@@ -683,8 +683,12 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <span className="text-base font-extrabold text-gray-900 leading-tight">{journey.to}</span>
                           </>
                         )}
-                        {journey.from === journey.to && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">LOCAL</span>}
+                        {journey.from === journey.to
+                          ? <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">📍 LOCAL</span>
+                          : <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">🛣️ LONG DISTANCE</span>}
                         {journey.roundTrip && <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">↔ Return</span>}
+                        {journey.category === "event" && <span className="text-[10px] font-bold bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">🎉 {journey.eventName || "EVENT"}</span>}
+                        {journey.category === "school" && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🎒 SCHOOL RUN</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                         <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -793,8 +797,12 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                             <span className="text-base font-extrabold text-gray-900 leading-tight">{req.to}</span>
                           </>
                         )}
-                        {req.from === req.to && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">LOCAL</span>}
+                        {req.from === req.to
+                          ? <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">📍 LOCAL</span>
+                          : <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">🛣️ LONG DISTANCE</span>}
                         {req.roundTrip && <span className="text-[10px] font-bold bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full">↔ Return</span>}
+                        {req.category === "event" && <span className="text-[10px] font-bold bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">🎉 {req.eventName || "EVENT"}</span>}
+                        {req.category === "school" && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🎒 SCHOOL RUN</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                         <span className="text-xs text-gray-500 flex items-center gap-1">

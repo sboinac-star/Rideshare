@@ -54,8 +54,35 @@ export async function sendMessage(
   // as a send error to the user — the message itself is already written above.
   updateDoc(doc(db, col("chats"), chatId), {
     lastMessage: text.slice(0, 100),
+    lastSenderUid: uid,
     updatedAt: serverTimestamp(),
   }).catch(() => {});
+}
+
+// ── Per-chat read tracking (localStorage) ──
+const READS_KEY = (uid: string) => `nwa_chatReads_${uid}`;
+
+function getReadMap(uid: string): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(READS_KEY(uid)) ?? "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+export function markChatRead(uid: string, chatId: string): void {
+  const map = getReadMap(uid);
+  map[chatId] = Date.now();
+  localStorage.setItem(READS_KEY(uid), JSON.stringify(map));
+}
+
+export function countUnreadChats(uid: string, chats: Chat[]): number {
+  const map = getReadMap(uid);
+  return chats.filter((c) => {
+    if (!c.lastMessage || !c.updatedAt) return false;
+    if (c.lastSenderUid === uid) return false; // my own message is never unread
+    return c.updatedAt.getTime() > (map[c.id] ?? 0);
+  }).length;
 }
 
 export function subscribeToMessages(
@@ -101,6 +128,7 @@ export function subscribeToUserChats(
           route: d.data().route as string,
           participantNames: d.data().participantNames as Record<string, string>,
           lastMessage: d.data().lastMessage as string,
+          lastSenderUid: (d.data().lastSenderUid as string | undefined) ?? undefined,
           updatedAt: d.data().updatedAt?.toDate() ?? null,
         })),
       );
