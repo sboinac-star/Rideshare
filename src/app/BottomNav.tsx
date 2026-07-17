@@ -165,7 +165,7 @@ export default function BottomNav() {
                   boxShadow: active ? `0 4px 12px ${color}66` : "none",
                 }}
               >
-                <span style={{ color: active ? "#ffffff" : "#94a3b8", display: "flex" }}>
+                <span style={{ color: active ? "#ffffff" : color, opacity: active ? 1 : 0.65, display: "flex" }}>
                   {active ? <Icon /> : <IconOutline />}
                 </span>
 
@@ -188,7 +188,7 @@ export default function BottomNav() {
               {/* Label */}
               <span
                 className="text-[10px] font-bold leading-none transition-all duration-200"
-                style={{ color: active ? color : "#9ca3af" }}
+                style={{ color: active ? color : color, opacity: active ? 1 : 0.6 }}
               >
                 {label}
               </span>
