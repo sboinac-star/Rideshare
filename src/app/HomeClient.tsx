@@ -861,7 +861,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       <FeedbackButton />
 
       {/* FAB — mobile post button */}
-      <div className="sm:hidden fixed bottom-20 right-4 z-30 flex flex-col items-end gap-2">
+      <div className="sm:hidden fixed right-4 z-30 flex flex-col items-end gap-2" style={{ bottom: "calc(4.5rem + env(safe-area-inset-bottom))" }}>
         <Link
           href="/driver"
           className="flex items-center gap-2 bg-blue-600 text-white font-bold px-4 py-3 rounded-2xl shadow-lg active:scale-95 transition-transform text-sm"
