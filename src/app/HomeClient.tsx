@@ -21,10 +21,11 @@ type QuickFilter = "all" | "today" | "weekend" | "local";
 type HomeTab = "rides" | "requests";
 type SortBy = "soonest" | "seats";
 
-function CityInput({ value, onChange, placeholder }: {
+function CityInput({ value, onChange, placeholder, inputClass }: {
   value: string;
   onChange: (val: string) => void;
   placeholder: string;
+  inputClass?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -49,7 +50,7 @@ function CityInput({ value, onChange, placeholder }: {
         placeholder={placeholder}
         onFocus={() => setOpen(true)}
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={inputClass ?? "w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"}
       />
       {open && (
         <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -484,113 +485,87 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
         </div>
       ))}
 
-      {/* ── HERO / SEARCH ── */}
-      <div className="bg-blue-600 sm:bg-gradient-to-b sm:from-blue-50 sm:to-white sm:border-b sm:border-blue-100">
-        <div className="max-w-4xl mx-auto px-4 pt-4 pb-5 sm:pt-8 sm:pb-10">
-
-          {/* Desktop headline only */}
-          <div className="hidden sm:block text-center mb-6">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-1">
-              Find a Ride. Share the Journey.
-            </h1>
-            <p className="text-gray-500 text-sm max-w-lg mx-auto">
-              Free carpooling across NWA and beyond.
-            </p>
-          </div>
-
-          {/* Search card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4">
-            {/* Mobile: stacked From/To with swap feel */}
-            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2.5 mb-3">
-              <div className="relative">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">From</label>
-                <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="Departure city" />
-              </div>
-              {/* Mobile arrow */}
-              <div className="sm:hidden flex items-center justify-center -my-0.5">
-                <div className="flex items-center gap-2 w-full">
-                  <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-gray-300 text-xs">↓</span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">To</label>
-                <CityInput value={searchTo} onChange={setSearchTo} placeholder="Destination city" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Date</label>
-                  {searchDate && (
-                    <button type="button" onClick={() => setSearchDate("")} className="text-[10px] text-blue-600 font-semibold">Clear</button>
-                  )}
-                </div>
-                <input
-                  type="date"
-                  value={searchDate}
-                  onChange={(e) => setSearchDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Quick filters */}
-            <div className="flex items-center gap-1.5 pt-2.5 border-t border-gray-100 flex-wrap">
-              {(["all", "today", "weekend", "local"] as QuickFilter[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setQuickFilter(f)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                    quickFilter === f
-                      ? f === "local" ? "bg-green-600 text-white border-green-600" : "bg-blue-600 text-white border-blue-600"
-                      : f === "local" ? "text-green-700 border-green-200 hover:bg-green-50" : "text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-600"
-                  }`}
-                >
-                  {f === "all" ? "All" : f === "today" ? "Today" : f === "weekend" ? "This Weekend" : "📍 Local"}
-                </button>
-              ))}
-              <div className="ml-auto hidden sm:flex gap-3">
-                <Link href="/driver" className="text-xs font-bold text-blue-600 hover:text-blue-800">+ Post Journey</Link>
-                <Link href="/passenger" className="text-xs font-bold text-violet-600 hover:text-violet-800">+ Request Ride</Link>
-              </div>
+      {/* ── SEARCH BAR ── */}
+      <div className="bg-white border-b border-gray-100 px-3 py-2.5 sticky top-14 z-30 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
+          {/* From pill */}
+          <div className="flex-1 min-w-0 relative">
+            <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-2">
+              <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+              <CityInput value={searchFrom} onChange={setSearchFrom} placeholder="From" inputClass="bg-transparent text-sm text-gray-800 placeholder-gray-400 w-full focus:outline-none font-medium" />
             </div>
           </div>
+          {/* Arrow */}
+          <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          {/* To pill */}
+          <div className="flex-1 min-w-0 relative">
+            <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-2">
+              <svg className="w-3.5 h-3.5 text-red-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <CityInput value={searchTo} onChange={setSearchTo} placeholder="To" inputClass="bg-transparent text-sm text-gray-800 placeholder-gray-400 w-full focus:outline-none font-medium" />
+            </div>
+          </div>
+          {/* Date button */}
+          <div className="relative shrink-0">
+            <label className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 rounded-xl px-3 py-2 cursor-pointer transition">
+              <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span className="text-xs text-gray-600 font-medium">{searchDate ? new Date(searchDate + "T12:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Date"}</span>
+              <input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full" />
+            </label>
+            {searchDate && (
+              <button onClick={() => setSearchDate("")} className="absolute -top-1 -right-1 bg-gray-400 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[9px] font-bold">×</button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick filter chips */}
+        <div className="max-w-4xl mx-auto flex gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-0.5">
+          {(["all", "today", "weekend", "local"] as QuickFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setQuickFilter(f)}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                quickFilter === f
+                  ? f === "local" ? "bg-green-600 text-white" : "bg-blue-600 text-white"
+                  : f === "local" ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {f === "all" ? "All" : f === "today" ? "Today" : f === "weekend" ? "Weekend" : "📍 Local"}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ── LISTINGS SECTION ── */}
-      <div className="max-w-4xl mx-auto px-4 pt-6 pb-10">
+      <div className="max-w-4xl mx-auto px-3 pt-3 pb-10">
 
         {/* Tab bar + sort */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             <button
               onClick={() => setActiveTab("rides")}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all border shadow-sm ${
-                activeTab === "rides"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === "rides" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500"
               }`}
             >
-              Rides {!loading && <span className="ml-1 opacity-80">({filteredJourneys.length})</span>}
+              🚗 Rides {!loading && <span className="text-xs font-normal opacity-70">({filteredJourneys.length})</span>}
             </button>
             <button
               onClick={() => setActiveTab("requests")}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all border shadow-sm ${
-                activeTab === "requests"
-                  ? "bg-violet-600 text-white border-violet-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600"
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === "requests" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500"
               }`}
             >
-              Requests {!requestsLoading && <span className="ml-1 opacity-80">({filteredRequests.length})</span>}
+              🙋 Requests {!requestsLoading && <span className="text-xs font-normal opacity-70">({filteredRequests.length})</span>}
             </button>
           </div>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none"
           >
-            <option value="soonest">Soonest first</option>
+            <option value="soonest">Soonest</option>
             <option value="seats">Most seats</option>
           </select>
         </div>
@@ -884,6 +859,28 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
         </div>
       )}
       <FeedbackButton />
+
+      {/* FAB — mobile post button */}
+      <div className="sm:hidden fixed bottom-20 right-4 z-30 flex flex-col items-end gap-2">
+        <Link
+          href="/driver"
+          className="flex items-center gap-2 bg-blue-600 text-white font-bold px-4 py-3 rounded-2xl shadow-lg active:scale-95 transition-transform text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Offer a ride
+        </Link>
+        <Link
+          href="/passenger"
+          className="flex items-center gap-2 bg-violet-600 text-white font-bold px-4 py-3 rounded-2xl shadow-lg active:scale-95 transition-transform text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Need a ride
+        </Link>
+      </div>
     </div>
   );
 }

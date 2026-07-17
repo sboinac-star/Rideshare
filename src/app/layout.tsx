@@ -75,7 +75,7 @@ export default function RootLayout({
             <PageTracker />
             <NavHeader />
             <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-            <SiteFooter />
+            <div className="hidden sm:block"><SiteFooter /></div>
             <BottomNav />
           </ToastProvider>
         </AuthProvider>
