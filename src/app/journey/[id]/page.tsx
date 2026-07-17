@@ -7,6 +7,7 @@ import JourneyContact from "@/features/chat/JourneyContact";
 import DeleteListingButton from "@/features/listings/DeleteListingButton";
 import StarRating from "@/app/StarRating";
 import RateButton from "@/app/RateButton";
+import ReportButton from "@/app/ReportButton";
 
 async function fetchJourney(id: string): Promise<Journey | null> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -155,6 +156,9 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
                   journeyId={journey.id}
                 />
               )}
+              <div className="flex justify-end pt-2">
+                <ReportButton listingId={journey.id} listingType="journey" />
+              </div>
             </>
           ) : (
             <div className="border-t border-gray-100 pt-5">

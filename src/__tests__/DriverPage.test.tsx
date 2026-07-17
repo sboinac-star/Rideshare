@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
-const mockUser = { uid: "user-123", phoneNumber: "+15005550001" };
+const mockUser = { uid: "user-123", phoneNumber: "+15005550001", getIdToken: vi.fn().mockResolvedValue("mock-token") };
 const mockToast = vi.hoisted(() => vi.fn());
 const mockAddDoc = vi.hoisted(() => vi.fn().mockResolvedValue({ id: "new-journey-id" }));
 const mockUpdateDoc = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
@@ -192,11 +192,20 @@ describe("DriverPage", () => {
   });
 
   it("cancels a journey", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: true }) });
+    vi.stubGlobal("fetch", mockFetch);
     setupJourneySnapshot();
     const { default: DriverPage } = await import("@/app/driver/page");
     render(<DriverPage />);
-    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /cancel/i })));
-    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "cancelled" }));
+    await waitFor(() => fireEvent.click(screen.getByRole("button", { name: /^cancel$/i })));
+    // CancelModal appears — select a reason then confirm
+    const modal = await waitFor(() => screen.getByRole("heading", { name: "Cancel journey" }).closest("div")!.parentElement!);
+    fireEvent.change(modal.querySelector("select")!, { target: { value: "Plans changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel journey/i }));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(
+      "/api/cancel",
+      expect.objectContaining({ method: "POST" })
+    ));
   });
 
   it("deletes a journey", async () => {

@@ -28,6 +28,7 @@ export default function SiteFooter() {
             <Link href="/driver" className="hover:text-gray-800 transition">Post Journey</Link>
             <Link href="/passenger" className="hover:text-gray-800 transition">Request Ride</Link>
             <Link href="/resources" className="hover:text-gray-800 transition">Resources</Link>
+            <Link href="/safety" className="hover:text-blue-700 transition font-medium text-blue-600">🛡️ Safety</Link>
             <Link href="/about" className="hover:text-gray-800 transition">About</Link>
           </nav>
         </div>

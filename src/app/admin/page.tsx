@@ -30,7 +30,7 @@ type Stats = {
   oneTimeUsers: number;
   totalUsers: number;
 };
-type Listing = { id: string; type: "journey" | "request"; uid?: string; driverName?: string; passengerName?: string; driverPhone?: string; passengerPhone?: string; from: string; to: string; departureTime: string; status: string };
+type Listing = { id: string; type: "journey" | "request"; uid?: string; driverName?: string; passengerName?: string; driverPhone?: string; passengerPhone?: string; from: string; to: string; departureTime: string; status: string; cancelReason?: string };
 type Report = { id: string; journeyId: string; reason: string; resolved?: boolean; listing?: Listing | null };
 type AdminChat = { id: string; participants: string[]; participantNames: Record<string, string>; route: string; lastMessage: string; updatedAt: string | null; listingType: string };
 type AdminUser = { uid: string; phone: string; name: string; journeys: number; requests: number; blocked: boolean };
@@ -349,6 +349,9 @@ function Listings({ user }: { user: NonNullable<ReturnType<typeof useAuth>["user
                   </div>
                   <p className="text-sm text-gray-600">{name} · {phone}</p>
                   <p className="text-xs text-gray-400">{formatDateTime(l.departureTime)}</p>
+                  {l.status === "cancelled" && l.cancelReason && (
+                    <p className="text-xs text-red-500 mt-0.5">Reason: {l.cancelReason}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => handleDelete(collection, l.id)}

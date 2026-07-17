@@ -67,11 +67,14 @@ describe("CompletionPromptModal", () => {
     fireEvent.click(completedButtons[0]);
     const didNotHappenButtons = screen.getAllByRole("button", { name: /did not happen/i });
     fireEvent.click(didNotHappenButtons[1]);
+    // Reason dropdown appears — select a reason
+    const selects = screen.getAllByRole("combobox");
+    fireEvent.change(selects[selects.length - 1], { target: { value: "Plans changed" } });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => {
       expect(mockUpdateDoc).toHaveBeenCalledTimes(2);
       expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "journeys", id: "j1" }, { status: "completed" });
-      expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "requests", id: "r1" }, { status: "cancelled" });
+      expect(mockUpdateDoc).toHaveBeenCalledWith({ col: "requests", id: "r1" }, { status: "cancelled", cancelReason: "Plans changed" });
     });
     expect(onDone).toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith("Thanks for updating your ride status!");

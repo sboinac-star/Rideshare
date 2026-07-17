@@ -53,10 +53,7 @@ export default function LocationInput({ value, onChange, placeholder = "Search a
     setFetching(true);
     try {
       const query = cityHint ? `${q}, ${cityHint}` : q;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`,
-        { headers: { "Accept-Language": "en-US,en", "User-Agent": "NWARideShare/1.0 (nwa-rideshare.vercel.app)" } }
-      );
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
       const data: NominatimResult[] = await res.json();
       const labels = [...new Set(data.map(formatResult))].slice(0, 5);
       setSuggestions(labels);

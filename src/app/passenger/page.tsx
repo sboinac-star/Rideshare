@@ -13,6 +13,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
+import CancelModal from "@/app/CancelModal";
 
 export default function PassengerPage() {
   const toast = useToast();
@@ -29,6 +30,7 @@ export default function PassengerPage() {
   const [editData, setEditData] = useState({ departureTime: "", seatsNeeded: 1, bufferHours: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
 
   const [newRequest, setNewRequest] = useState({
     passengerName: "",
@@ -42,6 +44,8 @@ export default function PassengerPage() {
     returnTime: "",
     bufferHours: 1,
     returnBufferHours: 1,
+    category: "" as string,
+    eventName: "",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -52,6 +56,18 @@ export default function PassengerPage() {
   const [minTime, setMinTime] = useState("");
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    user.getIdToken().then((token) =>
+      fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { displayName?: string }) => {
+          if (d.displayName) setNewRequest((r) => r.passengerName ? r : { ...r, passengerName: d.displayName! });
+        })
+        .catch(() => {})
+    );
+  }, [user]);
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -99,7 +115,7 @@ export default function PassengerPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "", bufferHours: 1, returnBufferHours: 1 });
+      setNewRequest({ passengerName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", seatsNeeded: 1, roundTrip: false, returnTime: "", bufferHours: 1, returnBufferHours: 1, category: "", eventName: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -157,13 +173,20 @@ export default function PassengerPage() {
     await doPostRequest();
   };
 
-  const handleCancelRequest = async (requestId: string) => {
-    if (!confirm("Are you sure you want to cancel this request?")) return;
+  const handleCancelRequest = async (requestId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("requests"), requestId), { status: "cancelled" });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: requestId, listingType: "request", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Request cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -241,6 +264,13 @@ export default function PassengerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {cancelTarget && (
+        <CancelModal
+          listingType="request"
+          onConfirm={(reason) => handleCancelRequest(cancelTarget, reason)}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
       {showCompletionPrompt && pendingItems.length > 0 && (
         <CompletionPromptModal
           items={pendingItems}
@@ -252,7 +282,13 @@ export default function PassengerPage() {
       )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Request a Ride</h1>
+          <div className="flex items-center gap-3">
+            <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-xl shadow-lg shadow-purple-200">🙋</span>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">Request a Ride</h1>
+              <p className="text-xs text-purple-600 font-semibold">Need a lift? Just ask</p>
+            </div>
+          </div>
           <span className="text-sm text-gray-500">
             {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
           </span>
@@ -503,6 +539,43 @@ export default function PassengerPage() {
                 </>
               )}
 
+              {/* Ride Purpose */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Ride Purpose</label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { id: "school", label: "🎒 School Run" },
+                    { id: "event", label: "🎉 Event" },
+                    { id: "commute", label: "💼 Commute" },
+                    { id: "shopping", label: "🛒 Shopping" },
+                    { id: "longhaul", label: "🛣️ Long Haul" },
+                    { id: "other", label: "✨ Other" },
+                  ] as { id: string; label: string }[]).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNewRequest({ ...newRequest, category: newRequest.category === id ? "" : id })}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        newRequest.category === id
+                          ? "bg-purple-600 text-white border-purple-600"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {newRequest.category === "event" && (
+                  <input
+                    type="text"
+                    placeholder="Event name (e.g. Walmart Shareholders Meeting)"
+                    value={newRequest.eventName}
+                    onChange={(e) => setNewRequest({ ...newRequest, eventName: e.target.value })}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={submitting}
@@ -607,7 +680,7 @@ export default function PassengerPage() {
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleCancelRequest(req.id)}
+                                    onClick={() => setCancelTarget(req.id)}
                                     className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Cancel

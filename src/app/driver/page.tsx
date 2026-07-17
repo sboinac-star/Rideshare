@@ -13,6 +13,7 @@ import { useToast } from "@/app/ToastProvider";
 import { useAuth } from "@/app/AuthProvider";
 import SignInModal from "@/app/SignInModal";
 import CompletionPromptModal, { getPendingCompletionItems } from "@/app/CompletionPromptModal";
+import CancelModal from "@/app/CancelModal";
 
 export default function DriverPage() {
   const toast = useToast();
@@ -29,6 +30,7 @@ export default function DriverPage() {
   const [editData, setEditData] = useState({ departureTime: "", bufferHours: 1, availableSeats: 1 });
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
 
   const [newJourney, setNewJourney] = useState({
     driverName: "",
@@ -42,6 +44,8 @@ export default function DriverPage() {
     roundTrip: false,
     returnTime: "",
     returnBufferHours: 1,
+    category: "" as string,
+    eventName: "",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -52,6 +56,18 @@ export default function DriverPage() {
   const [minTime, setMinTime] = useState("");
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    user.getIdToken().then((token) =>
+      fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d: { displayName?: string }) => {
+          if (d.displayName) setNewJourney((j) => j.driverName ? j : { ...j, driverName: d.displayName! });
+        })
+        .catch(() => {})
+    );
+  }, [user]);
 
   const validateName = (value: string) => {
     if (!value) return "Name is required";
@@ -99,7 +115,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1 });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1, category: "", eventName: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -157,13 +173,20 @@ export default function DriverPage() {
     await doPostJourney();
   };
 
-  const handleCancelJourney = async (journeyId: string) => {
-    if (!confirm("Are you sure you want to cancel this journey?")) return;
+  const handleCancelJourney = async (journeyId: string, reason: string) => {
     try {
-      await updateDoc(doc(db, col("journeys"), journeyId), { status: "cancelled" });
+      const token = await user!.getIdToken();
+      const res = await fetch("/api/cancel", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: journeyId, listingType: "journey", reason }),
+      });
+      if (!res.ok) throw new Error();
       toast("Journey cancelled.");
     } catch {
       toast("Failed to cancel. Please try again.", "error");
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -241,6 +264,13 @@ export default function DriverPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {cancelTarget && (
+        <CancelModal
+          listingType="journey"
+          onConfirm={(reason) => handleCancelJourney(cancelTarget, reason)}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
       {showCompletionPrompt && pendingItems.length > 0 && (
         <CompletionPromptModal
           items={pendingItems}
@@ -252,7 +282,13 @@ export default function DriverPage() {
       )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Post a Journey</h1>
+          <div className="flex items-center gap-3">
+            <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-xl shadow-lg shadow-green-200">🚗</span>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">Post a Journey</h1>
+              <p className="text-xs text-green-600 font-semibold">Offer seats, share the road</p>
+            </div>
+          </div>
           <span className="text-sm text-gray-500">
             {user.phoneNumber ? `●●●● ${user.phoneNumber.slice(-4)}` : ""}
           </span>
@@ -504,6 +540,43 @@ export default function DriverPage() {
                 </>
               )}
 
+              {/* Ride Category */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Ride Purpose</label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { id: "school", label: "🎒 School Run" },
+                    { id: "event", label: "🎉 Event" },
+                    { id: "commute", label: "💼 Commute" },
+                    { id: "shopping", label: "🛒 Shopping" },
+                    { id: "longhaul", label: "🛣️ Long Haul" },
+                    { id: "other", label: "✨ Other" },
+                  ] as { id: string; label: string }[]).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNewJourney({ ...newJourney, category: newJourney.category === id ? "" : id })}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        newJourney.category === id
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {newJourney.category === "event" && (
+                  <input
+                    type="text"
+                    placeholder="Event name (e.g. Downtown 1st Friday)"
+                    value={newJourney.eventName}
+                    onChange={(e) => setNewJourney({ ...newJourney, eventName: e.target.value })}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={submitting}
@@ -608,7 +681,7 @@ export default function DriverPage() {
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleCancelJourney(journey.id)}
+                                    onClick={() => setCancelTarget(journey.id)}
                                     className="text-sm bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition"
                                   >
                                     Cancel
