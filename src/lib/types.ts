@@ -1,3 +1,5 @@
+export type RideCategory = "school" | "event" | "commute" | "shopping" | "longhaul" | "other";
+
 export interface Journey {
   id: string;
   uid?: string;
@@ -15,6 +17,8 @@ export interface Journey {
   roundTrip?: boolean;
   returnTime?: string;
   recurring?: "none" | "weekly" | "weekdays";
+  category?: RideCategory;
+  eventName?: string;
 }
 
 export interface RideRequest {
@@ -33,6 +37,8 @@ export interface RideRequest {
   status: string;
   roundTrip?: boolean;
   returnTime?: string;
+  category?: RideCategory;
+  eventName?: string;
 }
 
 export interface Message {

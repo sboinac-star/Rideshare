@@ -44,6 +44,8 @@ export default function DriverPage() {
     roundTrip: false,
     returnTime: "",
     returnBufferHours: 1,
+    category: "" as string,
+    eventName: "",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -113,7 +115,7 @@ export default function DriverPage() {
         createdAt: serverTimestamp(),
       });
       setSuccessId(ref.id);
-      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1 });
+      setNewJourney({ driverName: "", from: "", to: "", pickupAddress: "", dropoffAddress: "", departureTime: "", bufferHours: 1, availableSeats: 1, roundTrip: false, returnTime: "", returnBufferHours: 1, category: "", eventName: "" });
       setFromCustom(false);
       setToCustom(false);
       setNameError("");
@@ -531,6 +533,43 @@ export default function DriverPage() {
                   )}
                 </>
               )}
+
+              {/* Ride Category */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Ride Purpose</label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { id: "school", label: "🎒 School Run" },
+                    { id: "event", label: "🎉 Event" },
+                    { id: "commute", label: "💼 Commute" },
+                    { id: "shopping", label: "🛒 Shopping" },
+                    { id: "longhaul", label: "🛣️ Long Haul" },
+                    { id: "other", label: "✨ Other" },
+                  ] as { id: string; label: string }[]).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNewJourney({ ...newJourney, category: newJourney.category === id ? "" : id })}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        newJourney.category === id
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {newJourney.category === "event" && (
+                  <input
+                    type="text"
+                    placeholder="Event name (e.g. Downtown 1st Friday)"
+                    value={newJourney.eventName}
+                    onChange={(e) => setNewJourney({ ...newJourney, eventName: e.target.value })}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
 
               <button
                 type="submit"

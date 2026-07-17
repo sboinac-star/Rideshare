@@ -80,29 +80,30 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="flex h-16">
+      <div className="flex h-16 px-1">
         {links.map(({ href, label, Icon, badge }) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
-                active ? "text-blue-600" : "text-gray-400 active:text-gray-600"
-              }`}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-all"
             >
-              {active && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />}
-              <div className="relative">
-                <Icon active={active} />
+              <div className={`relative flex items-center justify-center rounded-2xl transition-all duration-200 ${
+                active ? "bg-blue-600 w-14 h-8 shadow-md shadow-blue-200" : "w-10 h-8"
+              }`}>
+                <span className={active ? "text-white" : "text-gray-400"}>
+                  <Icon active={active} />
+                </span>
                 {badge ? (
-                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[15px] h-3.5 flex items-center justify-center px-0.5 shadow-sm">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null}
               </div>
-              <span className={`text-[10px] font-semibold leading-none ${active ? "text-blue-600" : "text-gray-400"}`}>
+              <span className={`text-[10px] font-semibold leading-none transition-colors ${active ? "text-blue-600" : "text-gray-400"}`}>
                 {label}
               </span>
             </Link>

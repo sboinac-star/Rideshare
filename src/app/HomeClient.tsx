@@ -21,6 +21,7 @@ const TEST_UIDS = ["test-user-1", "test-user-2"];
 type QuickFilter = "all" | "today" | "weekend" | "local";
 type HomeTab = "rides" | "requests";
 type SortBy = "soonest" | "seats";
+type CategoryFilter = "all" | "school" | "event" | "commute" | "shopping" | "longhaul";
 
 function CityInput({ value, onChange, placeholder, inputClass }: {
   value: string;
@@ -303,6 +304,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [searchTo, setSearchTo] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [loading, setLoading] = useState(initialJourneys.length === 0);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [reportJourney, setReportJourney] = useState<Journey | null>(null);
@@ -406,10 +408,13 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
       return a.departureTime > b.departureTime ? 1 : -1;
     });
 
-  const filteredJourneys = sort(applyFilters(journeys)).filter((j) => !blockedUids.has(j.uid ?? ""));
-  const filteredRequests = sort(applyFilters(requests)).filter((r) => !blockedUids.has(r.uid ?? ""));
+  const applyCategoryFilter = <T extends { category?: string }>(items: T[]) =>
+    categoryFilter === "all" ? items : items.filter((i) => i.category === categoryFilter);
 
-  const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all";
+  const filteredJourneys = applyCategoryFilter(sort(applyFilters(journeys)).filter((j) => !blockedUids.has(j.uid ?? "")));
+  const filteredRequests = applyCategoryFilter(sort(applyFilters(requests)).filter((r) => !blockedUids.has(r.uid ?? "")));
+
+  const hasFilters = searchFrom || searchTo || searchDate || quickFilter !== "all" || categoryFilter !== "all";
 
   const handleShare = async (journey: Journey) => {
     const url = `${window.location.origin}/journey/${journey.id}`;
@@ -570,6 +575,33 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
             </button>
           ))}
         </div>
+
+        {/* Category spotlight strip */}
+        <div className="max-w-4xl mx-auto mt-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2 w-max">
+            {([
+              { id: "all", emoji: "🗺️", label: "All rides" },
+              { id: "school", emoji: "🎒", label: "School Run" },
+              { id: "event", emoji: "🎉", label: "Events" },
+              { id: "commute", emoji: "💼", label: "Commute" },
+              { id: "shopping", emoji: "🛒", label: "Shopping" },
+              { id: "longhaul", emoji: "🛣️", label: "Long Haul" },
+            ] as { id: CategoryFilter; emoji: string; label: string }[]).map(({ id, emoji, label }) => (
+              <button
+                key={id}
+                onClick={() => setCategoryFilter(id)}
+                className={`shrink-0 flex flex-col items-center gap-1 px-3 pt-2 pb-1.5 rounded-xl border transition-all ${
+                  categoryFilter === id
+                    ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-blue-200"
+                }`}
+              >
+                <span className="text-xl leading-none">{emoji}</span>
+                <span className="text-[10px] font-semibold whitespace-nowrap">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── LISTINGS SECTION ── */}
@@ -626,7 +658,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                 </p>
                 {hasFilters && (
                   <button
-                    onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }}
+                    onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); setCategoryFilter("all"); }}
                     className="text-sm text-blue-600 hover:underline"
                   >
                     Clear all filters
@@ -738,7 +770,7 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
                   <Link href="/passenger" className="text-violet-600 hover:underline font-semibold">Post a request</Link>
                 </p>
                 {hasFilters && (
-                  <button onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); }} className="text-sm text-blue-600 hover:underline">
+                  <button onClick={() => { setSearchFrom(""); setSearchTo(""); setSearchDate(""); setQuickFilter("all"); setCategoryFilter("all"); }} className="text-sm text-blue-600 hover:underline">
                     Clear all filters
                   </button>
                 )}

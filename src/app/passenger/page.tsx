@@ -44,6 +44,8 @@ export default function PassengerPage() {
     returnTime: "",
     bufferHours: 1,
     returnBufferHours: 1,
+    category: "" as string,
+    eventName: "",
   });
   const [tripType, setTripType] = useState<"longdistance" | "local">("longdistance");
   const [localCity, setLocalCity] = useState("");
@@ -530,6 +532,43 @@ export default function PassengerPage() {
                   )}
                 </>
               )}
+
+              {/* Ride Purpose */}
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Ride Purpose</label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { id: "school", label: "🎒 School Run" },
+                    { id: "event", label: "🎉 Event" },
+                    { id: "commute", label: "💼 Commute" },
+                    { id: "shopping", label: "🛒 Shopping" },
+                    { id: "longhaul", label: "🛣️ Long Haul" },
+                    { id: "other", label: "✨ Other" },
+                  ] as { id: string; label: string }[]).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNewRequest({ ...newRequest, category: newRequest.category === id ? "" : id })}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        newRequest.category === id
+                          ? "bg-purple-600 text-white border-purple-600"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {newRequest.category === "event" && (
+                  <input
+                    type="text"
+                    placeholder="Event name (e.g. Walmart Shareholders Meeting)"
+                    value={newRequest.eventName}
+                    onChange={(e) => setNewRequest({ ...newRequest, eventName: e.target.value })}
+                    className={`mt-2 ${inputClass}`}
+                  />
+                )}
+              </div>
 
               <button
                 type="submit"
