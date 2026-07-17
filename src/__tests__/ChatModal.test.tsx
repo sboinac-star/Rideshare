@@ -15,6 +15,7 @@ vi.mock("@/lib/chat", () => ({
   sendMessage: (...a: unknown[]) => mockSendMessage(...a),
   subscribeToMessages: (...a: unknown[]) => mockSubscribeToMessages(...a),
   lookupUserName: (...a: unknown[]) => mockLookupUserName(...a),
+  markChatRead: () => {},
 }));
 
 const defaultProps = {

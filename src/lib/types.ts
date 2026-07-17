@@ -64,5 +64,6 @@ export interface Chat {
   route: string;
   participantNames: Record<string, string>;
   lastMessage: string;
+  lastSenderUid?: string;
   updatedAt: Date | null;
 }
