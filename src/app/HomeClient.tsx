@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import { collection, query, onSnapshot, where, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { locations } from "@/lib/constants";
+import { locations, featuredEvent, isFeaturedEventActive } from "@/lib/constants";
 import { formatDateTime, formatTimeWindow, isPast, isToday, isThisWeekend, shareText, shareRequestText, relativeTime } from "@/lib/utils";
 import { Journey, RideRequest } from "@/lib/types";
 import { useToast } from "@/app/ToastProvider";
@@ -319,6 +319,12 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [hideEventBanner, setHideEventBanner] = useState(true);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHideEventBanner(localStorage.getItem("nwa_hideEvent_" + featuredEvent.name) === "1");
+  }, []);
 
   useEffect(() => {
     if (!user) { setDisplayName(null); setOnboardingChecked(false); return; }
@@ -524,6 +530,32 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
           <button onClick={() => setDismissedAnnouncements((p) => new Set([...p, a.id]))} className="shrink-0 opacity-70 hover:opacity-100 text-lg leading-none mt-0.5">×</button>
         </div>
       ))}
+
+      {/* ── FEATURED EVENT ── */}
+      {isFeaturedEventActive() && !hideEventBanner && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center gap-3">
+            <span className="text-2xl shrink-0">{featuredEvent.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm leading-tight truncate">{featuredEvent.name}</p>
+              <p className="text-xs text-orange-100">{featuredEvent.dateLabel} · {featuredEvent.venue}</p>
+            </div>
+            <button
+              onClick={() => { setCategoryFilter("event"); setActiveTab("rides"); }}
+              className="shrink-0 bg-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm hover:bg-orange-50 transition"
+            >
+              Find rides
+            </button>
+            <button
+              onClick={() => { setHideEventBanner(true); localStorage.setItem("nwa_hideEvent_" + featuredEvent.name, "1"); }}
+              className="shrink-0 opacity-70 hover:opacity-100 text-lg leading-none"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── SEARCH BAR ── */}
       <div className="bg-white border-b border-gray-100 px-3 py-2.5 sticky top-14 z-30 shadow-sm">

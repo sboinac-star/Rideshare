@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { db, col } from "@/lib/firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
-import { locations } from "@/lib/constants";
+import { locations, featuredEvent, isFeaturedEventActive } from "@/lib/constants";
 import LocationInput from "@/app/LocationInput";
 import DateTimePicker from "@/app/DateTimePicker";
 import { formatDateTime, formatTimeWindow, addHours, minDepartureTime, shareRequestText } from "@/lib/utils";
@@ -566,13 +566,29 @@ export default function PassengerPage() {
                   ))}
                 </div>
                 {newRequest.category === "event" && (
-                  <input
-                    type="text"
-                    placeholder="Event name (e.g. Walmart Shareholders Meeting)"
-                    value={newRequest.eventName}
-                    onChange={(e) => setNewRequest({ ...newRequest, eventName: e.target.value })}
-                    className={`mt-2 ${inputClass}`}
-                  />
+                  <>
+                    {isFeaturedEventActive() && newRequest.eventName !== featuredEvent.shortName && (
+                      <button
+                        type="button"
+                        onClick={() => setNewRequest({ ...newRequest, eventName: featuredEvent.shortName })}
+                        className="mt-2 flex items-center gap-2 w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-left hover:border-orange-400 transition"
+                      >
+                        <span className="text-lg">{featuredEvent.emoji}</span>
+                        <span className="flex-1">
+                          <span className="block text-sm font-semibold text-orange-800">{featuredEvent.name}</span>
+                          <span className="block text-xs text-orange-600">{featuredEvent.dateLabel} · {featuredEvent.venue}</span>
+                        </span>
+                        <span className="text-xs font-bold text-orange-600">Tap to use</span>
+                      </button>
+                    )}
+                    <input
+                      type="text"
+                      placeholder="Event name (e.g. Walmart Shareholders Meeting)"
+                      value={newRequest.eventName}
+                      onChange={(e) => setNewRequest({ ...newRequest, eventName: e.target.value })}
+                      className={`mt-2 ${inputClass}`}
+                    />
+                  </>
                 )}
               </div>
 
