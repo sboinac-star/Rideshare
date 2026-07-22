@@ -15,6 +15,7 @@ import FeedbackButton from "@/app/FeedbackButton";
 import { buildChatId } from "@/lib/chat";
 import StarRating from "@/app/StarRating";
 import OnboardingModal from "@/app/OnboardingModal";
+import EventSpotlightModal from "@/app/EventSpotlightModal";
 
 const TEST_UIDS = ["test-user-1", "test-user-2"];
 
@@ -320,11 +321,24 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hideEventBanner, setHideEventBanner] = useState(true);
+  const [showEventSpotlight, setShowEventSpotlight] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHideEventBanner(localStorage.getItem("nwa_hideEvent_" + featuredEvent.name) === "1");
   }, []);
+
+  // Spotlight the event once per day after login, while it's still upcoming
+  useEffect(() => {
+    if (!user || !isFeaturedEventActive()) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `nwa_eventSpotlight_${featuredEvent.name}`;
+    if (localStorage.getItem(key) !== today) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowEventSpotlight(true);
+      localStorage.setItem(key, today);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) { setDisplayName(null); setOnboardingChecked(false); return; }
@@ -522,6 +536,8 @@ export default function HomeClient({ initialJourneys }: { initialJourneys: Journ
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {showEventSpotlight && <EventSpotlightModal onClose={() => setShowEventSpotlight(false)} />}
 
       {/* ── ANNOUNCEMENTS ── */}
       {announcements.filter((a) => !dismissedAnnouncements.has(a.id)).map((a) => (

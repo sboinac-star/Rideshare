@@ -17,8 +17,10 @@ export const featuredEvent = {
   shortName: "Bonalu Celebrations",
   emoji: "🪔",
   venue: "Benton County Fairgrounds",
+  address: "7640 SW Regional Airport Blvd, Bentonville, AR",
   city: "Bentonville",
   dateLabel: "Sun, Jul 26 · 10am–4pm",
+  mapUrl: "https://maps.google.com/?q=Benton+County+Fairgrounds+Bentonville+AR",
   // Banner hides after this date (end of event day, local time)
   endsAt: "2026-07-26T23:59:59",
 };

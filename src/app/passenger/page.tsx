@@ -57,6 +57,14 @@ export default function PassengerPage() {
 
   useEffect(() => { setMinTime(minDepartureTime()); }, []);
 
+  // Deep link from event spotlight: ?event=1 pre-selects the featured event
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("event") === "1" && isFeaturedEventActive()) {
+      setNewRequest((r) => ({ ...r, category: "event", eventName: featuredEvent.shortName }));
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     user.getIdToken().then((token) =>
