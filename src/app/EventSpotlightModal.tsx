@@ -39,7 +39,7 @@ export default function EventSpotlightModal({ onClose }: { onClose: () => void }
 
           <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4 text-xs text-amber-800">
             <span className="text-sm shrink-0">🅿️</span>
-            <span><b>Parking:</b> enter the <b>West gate off Hwy 279</b> for the main lot. (East gate is off Barron Rd.)</span>
+            <span><b>Parking:</b> free on-site. <b>East entrance (Barron Rd)</b> is closest to the Auditorium &amp; Exhibit Hall; <b>West entrance</b> is off Hwy 279.</span>
           </div>
 
           <p className="text-center text-gray-700 font-semibold text-sm mb-4">
